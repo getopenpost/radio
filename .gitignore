@@ -1,0 +1,21 @@
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+.direnv
+.pre-commit-config.yaml
+
+node_modules/
+dist/
+
+# Generated audio, caches and local stream state
+/library/
+/cache/
+/out/
+/tmp/
+*.wav
+*.flac
+
+.env
+.env.*
+!.env.example
