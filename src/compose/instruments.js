@@ -18,7 +18,7 @@ export const PRESETS = [
   p('sub.808', 'sub', ['punchy'], () => '.s("sine").attack(.005).decay(.6).sustain(.7).release(.3).penv(7).pdecay(.06).shape(.2)'),
 
   // Bass: the moving low-register line, 60-400 Hz.
-  p('bass.saw-pluck', 'bass', ['synth', 'dark'], (r) => `.s("sawtooth").attack(.005).decay(.25).sustain(.35).release(.12).lpf(${r.int(26, 40) * 10}).lpenv(${r.step(1.5, 3, 0.5)}).lpdecay(.18).lpq(${r.step(2, 6, 1)}).layer(x => x.pan(.42), x => x.add(note(.1)).pan(.58))`),
+  p('bass.saw-pluck', 'bass', ['synth', 'dark'], (r) => `.s("sawtooth").attack(.005).decay(.25).sustain(.35).release(.12).lpf(${r.int(26, 40) * 10}).lpenv(${r.step(1.5, 3, 0.5)}).lpdecay(.18).lpq(${r.step(2, 6, 1)}).layer(x => x.pan(.3), x => x.add(note(.1)).pan(.7))`),
   p('bass.reese', 'bass', ['synth', 'dark', 'garage'], () => '.s("sawtooth").add(note("0,.18")).attack(.01).sustain(.8).release(.15).lpf(260).lpsync(4).lpdepth(.5).lpq(2)'),
   p('bass.square', 'bass', ['synth', 'soft'], () => '.s("square").attack(.005).decay(.2).sustain(.4).release(.1).lpf(420).lpq(1)'),
   p('bass.fm', 'bass', ['synth', 'wave'], () => '.s("sine").fm(1.5).fmh(.5).fmdecay(.2).fmsustain(.2).attack(.005).decay(.3).sustain(.5).release(.1).lpf(900)'),
@@ -29,19 +29,19 @@ export const PRESETS = [
   p('bass.wave8', 'bass', ['synth', 'wave'], (r) => `.s("sawtooth").attack(.002).decay(.12).sustain(.2).release(.06).lpf(${r.int(5, 8) * 100}).lpenv(2).lpdecay(.1)`),
 
   // Pads: sustained harmony, wide, slow.
-  p('pad.saw-stack', 'pad', ['synth', 'dark', 'wide'], (r) => `.s("sawtooth").attack(1.2).decay(1).sustain(.8).release(3).lpf(${r.int(7, 11) * 100}).lpq(1).layer(x => x.pan(.15), x => x.add(note(.12)).pan(.85))`),
+  p('pad.saw-stack', 'pad', ['synth', 'dark', 'wide'], (r) => `.s("sawtooth").attack(1.2).decay(1).sustain(.8).release(3).lpf(${r.int(7, 11) * 100}).lpq(1).layer(x => x.pan(.1), x => x.add(note(.12)).pan(.9))`),
   p('pad.supersaw', 'pad', ['synth', 'wide', 'wave'], (r) => `.s("supersaw").detune(${r.step(0.15, 0.3, 0.05)}).unison(5).spread(1).attack(1).decay(1).sustain(.8).release(3).lpf(${r.int(6, 10) * 100})`),
   p('pad.square', 'pad', ['synth', 'hollow'], (r) => `.s("square").attack(1.5).sustain(.8).release(3).lpf(${r.int(5, 8) * 100}).layer(x => x.pan(.25), x => x.add(note(.1)).pan(.75))`),
   p('pad.drift', 'pad', ['synth', 'dark', 'moving'], () => '.s("sawtooth").attack(2).sustain(.8).release(4).lpf(700).lpsync(1/8).lpdepth(.5).layer(x => x.pan(.2), x => x.add(note(.07)).pan(.8))'),
   p('pad.vowel', 'pad', ['synth', 'vocal', 'garage'], () => '.s("sawtooth").attack(1).sustain(.8).release(3).vowel("<a o e o>").lpf(1800).layer(x => x.pan(.2), x => x.add(note(.1)).pan(.8))'),
-  p('pad.warm', 'pad', ['soft', 'warm'], () => '.s("gm_pad_warm").attack(.8).release(3).lpf(1600).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
-  p('pad.halo', 'pad', ['soft', 'airy'], () => '.s("gm_pad_halo").attack(1).release(3).lpf(1800).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
-  p('pad.new-age', 'pad', ['soft', 'airy'], () => '.s("gm_pad_new_age").attack(1).release(3).lpf(1600).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
-  p('pad.poly', 'pad', ['synth', 'wave'], () => '.s("gm_pad_poly").attack(.6).release(2.5).lpf(1800).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
-  p('pad.bowed', 'pad', ['soft', 'ambient'], () => '.s("gm_pad_bowed").attack(1.5).release(4).lpf(1500).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
+  p('pad.warm', 'pad', ['soft', 'warm'], () => '.s("gm_pad_warm").attack(.8).release(3).lpf(1600).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
+  p('pad.halo', 'pad', ['soft', 'airy'], () => '.s("gm_pad_halo").attack(1).release(3).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
+  p('pad.new-age', 'pad', ['soft', 'airy'], () => '.s("gm_pad_new_age").attack(1).release(3).lpf(1600).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
+  p('pad.poly', 'pad', ['synth', 'wave'], () => '.s("gm_pad_poly").attack(.6).release(2.5).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
+  p('pad.bowed', 'pad', ['soft', 'ambient'], () => '.s("gm_pad_bowed").attack(1.5).release(4).lpf(1500).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.choir', 'pad', ['vocal', 'airy', 'ambient'], () => '.s("gm_pad_choir").attack(1.2).release(3).lpf(1800).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.strings', 'pad', ['acoustic', 'soft'], () => '.s("gm_string_ensemble_1").attack(1).release(2.5).lpf(1600).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
-  p('pad.synth-strings', 'pad', ['synth', 'wave'], () => '.s("gm_synth_strings_1").attack(.8).release(2.5).lpf(1800).layer(x => x.pan(.2), x => x.add(note(.08)).pan(.8))'),
+  p('pad.synth-strings', 'pad', ['synth', 'wave'], () => '.s("gm_synth_strings_1").attack(.8).release(2.5).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.oohs', 'pad', ['vocal', 'soft'], () => '.s("gm_voice_oohs").attack(.8).release(2.5).lpf(1700).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.organ', 'pad', ['jazzy', 'warm'], () => '.s("gm_drawbar_organ").attack(.4).release(1.5).lpf(1400).layer(x => x.pan(.3), x => x.add(note(.05)).pan(.7))'),
 
@@ -154,12 +154,19 @@ export const presetsByRole = (role) => PRESETS.filter((x) => x.role === role);
 
 /** Pick a preset for a role, preferring ones that share tags with the style. */
 export function pickPreset(rng, role, tags = [], exclude = []) {
-  const pool = presetsByRole(role).filter((x) => !exclude.includes(x.id));
-  return rng.weighted(pool.map((x) => [1 + 4 * x.tags.filter((t) => tags.includes(t)).length, x]));
+  return pickTagged(rng, presetsByRole(role).filter((x) => !exclude.includes(x.id)), tags);
 }
 
 export function pickKit(rng, part, tags = []) {
-  return rng.weighted(KITS[part].map((x) => [1 + 4 * x.tags.filter((t) => tags.includes(t)).length, x]));
+  return pickTagged(rng, KITS[part], tags);
+}
+
+// Only items sharing a tag with the style are eligible (if any do); more
+// shared tags make an item more likely.
+function pickTagged(rng, items, tags) {
+  const scored = items.map((x) => [x.tags.filter((t) => tags.includes(t)).length, x]);
+  const matching = scored.filter(([n]) => n > 0);
+  return rng.weighted((matching.length ? matching : scored).map(([n, x]) => [1 + 2 * n, x]));
 }
 
 /** Gain multiplier that brings a preset to its role's reference loudness. */

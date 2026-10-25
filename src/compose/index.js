@@ -30,7 +30,7 @@ export function composeTrack({ style: styleId, seed, tonic, bpm }) {
   const progressions = pickProgressions(rng, style);
   const key = { tonic: tonic ?? rng.int(0, 11), mode: progressions[0].mode };
   bpm ??= rng.int(style.bpm[0], style.bpm[1]);
-  const title = makeTitle(createRng(seed ^ 0x5eed));
+  const title = makeTitle(createRng((seed ^ hashString(`title:${styleId}`)) >>> 0));
 
   const track = style.compose({ rng, key, bpm, progressions, title });
   const barSeconds = 240 / bpm;

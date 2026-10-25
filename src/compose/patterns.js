@@ -50,9 +50,11 @@ export function bassLine(chords, rhythm, { low = 33, key, legato = false } = {})
         case 'T':
           return nearest(key.tonic, low + 5);
         case 'A': {
-          const target = nearest(next.root, root);
-          // approach from a semitone below, or a whole tone above if that is closer
-          return target === root ? root + 7 : target - 1;
+          // Lead into the note the next bar actually starts on: a semitone
+          // below it, or a tone above when below would leave the register.
+          const target = low + ((((next.root - low) % 12) + 12) % 12);
+          if (target === root) return root + 7;
+          return target - 1 >= low ? target - 1 : target + 2;
         }
         default:
           return root;
