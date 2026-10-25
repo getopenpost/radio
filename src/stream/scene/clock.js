@@ -72,6 +72,8 @@ export function sky(date, timeZone) {
     season: seasonOf(t.month),
     hours: h,
     dayOfYear: t.dayOfYear,
+    month: t.month,
+    day: t.day,
   };
 }
 
@@ -104,8 +106,8 @@ export function weatherAmount(w, kind) {
 // for something. Nights favour the campfire and stargazing.
 const SLOT = 15 * 60000;
 const ACTIVITIES = {
-  day: [[4, 'walk'], [2, 'fish'], [2, 'desk'], [2, 'read']],
-  night: [[4, 'walk'], [2, 'campfire'], [2, 'desk'], [1, 'stargaze'], [1, 'fish']],
+  day: [[4, 'walk'], [2, 'fish'], [2, 'desk'], [2, 'read'], [2, 'fly']],
+  night: [[4, 'walk'], [2, 'campfire'], [2, 'desk'], [1, 'stargaze'], [1, 'fish'], [1, 'fly']],
 };
 
 export function activity(date, light) {

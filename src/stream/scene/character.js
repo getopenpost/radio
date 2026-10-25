@@ -32,6 +32,7 @@ export const SPECIES = {
  * @property {boolean} [headphones]
  * @property {boolean} [beanie]
  * @property {boolean} [scarf]
+ * @property {'aviator'|'witch'} [cap] a flying cap with goggles, or a pointed hat
  * @property {number} [blush]     0..1
  */
 
@@ -158,12 +159,22 @@ export function createCharacters() {
 
     // Head, a beanie over it, ears through the beanie.
     ellipse(hx, hy, 7, 6, sp.fur);
-    if (pose.beanie) {
+    if (pose.beanie && !pose.cap) {
       ellipse(hx, hy - 3, 6.5, 3.5, S.cream);
       fillRect(hx - 6, hy - 2, 13, 2, S.logo);
       ellipse(hx - 1, hy - 7, 1.5, 1.5, S.logo);
     }
-    if (sp.ears === 'pointy') {
+    if (pose.cap === 'aviator') {
+      // Leather cap with goggles pushed up on the forehead.
+      ellipse(hx, hy - 3, 6.8, 3.8, S.bag);
+      fillRect(hx - 7, hy - 2, 2, 5, S.bag);
+      fillRect(hx - 6, hy - 3, 13, 1, S.ink);
+      fillRect(hx + 1, hy - 4, 3, 3, S.paper);
+      fillRect(hx + 4, hy - 4, 3, 3, S.paper);
+      put(hx + 2, hy - 3, S.screen);
+      put(hx + 5, hy - 3, S.screen);
+    }
+    if (sp.ears === 'pointy' && pose.cap !== 'witch') {
       triangle(hx - 6, hy - 3, hx - 2, hy - 5, hx - 5, hy - 10, sp.fur);
       triangle(hx + 1, hy - 5, hx + 5, hy - 4, hx + 3, hy - 11, sp.fur);
       put(hx - 4, hy - 6, sp.dark);
@@ -234,6 +245,15 @@ export function createCharacters() {
       put(hx + 4, hy + 4, S.blush);
     } else if (mouth === 'o') {
       fillRect(hx + 5, hy + 3, 2, 2, S.ink);
+    }
+
+    if (pose.cap === 'witch') {
+      // A wide brim and a tall crooked cone, the tip bent back by the wind.
+      const bend = Math.round(sway * 1.2);
+      fillRect(hx - 9, hy - 5, 19, 2, S.hat);
+      triangle(hx - 5, hy - 5, hx + 5, hy - 5, hx - 2, hy - 14, S.hat);
+      triangle(hx - 3, hy - 13, hx - 1, hy - 13, hx - 6 - bend, hy - 18, S.hat);
+      fillRect(hx - 4, hy - 7, 9, 2, S.logo);
     }
 
     if (pose.headphones) {

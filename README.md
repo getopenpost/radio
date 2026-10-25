@@ -115,17 +115,21 @@ now start in phase with each note.
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
-- **Scene** (`src/stream/scene`): a 640x360 landscape drawn in palette slots
-  and dithered the way OpenPost's Dither material is: two neighbouring
-  colours with a 4x4 Bayer band between solid ends. A fox with a postbag walks
-  it one step per beat. Everything follows the wall clock in Porto: the sun
+- **Scene** (`src/stream/scene`): a 640x360 landscape in dark mode (OpenPost's
+  Dither dark scheme: warm charcoal with the orange-brown signal), drawn in
+  palette slots and dithered the way OpenPost's Dither material is: two
+  neighbouring colours with a 4x4 Bayer band between solid ends. A fox with a
+  postbag walks it one step per beat. Everything follows the wall clock in Porto: the sun
   rises on the right and sets on the left, the moon follows its real phase and
   hours, seasons recolour and rebuild the land (snow, autumn trees, blossom,
   fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
   two hours the walk crosses into new country (hills, alpine, forest, village,
   coast). Every 15 minutes the fox may stop: fishing from a footbridge, working
   at a desk that rises out of the ground (headphones, laptop, lamp), a campfire
-  where friends join, reading on a bench, or stargazing. Planes towing
+  where friends join, reading on a bench, stargazing, or flying: it unfolds a
+  letter from its bag into a paper plane and flies over the hills in an
+  aviator cap, bobbing and waving (on a broom in a pointed hat around
+  Halloween). Planes towing
   encouraging banners, birds, shooting stars, passers-by who wave, and four
   visualizer looks (grass, dithered bars, dot matrix, ridge) that change with
   the track keep it moving. A frame takes about 2 ms to draw.
