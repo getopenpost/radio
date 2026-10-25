@@ -48,13 +48,13 @@ export const garage = makeStyle({
       case 'intro':
         return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
       case 'A':
-        return ['pad(A)', 'pad2(A)', 'sub(subA)', `bass(lineA)${enterAfter(8, bars)}`, 'drums', 'air', 'air2'];
+        return ['pad(A)', 'sub(subA)', `bass(lineA)${enterAfter(8, bars)}`, 'drums', 'air', 'air2'];
       case 'B':
-        return ['pad(B)', 'keys(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(8, bars)}`, 'air', 'air2'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(8, bars)}`, 'air', 'air2'];
       case 'break':
         return ['pad(A).lpf(650)', 'pad2(A)', 'sub(subA)', 'lead(motif).postgain(.8)', `hats${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
       case 'C':
-        return ['pad(A)', 'pad2(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'arp(A).postgain(.5)', 'air', 'air2'];
+        return ['pad(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air', 'air2'];
       case 'outro':
         return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`, 'air', 'air2'];
       default:

@@ -51,11 +51,11 @@ export const wave = makeStyle({
       case 'A':
         return ['pad(A)', 'arp(A)', 'sub(subA)', 'bass(lineA)', 'drums', 'air'];
       case 'B':
-        return ['pad(B)', 'pad2(B)', 'arp(B).postgain(.7)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(4, bars)}`, 'air'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(4, bars)}`, 'air'];
       case 'break':
-        return ['pad(A)', 'pad2(A)', 'keys(A)', 'arp(A).lpf(900)', 'sub(subA)', 'air'];
+        return ['pad(A)', 'pad2(A)', 'arp(A).lpf(900)', 'sub(subA)', 'air'];
       case 'C':
-        return ['pad(A)', 'pad2(A)', 'arp(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
+        return ['pad(A)', 'arp(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'air'];
       case 'outro':
         return [`pad(A).lpf(${fall(bars)})`, `arp(A).lpf(${fall(bars, 1800, 400)})`, 'air'];
       default:

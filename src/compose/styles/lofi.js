@@ -52,18 +52,18 @@ export const lofi = makeStyle({
       ['intro', intro, 'A', 8, 'B', 16, 'break', 8, 'C', 16, 'outro', 4],
     ];
   },
-  sections: (name, bars) => {
+  sections: (name, bars, rng) => {
     switch (name) {
       case 'intro':
         return [`keys(A).lpf(${rise(bars, 600, 2400)})`, 'air', 'air2'];
       case 'A':
         return ['keys(A)', `bass(lineA)`, 'sub(subA).postgain(.6)', 'drums', 'air', 'air2'];
       case 'B':
-        return ['keys(A)', 'pad(A)', 'bass(lineA2)', 'sub(subA2).postgain(.6)', 'drums', `lead(motif)${enterAfter(4, bars)}`, 'air', 'air2'];
+        return ['keys(A)', 'bass(lineA2)', 'sub(subA2).postgain(.6)', 'drums', `lead(motif)${enterAfter(4, bars)}`, 'air', 'air2'];
       case 'break':
         return ['keys(B)', 'pad(B)', 'lead(motifB)', 'sub(subB).postgain(.5)', 'air', 'air2'];
       case 'C':
-        return ['keys(B)', 'pad2(B)', 'bass(lineB)', 'sub(subB).postgain(.6)', 'drumsB', 'arp(B).postgain(.7)', 'lead(motifB).postgain(.8)', 'air', 'air2'];
+        return ['keys(B)', 'bass(lineB)', 'sub(subB).postgain(.6)', 'drumsB', rng.chance(0.5) ? 'arp(B).postgain(.7)' : 'lead(motifB).postgain(.8)', 'air', 'air2'];
       case 'outro':
         return [`keys(A).lpf(${fall(bars, 2400, 600)})`, 'air', 'air2'];
       default:

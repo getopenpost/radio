@@ -36,13 +36,11 @@ export const PRESETS = [
   p('pad.vowel', 'pad', ['synth', 'vocal', 'garage'], () => '.s("sawtooth").attack(1).sustain(.8).release(3).vowel("<a o e o>").lpf(1800).layer(x => x.pan(.2), x => x.add(note(.1)).pan(.8))'),
   p('pad.warm', 'pad', ['soft', 'warm'], () => '.s("gm_pad_warm").attack(.8).release(3).lpf(1600).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.halo', 'pad', ['soft', 'airy'], () => '.s("gm_pad_halo").attack(1).release(3).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
-  p('pad.new-age', 'pad', ['soft', 'airy'], () => '.s("gm_pad_new_age").attack(1).release(3).lpf(1600).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.poly', 'pad', ['synth', 'wave'], () => '.s("gm_pad_poly").attack(.6).release(2.5).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.bowed', 'pad', ['soft', 'ambient'], () => '.s("gm_pad_bowed").attack(1.5).release(4).lpf(1500).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.choir', 'pad', ['vocal', 'airy', 'ambient'], () => '.s("gm_pad_choir").attack(1.2).release(3).lpf(1800).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.strings', 'pad', ['acoustic', 'soft'], () => '.s("gm_string_ensemble_1").attack(1).release(2.5).lpf(1600).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.synth-strings', 'pad', ['synth', 'wave'], () => '.s("gm_synth_strings_1").attack(.8).release(2.5).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
-  p('pad.oohs', 'pad', ['vocal', 'soft'], () => '.s("gm_voice_oohs").attack(.8).release(2.5).lpf(1700).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.organ', 'pad', ['jazzy', 'warm'], () => '.s("gm_drawbar_organ").attack(.4).release(1.5).lpf(1400).layer(x => x.pan(.3), x => x.add(note(.05)).pan(.7))'),
 
   // Keys: rhythmic chord comping.
@@ -51,7 +49,7 @@ export const PRESETS = [
   p('keys.wurli', 'keys', ['jazzy', 'lofi'], () => '.s("gm_epiano2").lpf(1800)'),
   p('keys.fm-epiano', 'keys', ['synth', 'wave', 'jazzy'], () => '.s("sine").fm(1.6).fmh(1).fmdecay(.35).fmsustain(.15).decay(.9).sustain(.2).release(.6).lpf(2400)'),
   p('keys.piano', 'keys', ['acoustic', 'lofi', 'ambient'], () => '.s("piano").lpf(2600).release(.4)'),
-  p('keys.piano-felt', 'keys', ['acoustic', 'lofi', 'soft'], () => '.s("piano").lpf(1300).velocity(.55).release(.6)'),
+  p('keys.piano-felt', 'keys', ['acoustic', 'lofi', 'soft'], () => '.s("piano").lpf(1100).release(.6)'),
   p('keys.vibes', 'keys', ['jazzy', 'bright'], () => '.s("vibraphone_soft").lpf(3200)'),
   p('keys.marimba', 'keys', ['organic', 'bright'], () => '.s("marimba").lpf(2800)'),
   p('keys.organ', 'keys', ['jazzy', 'warm'], () => '.s("gm_drawbar_organ").lpf(1600).release(.2)'),
@@ -65,14 +63,11 @@ export const PRESETS = [
   p('lead.glass', 'lead', ['synth', 'bright'], () => '.s("sine").fm(4).fmh(2).fmdecay(.12).fmsustain(0).decay(.5).sustain(0).lpf(2800)'),
   p('lead.vibes', 'lead', ['jazzy', 'bright'], () => '.s("vibraphone_soft").lpf(3200)'),
   p('lead.kalimba', 'lead', ['organic'], () => '.s("kalimba").lpf(3500)'),
-  p('lead.glock', 'lead', ['bright', 'organic'], () => '.s("gm_glockenspiel").lpf(4000).velocity(.6)'),
+  p('lead.glock', 'lead', ['bright', 'organic'], () => '.s("gm_glockenspiel").lpf(3600)'),
   p('lead.music-box', 'lead', ['bright', 'soft'], () => '.s("gm_music_box").lpf(3500)'),
   p('lead.celesta', 'lead', ['bright', 'soft'], () => '.s("gm_celesta").lpf(3500)'),
-  p('lead.voice', 'lead', ['vocal', 'soft'], () => '.s("gm_voice_oohs").lpf(2400).attack(.08).release(.8)'),
   p('lead.flute', 'lead', ['organic', 'soft'], () => '.s("gm_flute").lpf(2600).attack(.05).release(.4)'),
-  p('lead.pan-flute', 'lead', ['organic', 'soft'], () => '.s("gm_pan_flute").lpf(2400).attack(.05).release(.5)'),
   p('lead.ocarina', 'lead', ['organic', 'soft'], () => '.s("ocarina").lpf(2600)'),
-  p('lead.muted-trumpet', 'lead', ['jazzy'], () => '.s("gm_muted_trumpet").lpf(2400).attack(.03).release(.3)'),
   p('lead.sine', 'lead', ['synth', 'soft'], () => '.s("sine").attack(.04).decay(.4).sustain(.6).release(.5).vib(5).vibmod(.08)'),
   p('lead.square', 'lead', ['synth', 'wave'], () => '.s("square").attack(.02).decay(.3).sustain(.5).release(.4).lpf(1600).vib(5).vibmod(.1)'),
   p('lead.saw', 'lead', ['synth', 'wave'], () => '.s("sawtooth").attack(.03).decay(.3).sustain(.6).release(.5).lpf(1800).vib(5).vibmod(.08).add(note("0,.1"))'),
@@ -89,16 +84,16 @@ export const PRESETS = [
   p('arp.music-box', 'arp', ['bright', 'soft'], () => '.s("gm_music_box").lpf(3200)'),
 
   // Texture: constant quiet air and grain above the music.
-  p('tex.hiss', 'texture', ['clean'], () => '.s("pink").slow(8).attack(4).release(4).hpf(3500).lpf(11000)'),
+  p('tex.hiss', 'texture', ['clean'], () => '.s("pink").slow(16).legato(1.1).attack(6).release(6).hpf(3500).lpf(9000)'),
   p('tex.vinyl', 'texture', ['lofi'], () => '.s("crackle").density(.03).slow(4).attack(.5).release(1).hpf(1200).lpf(9000)'),
-  p('tex.air', 'texture', ['airy'], () => '.s("pink").slow(8).attack(4).release(4).bpf(5500).bpq(.7)'),
-  p('tex.wind', 'texture', ['ambient'], () => '.s("white").slow(8).attack(4).release(4).bpf(sine.slow(32).range(400, 1600)).bpq(2)'),
+  p('tex.air', 'texture', ['airy'], () => '.s("pink").slow(16).legato(1.1).attack(6).release(6).bpf(4500).bpq(.7)'),
+  p('tex.wind', 'texture', ['ambient'], () => '.s("white").slow(16).legato(1.1).attack(6).release(6).bpf(sine.slow(64).range(500, 1200)).bpq(2)'),
 ];
 
 export const KITS = {
   kick: [
-    { id: 'kick.909', sound: 'bd', mods: '.bank("RolandTR909").n(1).lpf(2400)', tags: ['house', 'focus'] },
-    { id: 'kick.909-soft', sound: 'bd', mods: '.bank("RolandTR909").n(3).lpf(1800)', tags: ['house', 'focus'] },
+    { id: 'kick.909', sound: 'bd', mods: '.bank("RolandTR909").n(1).lpf(2400)', tags: ['house'] },
+    { id: 'kick.909-soft', sound: 'bd', mods: '.bank("RolandTR909").n(3).lpf(1800)', tags: ['house'] },
     { id: 'kick.808', sound: 'bd', mods: '.bank("RolandTR808").n(3).decay(.45).lpf(2000)', tags: ['focus', 'garage'] },
     { id: 'kick.808-long', sound: 'bd', mods: '.bank("RolandTR808").n(8).lpf(1600)', tags: ['garage', 'lofi'] },
     { id: 'kick.linn', sound: 'bd', mods: '.bank("LinnDrum").lpf(3000)', tags: ['wave', 'focus'] },
@@ -110,7 +105,7 @@ export const KITS = {
     { id: 'kick.xr10', sound: 'bd', mods: '.bank("AkaiXR10").n(2).lpf(2600)', tags: ['focus', 'lofi'] },
   ],
   snare: [
-    { id: 'snare.909-clap', sound: 'cp', mods: '.bank("RolandTR909").n(2).hpf(400).lpf(5000)', tags: ['house', 'focus'] },
+    { id: 'snare.909-clap', sound: 'cp', mods: '.bank("RolandTR909").n(2).hpf(400).lpf(5000)', tags: ['house'] },
     { id: 'snare.808-rim', sound: 'rim', mods: '.bank("RolandTR808").hpf(300).lpf(6000)', tags: ['focus', 'garage'] },
     { id: 'snare.808-clap', sound: 'cp', mods: '.bank("RolandTR808").n(1).hpf(400).lpf(5000)', tags: ['garage', 'focus'] },
     { id: 'snare.linn', sound: 'sd', mods: '.bank("LinnDrum").n(1).hpf(250).lpf(4500)', tags: ['wave', 'focus'] },
@@ -123,7 +118,7 @@ export const KITS = {
     { id: 'snare.rim', sound: 'snare_rim', mods: '.hpf(300).lpf(5000)', tags: ['lofi', 'focus'] },
   ],
   hat: [
-    { id: 'hat.909', sound: 'hh', mods: '.bank("RolandTR909").n(2)', tags: ['house', 'focus'] },
+    { id: 'hat.909', sound: 'hh', mods: '.bank("RolandTR909").n(2)', tags: ['house'] },
     { id: 'hat.808', sound: 'hh', mods: '.bank("RolandTR808")', tags: ['garage', 'focus'] },
     { id: 'hat.linn', sound: 'hh', mods: '.bank("LinnDrum")', tags: ['wave', 'focus'] },
     { id: 'hat.dmx', sound: 'hh', mods: '.bank("OberheimDMX")', tags: ['wave'] },
@@ -142,7 +137,7 @@ export const KITS = {
     { id: 'perc.linn-tom', sound: 'lt', mods: '.bank("LinnDrum").lpf(1800)', tags: ['focus', 'wave'] },
     { id: 'perc.conga', sound: 'conga', mods: '.n(1).lpf(2400)', tags: ['focus', 'house', 'organic'] },
     { id: 'perc.bongo', sound: 'bongo', mods: '.lpf(3000)', tags: ['house', 'organic', 'lofi'] },
-    { id: 'perc.909-tom', sound: 'lt', mods: '.bank("RolandTR909").n(3).lpf(1800)', tags: ['focus', 'house'] },
+    { id: 'perc.909-tom', sound: 'lt', mods: '.bank("RolandTR909").n(3).lpf(1800)', tags: ['house'] },
     { id: 'perc.clave', sound: 'clave', mods: '.lpf(4000)', tags: ['house', 'organic'] },
     { id: 'perc.rim', sound: 'rim', mods: '.bank("RolandTR909").lpf(4000)', tags: ['focus', 'house'] },
     { id: 'perc.woodblock', sound: 'woodblock', mods: '.lpf(3500)', tags: ['lofi', 'organic'] },
@@ -153,8 +148,14 @@ export const KITS = {
 export const presetsByRole = (role) => PRESETS.filter((x) => x.role === role);
 
 /** Pick a preset for a role, preferring ones that share tags with the style. */
+/** Pick a preset for a role by shared tags, or from an explicit list of preset ids. */
 export function pickPreset(rng, role, tags = [], exclude = []) {
-  return pickTagged(rng, presetsByRole(role).filter((x) => !exclude.includes(x.id)), tags);
+  const items = presetsByRole(role).filter((x) => !exclude.includes(x.id));
+  if (tags.length && tags.every((t) => t.includes('.'))) {
+    const named = items.filter((x) => tags.includes(x.id));
+    if (named.length) return rng.pick(named);
+  }
+  return pickTagged(rng, items, tags);
 }
 
 export function pickKit(rng, part, tags = []) {

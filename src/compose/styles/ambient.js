@@ -46,11 +46,11 @@ export const ambient = makeStyle({
       case 'intro':
         return [`pad2(A).lpf(${rise(bars, 400, 1600)})`, 'air', 'air2'];
       case 'A':
-        return ['pad(A)', 'pad2(A)', 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
+        return ['pad(A)', `pad2(A)${leaveAfter(bars / 2, bars)}`, 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
       case 'B':
-        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)', `lead(motifB)${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
+        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)', 'air', 'air2'];
       case 'C':
-        return ['pad(A)', 'pad2(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)', 'arp(A).postgain(.6)', 'air', 'air2'];
+        return ['pad(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)', 'air', 'air2'];
       case 'outro':
         return [`pad(A).lpf(${fall(bars, 1400, 300)})`, 'pad2(A)', `sub(subA).postgain(.7)${leaveAfter(bars / 2, bars)}`, 'air', 'air2'];
       default:

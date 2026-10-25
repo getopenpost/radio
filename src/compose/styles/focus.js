@@ -6,7 +6,7 @@ import { enterAfter, fall, leaveAfter, makeStyle, rise } from './common.js';
 export const focus = makeStyle({
   id: 'focus',
   label: 'deep focus',
-  bpm: [86, 104],
+  bpm: [84, 98],
   moods: ['dark', 'deep'],
   modes: ['aeolian', 'dorian', 'phrygian'],
   energy: 3,
@@ -14,14 +14,17 @@ export const focus = makeStyle({
   presets: {
     sub: ['clean', 'warm'],
     bass: ['synth', 'dark', 'garage'],
-    pad2: ['soft', 'airy', 'ambient'],
-    keys: ['jazzy', 'warm', 'synth'],
-    lead: ['soft', 'bright', 'vocal', 'organic'],
-    arp: ['synth', 'soft', 'organic'],
+    pad: ['pad.warm', 'pad.halo', 'pad.bowed', 'pad.strings'],
+    pad2: ['pad.halo', 'pad.bowed', 'pad.choir', 'pad.warm'],
+    keys: ['keys.rhodes', 'keys.rhodes-dry', 'keys.wurli', 'keys.fm-epiano'],
+    lead: ['lead.sine', 'lead.kalimba', 'lead.harmonics', 'lead.flute'],
+    arp: ['arp.tri', 'arp.harp', 'arp.kalimba', 'arp.fm'],
     texture: ['clean', 'airy'],
   },
   kitTags: ['focus'],
-  levels: { sub: 1.5, bass: 0.5, kick: 0.95, snare: 0.42, hat: 0.24, openhat: 0.18, perc: 0.34, pad: 0.62, keys: 0.42, lead: 0.34, arp: 0.3, texture: 0.07 },
+  levels: { sub: 1.7, bass: 0.55, kick: 0.95, snare: 0.4, hat: 0.22, openhat: 0.16, perc: 0.3, pad: 0.5, keys: 0.36, lead: 0.3, arp: 0.26, texture: 0.06 },
+  keysExtra: '.lpf(1500)',
+  leadExtra: '.lpf(2000)',
   groove: 'downtempo',
   swing: ['', '', '.swingBy(1/12, 8)', '.swingBy(1/8, 8)'],
   subRhythms: [
@@ -47,15 +50,15 @@ export const focus = makeStyle({
       case 'intro':
         return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`, 'air'];
       case 'A':
-        return ['pad(A)', 'pad2(A)', `keys(A)${enterAfter(8, bars)}`, 'sub(subA)', `bass(lineA)${enterAfter(4, bars)}`, 'drums', 'air'];
+        return ['pad(A)', `keys(A)${enterAfter(8, bars)}`, 'sub(subA)', `bass(lineA)${enterAfter(4, bars)}`, 'drums', 'air'];
       case 'A2':
-        return ['pad(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', `lead(motif)${enterAfter(8, bars)}`, 'air'];
+        return ['pad2(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', `lead(motif)${enterAfter(8, bars)}`, 'air'];
       case 'B':
-        return ['pad(B)', 'keys(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `openhat${enterAfter(bars / 2, bars)}`, rng.chance(0.5) ? 'arp(B)' : `lead(motifB)${enterAfter(8, bars)}`, 'air'];
+        return ['pad(B)', 'keys(B).postgain(.8)', 'sub(subB)', 'bass(lineB)', 'drumsB', `openhat${enterAfter(bars / 2, bars)}`, rng.chance(0.5) ? `arp(B)${enterAfter(8, bars)}` : `lead(motifB)${enterAfter(8, bars)}`, 'air'];
       case 'break':
-        return ['pad(A).lpf(700)', 'pad2(A)', 'sub(subA)', `arp(A)${enterAfter(bars / 4, bars)}`, `hats${enterAfter(bars / 2, bars)}`, 'air'];
+        return ['pad(A).lpf(700)', 'pad2(A)', 'sub(subA)', `arp(A).postgain(.8)${enterAfter(bars / 4, bars)}`, `hats${enterAfter(bars / 2, bars)}`, 'air'];
       case 'C':
-        return ['pad(A)', 'pad2(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'arp(A).postgain(.6)', 'air'];
+        return ['pad(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
       case 'D':
         return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', 'arp(B)', 'air'];
       case 'outro':

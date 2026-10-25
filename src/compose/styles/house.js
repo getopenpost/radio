@@ -46,15 +46,15 @@ export const house = makeStyle({
       case 'intro':
         return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`, 'air'];
       case 'A':
-        return ['pad(A)', `keys(A)${enterAfter(8, bars)}`, 'sub(subA)', 'bass(lineA)', 'drums', 'openhat', 'air'];
+        return ['pad(A)', 'sub(subA)', 'bass(lineA)', 'drums', 'openhat', 'air'];
       case 'A2':
-        return ['pad(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
+        return ['keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', `lead(motif)${enterAfter(8, bars)}`, 'air'];
       case 'B':
-        return ['pad(B)', 'pad2(B)', 'keys(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', 'openhat', rng.chance(0.5) ? 'arp(B)' : 'lead(motifB)', 'air'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', 'openhat', rng.chance(0.5) ? 'arp(B)' : 'lead(motifB)', 'air'];
       case 'break':
-        return ['pad(A).lpf(800)', 'pad2(A)', 'keys(A).lpf(1200)', 'sub(subA)', `hats${enterAfter(bars / 2, bars)}`, 'air'];
+        return ['pad(A).lpf(800)', 'keys(A).lpf(1200)', 'sub(subA)', `hats${enterAfter(bars / 2, bars)}`, 'air'];
       case 'C':
-        return ['pad(A)', 'pad2(A)', 'keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'arp(A).postgain(.6)', 'air'];
+        return ['keys(A)', 'pad2(A).postgain(.7)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
       case 'outro':
         return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`, 'air'];
       default:

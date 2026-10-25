@@ -9,6 +9,10 @@ import { bassLine, BASS_RHYTHMS, motif } from '../patterns.js';
 import { chordsPerBar, progressionMini } from '../theory.js';
 
 export const DEFAULT_ARPS = ['[0 2 4 6]*2', '0 2 4 2 6 4 2 4', '[0 4 2 6]*2', '0 ~ 2 4 ~ 6 4 2', '[0 2 4]*2 [6 4]', '0 4 7 4 2 4 6 4'];
+// Played feel: each note lands a few milliseconds late and a little softer or
+// louder, drifting slowly, so parts breathe instead of sitting on the grid.
+const feel = (late, low) => `.nudge(perlin.slow(1.7).range(0, ${late})).velocity(perlin.slow(2.3).range(${low}, 1))`;
+
 export const DEFAULT_COMPS = ['~ [~ x] ~ ~', '[~ x] ~ [~ x] ~', '~ ~ [~ x] ~', 'x ~ ~ [~ x]', '~ [~ x@3] ~ [~ x]', '[~ x] [~ x] ~ ~'];
 
 /** Expand ['intro', 8, 'A', 32, ...] into [{ name, bars }]. */
@@ -75,28 +79,28 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.notes('sub', pick.sub);
   // Spread the bass line a little; the sub stays mono.
   const bassWidth = pick.bass.chain(rng).includes('.layer(') ? '' : '.layer(x => x.pan(.32), x => x.add(note(.07)).pan(.68))';
-  b.notes('bass', pick.bass, { extra: `.hpf(55)${bassWidth}${config.bassExtra ?? ''}` });
+  b.notes('bass', pick.bass, { extra: `.hpf(55)${bassWidth}${feel(0.006, 0.85)}${config.bassExtra ?? ''}` });
 
   b.comment('Harmony.');
   const padTop = rng.pick(config.padAnchors ?? ['g4', 'a4', 'bb4', 'c5']);
-  const padSweep = `.lpf(sine.slow(16).range(${rng.int(6, 9) * 100}, ${rng.int(12, 18) * 100}))`;
+  const padSweep = `.lpf(sine.slow(32).range(${rng.int(7, 9) * 100}, ${rng.int(11, 14) * 100}))`;
   b.chords('pad', pick.pad, { anchor: padTop, extra: `.hpf(${rng.int(22, 30) * 10})${config.padSweep === false ? '' : padSweep}${config.padExtra ?? ''}` });
   b.chords('pad2', pick.pad2, { anchor: 'e4', extra: '.hpf(260).pan(sine.slow(16).range(.3, .7))', scale: config.pad2Scale ?? 0.6 });
   // Comping varies on the fourth bar of each phrase so loops do not sit still.
   const comps = rng.shuffle(config.comps ?? DEFAULT_COMPS);
   const comp = comps.length > 1 ? `<[${comps[0]}]!3 [${comps[1]}]>` : comps[0];
-  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, extra: `.hpf(200).pan(.42)${config.keysExtra ?? ''}${swing}` });
+  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, extra: `.hpf(200).pan(.42)${feel(0.012, 0.72)}${config.keysExtra ?? ''}${swing}` });
 
   b.comment('Melody: a sparse motif and an arpeggio, both through the delay.');
   const [lo, hi] = config.motifRange ?? [64, 81];
   const phrase = rng.pick(['AABA', 'ABAC', 'AAAB', 'ABAB']);
-  b.def('motif', `note("${motif(rng, key, [...chordsA, ...chordsA], { lo, hi, phrase, density: config.motifDensity ?? 0.7 })}")`);
-  b.def('motifB', `note("${motif(rng, key, [...chordsB, ...chordsB], { lo, hi, phrase, density: config.motifDensity ?? 0.7 })}")`);
-  b.notes('lead', pick.lead, { extra: `.pan(perlin.slow(4).range(.3, .7))${config.leadExtra ?? ''}` });
+  b.def('motif', `note("${motif(rng, key, [...chordsA, ...chordsA], { lo, hi, phrase, density: config.motifDensity ?? 0.5 })}")`);
+  b.def('motifB', `note("${motif(rng, key, [...chordsB, ...chordsB], { lo, hi, phrase, density: config.motifDensity ?? 0.5 })}")`);
+  b.notes('lead', pick.lead, { extra: `.pan(perlin.slow(4).range(.3, .7))${feel(0.01, 0.7)}${config.leadExtra ?? ''}` });
   b.arp('arp', pick.arp, {
     shape: rng.pick(config.arps ?? DEFAULT_ARPS),
     anchor: rng.pick(['c5', 'd5', 'e5']),
-    extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8)).lastOf(8, x => x.ply(2))${config.arpExtra ?? ''}`,
+    extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8))${feel(0.005, 0.6)}${config.arpExtra ?? ''}`,
   });
 
   b.comment('Drums.');
