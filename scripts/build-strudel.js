@@ -52,10 +52,13 @@ const patches = {
   ],
   // Deterministic cached noise buffers (white, pink, brown). Crackle stays random.
   'noise.mjs': [
-    ['let noiseCache = {};', `let noiseCache = {};\n${prng}`],
-    ['  const output = noiseBuffer.getChannelData(0);', "  const output = noiseBuffer.getChannelData(0);\n  const __rand = type === 'crackle' ? Math.random : __prng(__hash(type));"],
+    ['let noiseCache = {};', `let noiseCache = {};\n${prng}\nlet __crackleSeed = 1;`],
+    ['  const output = noiseBuffer.getChannelData(0);', "  const output = noiseBuffer.getChannelData(0);\n  const __rand = __prng(type === 'crackle' ? __crackleSeed : __hash(type));"],
+    // Crackle differs per voice, seeded by the voice's absolute start time.
+    ['  o.buffer = getNoiseBuffer(type, density);', "  __crackleSeed = __hash(`${type}:${Math.round((t + (globalThis.__renderOffset ?? 0)) * 1000)}`);\n  o.buffer = getNoiseBuffer(type, density);"],
     ["      output[i] = Math.random() * 2 - 1;\n    } else if (type === 'brown') {\n      let white = Math.random() * 2 - 1;", "      output[i] = __rand() * 2 - 1;\n    } else if (type === 'brown') {\n      let white = __rand() * 2 - 1;"],
     ["    } else if (type === 'pink') {\n      let white = Math.random() * 2 - 1;", "    } else if (type === 'pink') {\n      let white = __rand() * 2 - 1;"],
+    ['      if (Math.random() < probability) {\n        output[i] = Math.random() * 2 - 1;', '      if (__rand() < probability) {\n        output[i] = __rand() * 2 - 1;'],
   ],
   // Never recycle nodes: superdough's pool hands out nodes the offline render
   // thread may still be processing, which freezes the output for a while.

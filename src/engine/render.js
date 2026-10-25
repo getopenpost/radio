@@ -162,16 +162,20 @@ function patchDuck() {
   };
 }
 
+let repl;
+let evalError;
+
 /** Evaluate Strudel code like the REPL does. Returns the pattern and its tempo. */
 export async function evaluateCode(code) {
   await prebake();
-  let evalError;
-  const repl = core.repl({
+  repl ??= core.repl({
     transpiler,
     getTime: () => 0,
     defaultOutput: () => {},
     onEvalError: (err) => (evalError = err),
   });
+  evalError = undefined;
+  repl.setCps(0.5); // the REPL default, in case the code does not set a tempo
   const pattern = await repl.evaluate(code, false);
   if (evalError || !pattern) throw new Error(`Strudel evaluation failed: ${evalError?.message ?? 'no pattern'}`);
   return { pattern, cps: repl.scheduler.cps };
@@ -231,6 +235,7 @@ async function renderChunk(haps, { cps, sampleRate, start, end, errors }) {
  */
 export async function renderCode(code, { cycles, seconds, tail = 6, sampleRate = 48000, seed = 1, chunkCycles = 4 } = {}) {
   seedRandom(seed);
+  const logStart = strudelLog.length;
   const { pattern, cps } = await evaluateCode(code);
   cycles ??= Math.ceil((seconds ?? 60) * cps);
 
@@ -251,21 +256,22 @@ export async function renderCode(code, { cycles, seconds, tail = 6, sampleRate =
   const right = new Float32Array(total);
   const errors = new Map();
   const chunkCount = Math.ceil(cycles / chunkCycles);
-  let prev = null;
   let retries = 0;
-  for (let k = 0; k < chunkCount; k++) {
-    const start = (k * chunkCycles) / cps;
-    const end = k === chunkCount - 1 ? total / sampleRate : ((k + 1) * chunkCycles) / cps;
-    let chunk;
+  const bounds = (k) => ({
+    start: (k * chunkCycles) / cps,
+    end: k === chunkCount - 1 ? total / sampleRate : ((k + 1) * chunkCycles) / cps,
+  });
+  const renderUnfrozen = async (k) => {
     for (let attempt = 1; ; attempt++) {
-      chunk = await renderChunk(haps, { cps, sampleRate, start, end, errors });
-      const problem = frozen(chunk) ?? (prev && seamMismatch(prev, chunk));
-      if (!problem) break;
+      const chunk = await renderChunk(haps, { cps, sampleRate, ...bounds(k), errors });
+      const problem = frozen(chunk);
+      if (!problem) return chunk;
       if (attempt === ATTEMPTS) throw new Error(`chunk ${k} failed verification ${ATTEMPTS} times: ${problem}`);
       retries++;
       if (process.env.RENDER_DEBUG) console.error(`chunk ${k} attempt ${attempt}: ${problem}, re-rendering`);
     }
-    prev = chunk;
+  };
+  const write = (chunk, k) => {
     const from = k === 0 ? 0 : chunk.keepFrom;
     for (let i = from; i < Math.min(total, chunk.ctxStart + chunk.left.length); i++) {
       const j = i - chunk.ctxStart;
@@ -274,12 +280,30 @@ export async function renderCode(code, { cycles, seconds, tail = 6, sampleRate =
       left[i] = left[i] * (1 - w) + chunk.left[j] * w;
       right[i] = right[i] * (1 - w) + chunk.right[j] * w;
     }
+  };
+  // A chunk is written once the next chunk agrees with it at the seam. If they
+  // keep disagreeing, either could be wrong, so both are rendered again.
+  let pending = await renderUnfrozen(0);
+  for (let k = 1; k < chunkCount; k++) {
+    let chunk = await renderUnfrozen(k);
+    for (let attempt = 1; ; attempt++) {
+      const problem = seamMismatch(pending, chunk);
+      if (!problem) break;
+      if (attempt === ATTEMPTS) throw new Error(`seam ${k} failed verification ${ATTEMPTS} times: ${problem}`);
+      retries++;
+      if (process.env.RENDER_DEBUG) console.error(`seam ${k} attempt ${attempt}: ${problem}, re-rendering`);
+      if (attempt % 2 === 0) pending = await renderUnfrozen(k - 1);
+      else chunk = await renderUnfrozen(k);
+    }
+    write(pending, k - 1);
+    pending = chunk;
   }
+  write(pending, chunkCount - 1);
   if (errors.size) {
     const summary = [...errors].map(([m, n]) => `${m} (x${n})`).join('; ');
     throw new Error(`Strudel scheduling errors: ${summary}`);
   }
-  const unknown = strudelLog.filter((m) => /unknown chord|not found|error/i.test(m));
+  const unknown = strudelLog.slice(logStart).filter((m) => /unknown chord|not found|error/i.test(m));
   if (unknown.length) throw new Error(`Strudel reported problems: ${[...new Set(unknown)].join('; ')}`);
   return { left, right, sampleRate, cps, cycles, events: haps.length, retries };
 }

@@ -11,6 +11,7 @@
     "postinstall": "node scripts/build-strudel.js",
     "compose": "node src/cli/compose.js",
     "render": "node src/cli/render.js",
+    "calibrate": "node src/cli/calibrate.js",
     "analyze": "node src/cli/analyze.js",
     "library": "node src/cli/library.js",
     "stream": "node src/stream/main.js",

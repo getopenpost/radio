@@ -1,6 +1,7 @@
 // Browser globals that Strudel expects, provided for Node.
 // Import this module before loading dist/strudel.js.
 import 'node-web-audio-api/polyfill.js';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -70,3 +71,48 @@ Math.random = () => {
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
+
+// node-web-audio-api's decoder rejects some WAV variants browsers accept (for
+// example several VCSL samples). Fall back to ffmpeg for those.
+const nativeDecode = BaseAudioContext.prototype.decodeAudioData;
+BaseAudioContext.prototype.decodeAudioData = async function (data, onSuccess, onError) {
+  const copy = data.slice(0); // decoding detaches the original
+  try {
+    const buffer = await nativeDecode.call(this, data);
+    onSuccess?.(buffer);
+    return buffer;
+  } catch (nativeError) {
+    try {
+      const buffer = await ffmpegDecode(this, Buffer.from(copy));
+      onSuccess?.(buffer);
+      return buffer;
+    } catch {
+      onError?.(nativeError);
+      throw nativeError;
+    }
+  }
+};
+
+function ffmpegDecode(context, input) {
+  return new Promise((resolve, reject) => {
+    const ff = spawn('ffmpeg', ['-v', 'error', '-i', 'pipe:0', '-f', 'f32le', '-ac', '2', '-ar', String(context.sampleRate), 'pipe:1']);
+    const chunks = [];
+    ff.stdout.on('data', (c) => chunks.push(c));
+    ff.on('error', reject);
+    ff.on('close', (code) => {
+      if (code !== 0) return reject(new Error('ffmpeg could not decode sample'));
+      const raw = Buffer.concat(chunks);
+      const all = new Float32Array(raw.buffer, raw.byteOffset, raw.length / 4);
+      const frames = all.length / 2;
+      const buffer = context.createBuffer(2, Math.max(frames, 1), context.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const channel = new Float32Array(frames);
+        for (let i = 0; i < frames; i++) channel[i] = all[2 * i + ch];
+        buffer.copyToChannel(channel, ch);
+      }
+      resolve(buffer);
+    });
+    ff.stdin.on('error', () => {});
+    ff.stdin.end(input);
+  });
+}

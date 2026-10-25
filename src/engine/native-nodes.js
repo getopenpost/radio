@@ -78,7 +78,10 @@ function lfo(ac, params) {
     playbackRate: (frequency * size) / ac.sampleRate,
   });
   source.connect(out);
-  source.start(start, (frac(time * frequency + phaseoffset) * size) / ac.sampleRate);
+  // superdough passes the voice start as `time` when no phase reference is
+  // given; use absolute time then, so chunks rendered separately agree.
+  const phaseTime = time === begin ? begin + (globalThis.__renderOffset ?? 0) : time;
+  source.start(start, (frac(phaseTime * frequency + phaseoffset) * size) / ac.sampleRate);
   source.stop(end);
   return out;
 }
