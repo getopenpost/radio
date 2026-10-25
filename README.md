@@ -1,12 +1,12 @@
 # rgo-music
 
-Generative music for a 24/7 OpenPost Radio stream on YouTube: work and focus
-music written as [Strudel](https://strudel.cc) code, rendered offline into a
-track library, and streamed with a calm dithered OpenPost scene.
+Generative music for a 24/7 OpenPost Radio stream on YouTube and Twitch: work
+and focus music written as [Strudel](https://strudel.cc) code, rendered offline
+into a track library, and streamed with a calm dithered scene.
 
 ```
 compose (seeded Strudel code) → render (Node, no browser) → master (-14 LUFS FLAC)
-      → library (local or S3/R2) → stream (director → crossfade → scene → ffmpeg → YouTube)
+      → library (local or S3/R2) → stream (director → crossfade → scene → ffmpeg → YouTube, Twitch)
 ```
 
 ## Quick start
@@ -19,6 +19,8 @@ npm run compose -- --style focus --seed 42                  # print the track's 
 npm run compose -- --style focus --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
+npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
+npm run audition -- --styles focus --seeds 1,2              # score excerpts with earshot (needs uv)
 npm test
 ```
 
@@ -32,7 +34,7 @@ colour without changing world:
 
 | style   | label         | bpm     | character |
 | ------- | ------------- | ------- | --------- |
-| focus   | deep focus    | 86-104  | bass-led downtempo and future beats: sustained sub, detail between the pulses, wide dark pads |
+| focus   | deep focus    | 84-98   | bass-led downtempo and future beats: sustained sub, electric piano over soft pads, detail between the pulses |
 | garage  | future garage | 128-136 | two-step shuffle, reese bass, vowel pads, crackle |
 | house   | chill house   | 112-122 | soft four on the floor, stabs, rolling bass |
 | lofi    | lofi          | 70-88   | jazzy keys with tape wobble, swung boom-bap, upright bass, vinyl |
@@ -47,10 +49,14 @@ What keeps 8 hours from getting boring:
   arpeggio vocabularies, and several arrangement plans per style. Sections
   swap progressions, bass rhythms and drum grooves so a track moves through
   different bass and harmonic profiles.
-- **Sound** (`src/compose/instruments.js`): 70 presets across sub, bass,
+- **Sound** (`src/compose/instruments.js`): 65 presets across sub, bass,
   pad, keys, lead, arp and texture, plus 42 drum kit pieces from 9 classic
   machines and the CC0 VCSL percussion.
-  Each style picks presets by tag.
+  Each style picks presets by tag or names them outright.
+- **Restraint**: a section carries at most two harmonic layers (pad, keys,
+  second pad) and one melodic voice (lead or arpeggio), so tracks stay easy to
+  work to. Keys, bass, leads and arpeggios land a few milliseconds late and
+  drift in velocity, so parts sound played rather than gridded.
 - **Mix**: `npm run calibrate` measures every preset on a reference phrase and
   stores gain factors in `calibration.json`; styles set levels per role. Any
   preset combination therefore lands at the same balance. Fixed effect buses
@@ -59,8 +65,14 @@ What keeps 8 hours from getting boring:
 - **Targets**: the focus sound was tuned against a reference mix with
   `npm run analyze`. That reference has 87-95% of its energy below 400 Hz, a
   140-260 Hz spectral centroid, a sustained bass floor, no gaps in the
-  harmonic bed and wide low mids. Rendered focus and garage tracks measure
-  81-86% below 400 Hz and a 220-290 Hz centroid.
+  harmonic bed and wide low mids. The main sections of rendered focus tracks
+  measure about 85% below 400 Hz, a 205-225 Hz centroid and a continuous bass.
+- **Listening**: `npm run audition` renders the opening of a few seeds per
+  style and scores them with [earshot](https://github.com/Leonxlnx/earshot):
+  how well each matches its style's description against "cheap synth demo",
+  "corporate" and "video game" alternatives, and how produced it sounds.
+  Results land in `tmp/audition/<label>`, so changes can be compared before
+  and after. Treat the scores as a guard against regressions, not as taste.
 
 Intros and outros are always beatless, so the stream can crossfade between
 any two tempos.
@@ -103,15 +115,26 @@ now start in phase with each note.
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
-- **Scene**: a 640x360 dithered landscape in OpenPost's Dither palettes (warm
-  paper by day, charcoal by night, following Porto time). It has parallax
-  ASCII-textured hills, the OpenPost mark walking one step per beat, postboxes
-  and lamps passing by, and grass along the bottom that moves with the
-  spectrum. The frame takes about 1.5 ms to draw.
+- **Scene** (`src/stream/scene`): a 640x360 landscape drawn in palette slots
+  and dithered the way OpenPost's Dither material is: two neighbouring
+  colours with a 4x4 Bayer band between solid ends. A fox with a postbag walks
+  it one step per beat. Everything follows the wall clock in Porto: the sun
+  rises on the right and sets on the left, the moon follows its real phase and
+  hours, seasons recolour and rebuild the land (snow, autumn trees, blossom,
+  fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
+  two hours the walk crosses into new country (hills, alpine, forest, village,
+  coast). Every 15 minutes the fox may stop: fishing from a footbridge, working
+  at a desk that rises out of the ground (headphones, laptop, lamp), a campfire
+  where friends join, reading on a bench, or stargazing. Planes towing
+  encouraging banners, birds, shooting stars, passers-by who wave, and four
+  visualizer looks (grass, dithered bars, dot matrix, ridge) that change with
+  the track keep it moving. A frame takes about 2 ms to draw.
 - **Encoder**: one ffmpeg process upscales 3x with nearest neighbour (crisp
-  1080p pixel art), draws the brand chip and now-playing text (Manrope,
-  Geist Mono), and encodes H.264 + AAC to RTMP. The stream reconnects
-  automatically if RTMP drops.
+  1080p pixel art), draws the `openpo.st/radio` chip and now-playing text
+  (Geist Mono), and encodes H.264 + AAC once for every output. Several
+  outputs (YouTube and Twitch) share the encode through ffmpeg's tee muxer,
+  each behind its own fifo, so a platform that drops reconnects without
+  stalling the others. If ffmpeg itself exits, the stream restarts it.
 
 Measured on an M4, the whole stream at 1080p30 with x264 `veryfast` uses about
 0.7 CPU cores. A Skylake VPS core is roughly 2-3x slower, so expect about
@@ -144,22 +167,26 @@ rgo-music.url = "git+ssh://git@github.com/<owner>/rgo-music";
 
 # rgo-vps host module
 imports = [ inputs.rgo-music.nixosModules.default ];
-sops.secrets.rgo-music-rtmp = { };  # contains rtmp://a.rtmp.youtube.com/live2/<stream key>
+sops.secrets.rgo-music-youtube = { };  # rtmp://a.rtmp.youtube.com/live2/<stream key>
+sops.secrets.rgo-music-twitch = { };   # rtmp://live.twitch.tv/app/<stream key>
 services.rgo-music = {
   enable = true;
-  rtmpUrlFile = config.sops.secrets.rgo-music-rtmp.path;
+  rtmpUrlFiles = [
+    config.sops.secrets.rgo-music-youtube.path
+    config.sops.secrets.rgo-music-twitch.path
+  ];
   libraryUrl = "https://<bucket host>/library";
   # scale = 2;  # 720p if the VPS needs headroom
 };
 ```
 
-YouTube settings that match: 1080p30, keyframes every 2 s (set),
-4.5 Mbps video, 192 kbps AAC audio.
+Settings that suit both platforms: 1080p30, keyframes every 2 s, 4.5 Mbps
+video (under Twitch's 6 Mbps ceiling), 160 kbps AAC audio.
 
 ## Licences
 
-Code: see the repository licence. Strudel packages are AGPL-3.0. Fonts:
-Manrope and Geist Mono under the SIL Open Font License (`assets/fonts`).
+Code: see the repository licence. Strudel packages are AGPL-3.0. Font: Geist
+Mono under the SIL Open Font License (`assets/fonts`).
 Sounds come from Strudel's default libraries, fetched at render time: Tidal
 drum machines, VCSL (CC0), the Salamander piano (CC-BY 3.0) and General MIDI
 soundfonts. Check the sample licences before monetising the channel.

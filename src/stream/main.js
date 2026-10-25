@@ -2,8 +2,9 @@
 // ffmpeg in real time.
 //
 // Usage:
-//   RGO_MUSIC_RTMP_URL=rtmp://a.rtmp.youtube.com/live2/<key> npm run stream
+//   RGO_MUSIC_OUTPUTS="rtmp://a.rtmp.youtube.com/live2/<key> rtmp://live.twitch.tv/app/<key>" npm run stream
 //   npm run stream -- --output tmp/preview.mp4 --duration 120   (renders a file as fast as possible)
+// --output can repeat; RGO_MUSIC_OUTPUTS takes several separated by whitespace.
 // Options: --library <dir> | --library-url <url>, --fps 30, --preset veryfast,
 //          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,
 //          --timezone Europe/Lisbon. Each has an RGO_MUSIC_* variable too.
@@ -16,7 +17,7 @@ import { createRng } from '../compose/rng.js';
 import { cacheDir, libraryDir } from '../paths.js';
 import { openDeck } from './deck.js';
 import { createDirector } from './director.js';
-import { CHAR_WIDTH, startEncoder } from './encoder.js';
+import { CHAR_WIDTH, isRtmp, startEncoder } from './encoder.js';
 import { createScene } from './scene/index.js';
 import { createSource } from './source.js';
 import { createSpectrum } from './spectrum.js';
@@ -24,7 +25,7 @@ import { createSpectrum } from './spectrum.js';
 const SR = 48000;
 const { values } = parseArgs({
   options: {
-    output: { type: 'string', default: process.env.RGO_MUSIC_RTMP_URL },
+    output: { type: 'string', multiple: true, default: (process.env.RGO_MUSIC_OUTPUTS ?? '').split(/\s+/).filter(Boolean) },
     library: { type: 'string', default: libraryDir },
     'library-url': { type: 'string', default: process.env.RGO_MUSIC_LIBRARY_URL },
     state: { type: 'string', default: process.env.RGO_MUSIC_STATE ?? join(cacheDir, 'stream') },
@@ -38,14 +39,14 @@ const { values } = parseArgs({
     timezone: { type: 'string', default: process.env.RGO_MUSIC_TIMEZONE ?? 'Europe/Lisbon' },
   },
 });
-if (!values.output) {
-  console.error('set RGO_MUSIC_RTMP_URL or pass --output <file or rtmp url>');
+if (!values.output.length) {
+  console.error('set RGO_MUSIC_OUTPUTS or pass --output <file or rtmp url>');
   process.exit(2);
 }
 const fps = Number(values.fps);
 const spf = SR / fps;
 if (!Number.isInteger(spf)) throw new Error(`fps must divide 48000 (got ${fps})`);
-const realtime = /^rtmps?:\/\//.test(values.output);
+const realtime = values.output.some(isRtmp);
 const stopAfter = values.duration ? Number(values.duration) * SR : Infinity;
 
 await mkdir(values.state, { recursive: true });
@@ -85,7 +86,7 @@ await writeNowPlaying(current.track).then((text) => {
 });
 console.log(`playing ${current.track.id} "${current.track.title}"`);
 
-let encoder = startEncoder({ output: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
+let encoder = startEncoder({ outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
 const mix = new Float32Array(spf * 2);
 const gainA = new Float32Array(spf);
 const gainB = new Float32Array(spf);
@@ -151,7 +152,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     // RTMP dropped: reconnect and carry on where the music is.
     console.error('encoder exited, reconnecting in 5s');
     await new Promise((r) => setTimeout(r, 5000));
-    encoder = startEncoder({ output: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
+    encoder = startEncoder({ outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
   }
 
   // The old deck is done once the crossfade completes.
@@ -170,4 +171,4 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
 current.deck.close();
 next?.deck.close();
 await encoder.close();
-console.log(`wrote ${(stopAfter / SR).toFixed(0)}s to ${values.output} in ${((performance.now() - started) / 1000).toFixed(1)}s`);
+console.log(`wrote ${(stopAfter / SR).toFixed(0)}s to ${values.output.join(', ')} in ${((performance.now() - started) / 1000).toFixed(1)}s`);

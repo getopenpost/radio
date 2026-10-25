@@ -15,9 +15,14 @@ in
   options.services.rgo-music = {
     enable = lib.mkEnableOption "the OpenPost Radio music stream";
 
-    rtmpUrlFile = lib.mkOption {
-      type = lib.types.path;
-      description = "File containing the full RTMP URL including the stream key, e.g. a sops secret.";
+    rtmpUrlFiles = lib.mkOption {
+      type = lib.types.nonEmptyListOf lib.types.path;
+      example = lib.literalExpression ''[ config.sops.secrets.youtube-rtmp.path config.sops.secrets.twitch-rtmp.path ]'';
+      description = ''
+        Files each containing a full RTMP URL including the stream key (e.g. sops
+        secrets), one per platform. The stream is encoded once and sent to all of
+        them; a platform that drops reconnects without interrupting the others.
+      '';
     };
 
     libraryUrl = lib.mkOption {
@@ -96,12 +101,15 @@ in
       // lib.optionalAttrs (cfg.libraryUrl != null) { RGO_MUSIC_LIBRARY_URL = cfg.libraryUrl; }
       // lib.optionalAttrs (cfg.libraryDir != null) { RGO_MUSIC_LIBRARY = cfg.libraryDir; };
       script = ''
-        RGO_MUSIC_RTMP_URL="$(cat "$CREDENTIALS_DIRECTORY/rtmp-url")"
-        export RGO_MUSIC_RTMP_URL
+        RGO_MUSIC_OUTPUTS=""
+        for f in "$CREDENTIALS_DIRECTORY"/rtmp-*; do
+          RGO_MUSIC_OUTPUTS="$RGO_MUSIC_OUTPUTS $(cat "$f")"
+        done
+        export RGO_MUSIC_OUTPUTS
         exec ${lib.getExe pkgs.nodejs_24} ${self}/src/stream/main.js
       '';
       serviceConfig = {
-        LoadCredential = "rtmp-url:${cfg.rtmpUrlFile}";
+        LoadCredential = lib.imap0 (i: file: "rtmp-${toString i}:${file}") cfg.rtmpUrlFiles;
         DynamicUser = true;
         StateDirectory = "rgo-music";
         Restart = "always";
