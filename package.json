@@ -15,7 +15,7 @@
     "analyze": "node src/cli/analyze.js",
     "library": "node src/cli/library.js",
     "stream": "node src/stream/main.js",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@strudel/core": "1.2.6",
