@@ -5,8 +5,10 @@
 //   RGO_MUSIC_RTMP_URL=rtmp://a.rtmp.youtube.com/live2/<key> npm run stream
 //   npm run stream -- --output tmp/preview.mp4 --duration 120   (renders a file as fast as possible)
 // Options: --library <dir> | --library-url <url>, --fps 30, --preset veryfast,
-//          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --daylight 0..1 (pin the
-//          time of day), --state <dir>. Each has an RGO_MUSIC_* variable too.
+//          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,
+//          --timezone Europe/Lisbon. Each has an RGO_MUSIC_* variable too.
+//          Previews can set the scene's clock: --clock 2026-01-12T17:40 (start
+//          time) and --clock-speed 60 (minutes per second of video, for sky checks).
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -15,7 +17,7 @@ import { cacheDir, libraryDir } from '../paths.js';
 import { openDeck } from './deck.js';
 import { createDirector } from './director.js';
 import { CHAR_WIDTH, startEncoder } from './encoder.js';
-import { createScene, daylightAt } from './scene.js';
+import { createScene } from './scene/index.js';
 import { createSource } from './source.js';
 import { createSpectrum } from './spectrum.js';
 
@@ -31,7 +33,8 @@ const { values } = parseArgs({
     bitrate: { type: 'string', default: process.env.RGO_MUSIC_VIDEO_BITRATE ?? '4500k' },
     scale: { type: 'string', default: process.env.RGO_MUSIC_SCALE ?? '3' },
     duration: { type: 'string' },
-    daylight: { type: 'string' },
+    clock: { type: 'string' },
+    'clock-speed': { type: 'string', default: '1' },
     timezone: { type: 'string', default: process.env.RGO_MUSIC_TIMEZONE ?? 'Europe/Lisbon' },
   },
 });
@@ -53,7 +56,7 @@ const history = await readFile(historyFile, 'utf8').then(JSON.parse, () => []);
 const source = createSource({ dir: values.library, url: values['library-url'], cacheDir: join(values.state, 'cache') });
 let catalog = await source.refresh();
 const director = createDirector({ rng: createRng(Date.now() >>> 0), history });
-const scene = createScene({ seed: 7 });
+const scene = createScene({ seed: 7, timeZone: values.timezone });
 const spectrum = createSpectrum();
 
 const overlapOf = (a, b) => Math.round(Math.min(24, Math.max(6, Math.min(a.outroSeconds ?? 8, b.introSeconds ?? 8))) * SR);
@@ -86,8 +89,11 @@ let encoder = startEncoder({ output: values.output, fps, nowPlayingFile, scale: 
 const mix = new Float32Array(spf * 2);
 const gainA = new Float32Array(spf);
 const gainB = new Float32Array(spf);
-let daylight = values.daylight != null ? Number(values.daylight) : daylightAt(new Date(), values.timezone);
 const started = performance.now();
+const clockStart = values.clock ? new Date(values.clock).getTime() : null;
+const clockSpeed = Number(values['clock-speed']);
+// Live streams follow the wall clock; previews can start anywhere and run fast.
+const sceneDate = (seconds) => (clockStart == null ? new Date() : new Date(clockStart + seconds * 1000 * clockSpeed));
 
 for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   // Line up the next track about half a minute before the crossfade.
@@ -129,13 +135,15 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     pillWidth = Math.round(26 + text.length * CHAR_WIDTH);
     console.log(`now playing ${active.track.id} "${active.track.title}"`);
   }
-  if (frame % (fps * 10) === 0 && values.daylight == null) daylight = daylightAt(new Date(), values.timezone);
   const rgb = scene.render({
     time: t / SR,
+    dt: spf / SR,
+    date: sceneDate(t / SR),
     beat: Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60)),
-    daylight,
+    bpm: active.track.bpm,
     bands: spectrum.update(mix),
     pillWidth,
+    trackId: active.track.id,
   });
   await encoder.frame(rgb, mix);
   if (!encoder.alive) {

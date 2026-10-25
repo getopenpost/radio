@@ -1,0 +1,122 @@
+// Everything the scene derives from the wall clock: daylight, the sun's and
+// moon's arcs, the moon's phase, the season, the weather, and which activity
+// the fox is doing. All of it is a pure function of time, so the stream
+// looks right after a restart and two renderers agree.
+import { createRng, hashString } from '../../compose/rng.js';
+
+const DAY_MS = 86400000;
+
+/** Local calendar parts for a time zone. */
+export function localTime(date, timeZone) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false })
+      .formatToParts(date)
+      .map((p) => [p.type, Number(p.value)]),
+  );
+  const start = Date.UTC(parts.year, 0, 1);
+  const dayOfYear = Math.floor((Date.UTC(parts.year, parts.month - 1, parts.day) - start) / DAY_MS);
+  const asUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second);
+  const offset = Math.round((asUtc - Math.floor(date.getTime() / 1000) * 1000) / 60000) / 60;
+  return { ...parts, hours: (parts.hour % 24) + parts.minute / 60 + parts.second / 3600, dayOfYear, offset };
+}
+
+/** Sunrise and sunset in local hours for Porto, from the day of year and the zone's UTC offset in hours. */
+export function sunTimes(dayOfYear, offset = 0, latitude = 41.15, longitude = -8.61) {
+  const decl = -23.44 * Math.cos(((2 * Math.PI) / 365) * (dayOfYear + 10));
+  const rad = Math.PI / 180;
+  const cosH = -Math.tan(latitude * rad) * Math.tan(decl * rad);
+  const halfDay = (Math.acos(Math.max(-1, Math.min(1, cosH))) / rad) / 15;
+  // Solar noon from the longitude plus the equation of time (minutes).
+  const b = ((2 * Math.PI) / 365) * (dayOfYear - 81);
+  const eot = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
+  const noon = 12 - longitude / 15 - eot / 60 + offset;
+  return { sunrise: noon - halfDay, sunset: noon + halfDay };
+}
+
+/** Moon age as a fraction of the synodic month: 0 new, 0.5 full. */
+export function moonPhase(date) {
+  const knownNew = Date.UTC(2000, 0, 6, 18, 14);
+  const synodic = 29.530588853 * DAY_MS;
+  return ((((date.getTime() - knownNew) % synodic) + synodic) % synodic) / synodic;
+}
+
+export function seasonOf(month) {
+  return month === 12 || month <= 2 ? 'winter' : month <= 5 ? 'spring' : month <= 8 ? 'summer' : 'autumn';
+}
+
+/**
+ * Sky state at a moment: light level, sun and moon positions along their arcs
+ * (both travel right to left, with the world), and twilight warmth.
+ */
+export function sky(date, timeZone) {
+  const t = localTime(date, timeZone);
+  const { sunrise, sunset } = sunTimes(t.dayOfYear, t.offset);
+  const h = t.hours;
+  const twilight = 0.8; // hours of fade either side of sunrise and sunset
+  let light;
+  if (h < sunrise - twilight || h > sunset + twilight) light = 0;
+  else if (h < sunrise + twilight) light = (h - (sunrise - twilight)) / (2 * twilight);
+  else if (h > sunset - twilight) light = 1 - (h - (sunset - twilight)) / (2 * twilight);
+  else light = 1;
+  light = light * light * (3 - 2 * light); // smoothstep
+  const sunProgress = (h - sunrise) / (sunset - sunrise); // 0 rising (right) .. 1 setting (left)
+  const nightLength = 24 - (sunset - sunrise);
+  const moonProgress = (((h - sunset + 24) % 24) / nightLength);
+  const warmth = Math.max(0, 1 - Math.min(Math.abs(h - sunrise), Math.abs(h - sunset)) / 1.2); // golden hour
+  return {
+    light,
+    warmth,
+    sun: sunProgress > -0.05 && sunProgress < 1.05 ? sunProgress : null,
+    moon: moonProgress >= 0 && moonProgress <= 1 ? moonProgress : null,
+    moonAge: moonPhase(date),
+    season: seasonOf(t.month),
+    hours: h,
+    dayOfYear: t.dayOfYear,
+  };
+}
+
+// Weather changes every 90 minutes, drawn from the season. Each block blends
+// into the next over ten minutes.
+const WEATHER = {
+  winter: [[3, 'clear'], [3, 'cloudy'], [2, 'snow'], [1, 'fog'], [1, 'rain']],
+  spring: [[4, 'clear'], [3, 'cloudy'], [2, 'rain'], [1, 'fog']],
+  summer: [[7, 'clear'], [2, 'cloudy'], [1, 'rain']],
+  autumn: [[3, 'clear'], [3, 'cloudy'], [2, 'rain'], [1, 'fog'], [1, 'windy']],
+};
+const WEATHER_BLOCK = 90 * 60000;
+
+export function weather(date, season) {
+  const block = Math.floor(date.getTime() / WEATHER_BLOCK);
+  const pick = (b) => createRng(hashString(`weather:${b}`)).weighted(WEATHER[season]);
+  const into = (date.getTime() % WEATHER_BLOCK) / 600000; // minutes/10 into the block
+  const previous = pick(block - 1);
+  const current = pick(block);
+  const mix = Math.min(1, into);
+  return { previous, current, mix };
+}
+
+/** Intensity of one kind of weather right now, blended across block changes. */
+export function weatherAmount(w, kind) {
+  return (w.previous === kind ? 1 - w.mix : 0) + (w.current === kind ? w.mix : 0);
+}
+
+// Activities. Time is cut into slots; each slot is a walk, or the fox stops
+// for something. Nights favour the campfire and stargazing.
+const SLOT = 15 * 60000;
+const ACTIVITIES = {
+  day: [[4, 'walk'], [2, 'fish'], [2, 'desk'], [2, 'read']],
+  night: [[4, 'walk'], [2, 'campfire'], [2, 'desk'], [1, 'stargaze'], [1, 'fish']],
+};
+
+export function activity(date, light) {
+  const slot = Math.floor(date.getTime() / SLOT);
+  const pickFor = (s, l) => {
+    const rng = createRng(hashString(`activity:${s}`));
+    return rng.weighted(ACTIVITIES[l > 0.4 ? 'day' : 'night']);
+  };
+  let kind = pickFor(slot, light);
+  // Never two stops in a row: the fox walks between activities.
+  if (kind !== 'walk' && pickFor(slot - 1, light) !== 'walk') kind = 'walk';
+  const start = slot * SLOT;
+  return { kind, start, end: start + SLOT, elapsed: date.getTime() - start, length: SLOT };
+}

@@ -16,6 +16,7 @@
     "analyze": "node src/cli/analyze.js",
     "library": "node src/cli/library.js",
     "stream": "node src/stream/main.js",
+    "scene": "node src/cli/scene.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

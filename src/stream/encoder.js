@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { assetsDir } from '../paths.js';
-import { HEIGHT, WIDTH } from './scene.js';
+import { BRAND, BRAND_TEXT, HEIGHT, WIDTH } from './scene/index.js';
 
 // Text is sized in scene pixels, so it lines up at any output scale.
 // Geist Mono advances 0.6 em, so 10 scene-pixel text is 6 scene pixels per character.
@@ -13,23 +13,26 @@ export const CHAR_WIDTH = TEXT_SIZE * 0.6;
 
 const escapePath = (p) => p.replaceAll('\\', '\\\\').replaceAll(':', '\\:').replaceAll("'", "\\'");
 
+/** Upscale and text overlays, shared with the stills tool. */
+export function pictureFilters({ nowPlayingFile, scale = 3 }) {
+  const mono = escapePath(join(assetsDir, 'fonts', 'GeistMono-Medium.ttf'));
+  const SCALE = scale;
+  const text = `fontcolor=0xf4f1ea:fontsize=${TEXT_SIZE * SCALE}`;
+  return [
+    `scale=${WIDTH * SCALE}:${HEIGHT * SCALE}:flags=neighbor`,
+    // Brand chip (bottom left): the address right of the pixel logo, centred on the chip.
+    `drawtext=fontfile='${mono}':text='${BRAND_TEXT}':${text}:x=${BRAND.textX * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
+    // Now-playing pill: text after the note icon; the pill width comes from the scene.
+    `drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${25 * SCALE}-max_glyph_a/2-2`,
+  ].join(',');
+}
+
 /**
  * @param {object} o
  * @param {number} [o.scale=3] output = scene size x scale: 3 gives 1080p, 2 gives 720p (half the CPU)
  */
 export function encoderArgs({ output, fps, nowPlayingFile, scale = 3, videoBitrate = '4500k', audioBitrate = '192k', preset = 'veryfast', threads = 4 }) {
-  const mono = escapePath(join(assetsDir, 'fonts', 'GeistMono-Medium.ttf'));
-  const brand = escapePath(join(assetsDir, 'fonts', 'Manrope-SemiBold.ttf'));
-  const SCALE = scale;
-  const text = `fontcolor=0xf4f1ea:fontsize=${TEXT_SIZE * SCALE}`;
-  const filters = [
-    `scale=${WIDTH * SCALE}:${HEIGHT * SCALE}:flags=neighbor`,
-    // Brand chip: text right of the small mark, vertically centred on the chip.
-    `drawtext=fontfile='${brand}':text='openpost radio':${text}:x=${40 * SCALE}:y=${25 * SCALE}-max_glyph_a/2-2`,
-    // Now-playing pill: text after the note icon; the pill width comes from the scene.
-    `drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${25 * SCALE}-max_glyph_a/2-2`,
-    'format=yuv420p',
-  ].join(',');
+  const filters = `${pictureFilters({ nowPlayingFile, scale })},format=yuv420p`;
   const gop = fps * 2; // YouTube wants a keyframe every 2 seconds
   const isRtmp = /^rtmps?:\/\//.test(output);
   return [
