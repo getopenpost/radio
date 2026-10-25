@@ -82,7 +82,10 @@ function compose(config, { rng, key, bpm, progressions }) {
   const padSweep = `.lpf(sine.slow(16).range(${rng.int(6, 9) * 100}, ${rng.int(12, 18) * 100}))`;
   b.chords('pad', pick.pad, { anchor: padTop, extra: `.hpf(${rng.int(22, 30) * 10})${config.padSweep === false ? '' : padSweep}${config.padExtra ?? ''}` });
   b.chords('pad2', pick.pad2, { anchor: 'e4', extra: '.hpf(260).pan(sine.slow(16).range(.3, .7))', scale: config.pad2Scale ?? 0.6 });
-  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: rng.pick(config.comps ?? DEFAULT_COMPS), extra: `.hpf(200).pan(.42)${config.keysExtra ?? ''}${swing}` });
+  // Comping varies on the fourth bar of each phrase so loops do not sit still.
+  const comps = rng.shuffle(config.comps ?? DEFAULT_COMPS);
+  const comp = comps.length > 1 ? `<[${comps[0]}]!3 [${comps[1]}]>` : comps[0];
+  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, extra: `.hpf(200).pan(.42)${config.keysExtra ?? ''}${swing}` });
 
   b.comment('Melody: a sparse motif and an arpeggio, both through the delay.');
   const [lo, hi] = config.motifRange ?? [64, 81];
@@ -93,7 +96,7 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.arp('arp', pick.arp, {
     shape: rng.pick(config.arps ?? DEFAULT_ARPS),
     anchor: rng.pick(['c5', 'd5', 'e5']),
-    extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8))${config.arpExtra ?? ''}`,
+    extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8)).lastOf(8, x => x.ply(2))${config.arpExtra ?? ''}`,
   });
 
   b.comment('Drums.');
@@ -103,8 +106,9 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.drum('kickB', kits.kick, grooveB.kick, { role: 'kick', extra: kickDuck + drumExtra, humanize: 0 });
   b.drum('snare', kits.snare, grooveA.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
   b.drum('snareB', kits.snare, grooveB.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
-  b.drum('hats', kits.hat, grooveA.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${swing}${drumExtra}` });
-  b.drum('hatsB', kits.hat, grooveB.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${swing}${drumExtra}` });
+  const flourish = '.lastOf(4, x => x.ply("1 1 1 2"))'; // a small roll closing each 4-bar phrase
+  b.drum('hats', kits.hat, grooveA.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}` });
+  b.drum('hatsB', kits.hat, grooveB.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}` });
   b.drum('openhat', kits.openhat, config.openhat ?? '[~ x]*4', { role: 'openhat', extra: `.hpf(5000).decay(.12).pan(.66)${drumExtra}`, scale: 0.8 });
   b.drum('perc', kits.perc, grooveA.perc ?? '~', { role: 'perc', extra: `.pan(.38)${swing}${drumExtra}` });
   b.drum('fill', kits.perc, '[~ ~ ~ [x x x x]]', { role: 'perc', extra: `.pan(sine.range(.3, .7)).mask("<0!7 1>")${drumExtra}`, scale: 0.8 });
