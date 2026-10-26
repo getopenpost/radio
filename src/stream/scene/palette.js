@@ -18,6 +18,7 @@ const NAMES = [
   'fur', 'furDark', 'cream', 'outline', 'blush', 'bag', 'bunny', 'bunnyDark', 'bear', 'bearDark', 'ink', 'paper', 'screen', 'cat', 'logo',
   'fire0', 'fire1', 'fire2', 'glow0', 'glow1', 'smoke', 'lampLight',
   'rain', 'snow', 'leafFall', 'light', 'banner', 'pill', 'hat', 'straw',
+  'knit', 'knitDark', 'raincoat', 'raincoatDark', 'wallShade', 'roofShade', 'door', 'metal', 'metalDark', 'brass', 'interior', 'interiorShade', 'floor', 'roofSnow',
 ];
 export const S = Object.fromEntries(NAMES.map((n, i) => [n, i]));
 export const SLOTS = NAMES.length;
@@ -54,6 +55,9 @@ const DAY = table({
   fire0: '#e0702a', fire1: '#f2a548', fire2: '#fbe3a0', glow0: '#d3cab9', glow1: '#d3cab9', smoke: '#b5ac9e', lampLight: '#efe9de',
   rain: '#a19788', snow: '#ffffff', leafFall: '#b45309', light: '#ffffff', banner: '#fbf9f4', pill: '#1c1917',
   hat: '#4a433d', straw: '#c9a25a',
+  knit: 'oklch(0.52 0.07 200)', knitDark: 'oklch(0.42 0.06 200)', raincoat: 'oklch(0.84 0.14 92)', raincoatDark: 'oklch(0.7 0.13 85)',
+  wallShade: '#d6cfc3', roofShade: 'oklch(0.36 0.09 40)', door: '#6b5242', metal: '#8f8a84', metalDark: '#5f5a55', brass: 'oklch(0.7 0.1 80)',
+  interior: '#e2d9ca', interiorShade: '#cfc4b3', floor: '#a88f74', roofSnow: '#7c3a07',
 });
 
 const NIGHT = table({
@@ -70,6 +74,9 @@ const NIGHT = table({
   fire0: '#fd7d3a', fire1: '#ffb35c', fire2: '#fff0c4', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#3a332e', lampLight: '#ffd9a0',
   rain: '#4a433d', snow: '#d8d1c7', leafFall: '#4a2f1f', light: '#fff6e5', banner: '#c9c1b6', pill: '#0c0a09',
   hat: '#4a443f', straw: '#8a6f40',
+  knit: 'oklch(0.38 0.05 200)', knitDark: 'oklch(0.3 0.04 200)', raincoat: 'oklch(0.62 0.1 90)', raincoatDark: 'oklch(0.5 0.09 85)',
+  wallShade: '#120f0d', roofShade: '#0b0908', door: '#2a201b', metal: '#4f4a45', metalDark: '#34302c', brass: 'oklch(0.5 0.07 80)',
+  interior: '#4a3a2c', interiorShade: '#3a2d22', floor: '#33261c', roofSnow: '#0e0c0a',
 });
 
 // Sunrise and sunset: the sky warms and the low sun turns orange.
@@ -97,10 +104,11 @@ const SEASONS = {
       peak: '#fdfcf9', snowcap: '#fdfcf9', pine0: '#5a5a50', pine1: '#45463e', leaf0: '#6b6157', leaf1: '#584f47', blossom: '#fdfcf9',
       ground0: '#f3f0ea', ground1: '#e1dcd3', path: '#e7e2d9', pathEdge: '#c4bdb1', flower: '#e1dcd3',
       hill0: '#d9d4cb', hill1: '#c6c0b6', water0: '#e4e8e6', water1: '#cdd3d1', waterHi: '#ffffff', grassTip: '#d9d4cb',
+      roofSnow: '#fdfcf9',
     }),
     night: table({
       peak: '#3a3531', snowcap: '#2e2a26', ground0: '#24201d', ground1: '#1c1917', path: '#211d1a', hill0: '#1e1b18', hill1: '#191614',
-      water0: '#28231f', water1: '#201c19', grassTip: '#2a2622',
+      water0: '#28231f', water1: '#201c19', grassTip: '#2a2622', roofSnow: '#3a3531',
     }),
   },
 };
@@ -109,7 +117,7 @@ const SEASONS = {
 const DEPTH = { far0: 0.85, far1: 0.85, peak: 0.85, glacier: 0.85, sea0: 0.8, sea1: 0.8, hill0: 0.55, hill1: 0.55, pine0: 0.5, pine1: 0.5, leaf0: 0.5, leaf1: 0.5, blossom: 0.5, snowcap: 0.5, trunk: 0.45, roof: 0.45, wall: 0.45, cloud: 0.3, cloudShade: 0.3, ground0: 0.2, ground1: 0.2, path: 0.2, pathEdge: 0.2, flower: 0.2, water0: 0.2, water1: 0.2 };
 const SKY_SLOTS = new Set(['sky0', 'sky1', 'sky2', 'sunGlow', 'cloud', 'cloudShade']);
 // Light sources and the interface keep their colour whatever the weather.
-const UNLIT = new Set(['window', 'screen', 'fire0', 'fire1', 'fire2', 'lampLight', 'logo', 'pill']);
+const UNLIT = new Set(['window', 'screen', 'fire0', 'fire1', 'fire2', 'lampLight', 'logo', 'pill', 'interior', 'interiorShade', 'floor']);
 
 const mixInto = (out, a, b, t) => {
   out[0] = a[0] + (b[0] - a[0]) * t;

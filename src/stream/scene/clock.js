@@ -106,8 +106,8 @@ export function weatherAmount(w, kind) {
 // for something. Nights favour the campfire and stargazing.
 const SLOT = 15 * 60000;
 const ACTIVITIES = {
-  day: [[4, 'walk'], [2, 'fish'], [2, 'desk'], [2, 'read'], [2, 'fly']],
-  night: [[4, 'walk'], [2, 'campfire'], [2, 'desk'], [1, 'stargaze'], [1, 'fish'], [1, 'fly']],
+  day: [[5, 'walk'], [2, 'fish'], [2, 'work'], [2, 'read'], [2, 'fly'], [2, 'gym'], [1, 'river'], [1, 'home']],
+  night: [[5, 'walk'], [2, 'campfire'], [2, 'work'], [1, 'stargaze'], [1, 'fish'], [1, 'fly'], [1, 'river'], [2, 'home']],
 };
 
 export function activity(date, light) {

@@ -2,19 +2,20 @@
 // (nearest neighbour) by ffmpeg.
 //
 // A fox with a postbag walks a dithered landscape in time with the music.
-// Every so often it stops for something (fishing, working at a desk that
-// rises out of the ground, a campfire with friends, reading, stargazing),
-// then walks on. The wall clock drives the sun and moon, seasons, weather,
+// Every so often it stops for something (fishing, working in its studio or
+// warming up at home, a campfire with friends, reading, stargazing, a
+// workout, rowing across a river, flying), then walks on. The wall clock drives the sun and moon, seasons, weather,
 // the region the walk passes through and what the fox does, so the picture
 // keeps changing through a day and across the year.
 import { createRng, hashString } from '../../compose/rng.js';
-import { ACTS, drawAct } from './acts.js';
+import { ACTS, drawAct } from './acts/index.js';
 import { createCanvas, HEIGHT, maskSprite, WIDTH } from './canvas.js';
 import { createCharacters } from './character.js';
+import { createEncounters } from './encounter.js';
 import { activity, sky as skyAt, weather as weatherAt, weatherAmount } from './clock.js';
 import { bayer, clamp01 } from './dither.js';
 import { computePalette, S, SLOTS } from './palette.js';
-import { convergeMask, drawProp, PROP_KINDS } from './props.js';
+import { convergeMask, CREEK_SPAN, creekLift, creekRail, drawCreek, drawProp, PROP_KINDS } from './props.js';
 import { createSky } from './sky.js';
 import { createVisualizer, MODES } from './visualizer.js';
 import { createWeather } from './weather.js';
@@ -59,10 +60,12 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   let act = null;
   let props = [];
   let nextProp = 200;
-  let npc = null;
-  let nextNpc = 90;
+  const encounters = createEncounters(createRng(seed ^ 0xf00d));
+  let paused = false; // stopped to chat with a friend
   let lastStep = 0;
   let actSpeed = 0; // what the current stop asks the ground to do (flying keeps it moving)
+  let actDone = false; // the current stop says it is finished (the river is crossed)
+  const finished = new Set(); // stops already done in their time slot
   let lift = 0; // how high the fox is off the path
   const footprints = [];
   let started = false;
@@ -104,12 +107,24 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
           if (bayer(px, py) < 0.7 - age * 0.5) canvas.set(px, py, S.smoke);
         }
       } else if (d.kind === 'windmill') {
-        canvas.line(sx - 2, d.y, sx, d.y - 16, S.wall);
-        canvas.line(sx + 2, d.y, sx, d.y - 16, S.wall);
-        for (let b = 0; b < 4; b++) {
-          const a = time * 0.6 + (b * Math.PI) / 2;
-          canvas.line(sx, d.y - 16, sx + Math.cos(a) * 9, d.y - 16 + Math.sin(a) * 9, S.ink);
+        // A tapered tower with a cap and a door; four cloth sails turning slowly.
+        for (let y = 0; y < 18; y++) {
+          const half = Math.round(4.5 - y * 0.12);
+          for (let dx = -half; dx <= half; dx++) canvas.set(sx + dx, d.y - y, dx > half - 2 ? S.wallShade : S.wall);
         }
+        canvas.rect(sx - 1, d.y - 3, 2, 3, S.door);
+        canvas.set(sx, d.y - 10, light < 0.5 ? S.window : S.windowOff);
+        for (let k = 0; k < 4; k++) canvas.rect(sx - 3 + k, d.y - 21 + Math.abs(k - 1.5) | 0, 1, 4, S.roof);
+        const hub = [sx, d.y - 19];
+        for (let b = 0; b < 4; b++) {
+          const a = time * 0.5 + (b * Math.PI) / 2;
+          const [ux, uy] = [Math.cos(a), Math.sin(a)];
+          for (let r = 2; r <= 12; r++) {
+            canvas.set(Math.round(hub[0] + ux * r), Math.round(hub[1] + uy * r), S.trunk);
+            if (r > 3) for (let w = 1; w <= 2; w++) canvas.set(Math.round(hub[0] + ux * r - uy * w), Math.round(hub[1] + uy * r + ux * w), S.banner);
+          }
+        }
+        canvas.set(hub[0], hub[1], S.ink);
       } else if (d.kind === 'lighthouse') {
         canvas.rect(sx - 1, d.y, 3, 2, light < 0.5 ? S.lampLight : S.wall);
         if (light < 0.5) {
@@ -133,7 +148,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   }
 
   /** Pick what the fox should be doing, given the plan and the conditions. */
-  function planned(date, light, rain, snow, overcast) {
+  function planned(date, light, rain, snow, overcast, season) {
     const plan = activity(date, light);
     const spec = ACTS[plan.kind];
     let kind = plan.kind;
@@ -142,6 +157,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       if (kind === 'stargaze' && (overcast > 0.3 || rain > 0.1 || snow > 0.1)) kind = 'walk';
       if ((kind === 'read' || kind === 'campfire') && rain > 0.3) kind = 'walk';
       if (kind === 'fly' && (rain > 0.3 || snow > 0.3)) kind = 'walk';
+      if (kind === 'gym' && rain > 0.2) kind = 'walk';
+      if (kind === 'river' && season === 'winter') kind = 'walk';
+      // Home by the fire only when it is cold out.
+      if (kind === 'home' && !(season === 'winter' || snow > 0.2 || (season === 'autumn' && light < 0.5))) kind = 'walk';
     }
     return { ...plan, kind };
   }
@@ -151,7 +170,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     const ahead = immediate ? 0 : spec.anchored ? WIDTH - FOX_X - spec.extent[0] + 20 : 30;
     const wx = ground + FOX_X + ahead;
     props = props.filter((p) => p.wx < wx + spec.extent[0] - 20 || p.wx > wx + spec.extent[1] + 20);
-    act = { kind, wx, start: immediate ? time : null, outStart: null, end: plan.end, seed: hashString(`${kind}:${plan.start}`) };
+    act = { kind, wx, start: immediate ? time : null, outStart: null, end: plan.end, key: `${kind}:${plan.start}`, seed: hashString(`${kind}:${plan.start}`), state: {} };
+    actDone = false;
     mode = immediate ? 'stay' : 'arrive';
     if (immediate) speed = 0;
   }
@@ -168,7 +188,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
    * @param {number} s.pillWidth now-playing pill width (0 hides it)
    * @param {string} [s.trackId] current track; each track picks a visualizer look
    * @param {object} [s.steer] for previews: force `activity`, `weather` ({ previous, current, mix }),
-   *   `region`, a sky event (`trigger`), a passer-by (`npc`) or a visualizer `look`
+   *   `region`, a sky event (`trigger`), a passer-by (`npc`, `chat`), a visualizer `look`, or
+   *   drop a leftover set after a jump in time (`fresh`)
    * @returns {Buffer} RGB24 frame
    */
   function render({ time, dt, date, beat, bpm = 90, bands, pillWidth, trackId, steer }) {
@@ -202,15 +223,22 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     const err = mod(beat * 0.5 - stepPhase + 0.25, 0.5) - 0.25;
     const walkSpeed = base * (1 + Math.max(-0.3, Math.min(0.3, err * 1.5)));
 
-    const plan = steer?.activity ? { kind: steer.activity, start: 0, end: date.getTime() + 3600000 } : planned(date, st.light, rain, snow, overcast);
+    const plan = steer?.activity ? { kind: steer.activity, start: steer.key ?? 0, end: date.getTime() + 3600000 } : planned(date, st.light, rain, snow, overcast, st.season);
+    const fresh = !finished.has(`${plan.kind}:${plan.start}`);
+    // Previews that jump in time drop whatever set was still scrolling away.
+    if (steer?.fresh && act && act.kind !== plan.kind) {
+      act = null;
+      mode = 'walk';
+      speed = walkSpeed;
+    }
     if (steer?.trigger) sky.trigger(steer.trigger, `${steer.trigger}:${time}`);
     if (!started) {
       started = true;
       if (plan.kind !== 'walk' && plan.end - date.getTime() > 120000) startAct(plan.kind, plan, time, true);
     }
     if (mode === 'walk') {
-      speed = Math.min(walkSpeed, speed + DECEL * dt);
-      if (plan.kind !== 'walk' && plan.end - date.getTime() > 150000) startAct(plan.kind, plan, time, false);
+      speed = paused ? Math.max(0, speed - DECEL * 3 * dt) : Math.min(walkSpeed, speed + DECEL * dt);
+      if (!paused && !encounters.active && plan.kind !== 'walk' && fresh && plan.end - date.getTime() > 150000) startAct(plan.kind, plan, time, false);
     }
     if (mode === 'arrive') {
       const remaining = act.wx - FOX_X - ground;
@@ -225,9 +253,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     if (mode === 'stay') {
       speed += (actSpeed - speed) * Math.min(1, dt * 2);
       const spec = ACTS[act.kind];
-      if (act.outStart == null && (plan.kind !== act.kind || date.getTime() > act.end - spec.outro * 1000 - 3000)) act.outStart = time;
+      if (act.outStart == null && (actDone || plan.kind !== act.kind || date.getTime() > act.end - spec.outro * 1000 - 3000)) act.outStart = time;
       if (act.outStart != null && time - act.outStart >= spec.outro) {
         mode = 'leave';
+        finished.add(act.key);
         actSpeed = 0;
         if (!spec.anchored) act = null;
       }
@@ -252,13 +281,23 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     while (nextProp < ground + WIDTH + 40) {
       const blocked = act && nextProp > act.wx + ACTS[act.kind].extent[0] - 40 && nextProp < act.wx + ACTS[act.kind].extent[1] + 40;
       if (!blocked && mode !== 'arrive') {
+        // Now and then the path crosses a creek on a little footbridge.
+        const creek = rng.chance(0.12);
         const kinds = [...PROP_KINDS.any, ...PROP_KINDS[st.season]];
-        props.push({ kind: rng.pick(kinds), wx: nextProp, seed: rng.int(0, 999) });
+        props.push({ kind: creek ? 'creek' : rng.pick(kinds), wx: nextProp, seed: rng.int(0, 999) });
+        if (creek) nextProp += CREEK_SPAN + 60;
       }
       nextProp += rng.int(110, 340);
     }
     props = props.filter((p) => p.wx - ground > -40);
+    let bridge = 0; // how high a footbridge lifts the fox
     for (const p of props) {
+      if (p.kind === 'creek') {
+        const x = Math.round(p.wx - ground);
+        drawCreek(canvas, x, PATH_Y, time);
+        bridge = Math.max(bridge, creekLift(FOX_X - x));
+        continue;
+      }
       const lamp = drawProp(canvas, p.kind, Math.round(p.wx - ground), PATH_Y - 3, p.seed);
       if (lamp && st.light < 0.55) glows.push({ x: lamp.x, y: lamp.y + 2, r: 22, strength: 0.9 * (1 - st.light * 1.6), squash: 0.8 });
     }
@@ -288,36 +327,32 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       const t = act.start == null ? -1 : time - act.start;
       const out = act.outStart == null ? 0 : Math.min(spec.outro, time - act.outStart);
       const res = drawAct(act.kind, {
-        canvas, chars, X, Y: PATH_Y, t, out, time, dt, beat, light: st.light, season: st.season, rain, glows, overlays, seed: act.seed,
+        canvas, chars, X, Y: PATH_Y, foxX: FOX_X, t, out, time, dt, beat, light: st.light, season: st.season, rain, glows, overlays, seed: act.seed, state: act.state,
+        hours: st.hours, moonUp: st.moon != null && st.light < 0.5, moonAge: st.moonAge,
         festive: (st.month === 10 && st.day >= 24) || (st.month === 11 && st.day <= 1),
         trigger: (kind, key) => sky.trigger(kind, key),
       });
       if (res && mode === 'stay') {
         actPose = res.pose;
-        after = res.after;
         actLift = res.lift ?? 0;
       }
+      after = res?.after ?? null; // sets still draw over the fox while it walks away
       actSpeed = res?.speed ?? 0;
+      actDone = Boolean(res?.done);
     }
-    lift = actLift;
+    lift = actLift || bridge;
 
-    // A friend passing the other way now and then; they wave at each other.
-    if (!npc && mode === 'walk' && (time > nextNpc || steer?.npc)) {
-      npc = { species: rng.chance(0.5) ? 'bunny' : 'bear', x: WIDTH + 24, walked: 0 };
-      nextNpc = time + rng.int(240, 720);
-    }
-    let greeting = false;
-    if (npc) {
-      npc.walked += 7 * dt;
-      npc.x -= (speed + 7) * dt;
-      greeting = Math.abs(npc.x - FOX_X) < 46;
-      chars.draw(canvas, npc.species, Math.round(npc.x), PATH_Y - 3, -1, { legs: 'walk', step: npc.walked / STRIDE, eyes: greeting ? 'happy' : 'open', front: greeting ? [3, -9] : [2, 5], tail: Math.sin(npc.walked) });
-      if (npc.x < -40) npc = null;
-    }
+    // A friend passing the other way now and then: a wave, or a stop for a chat.
+    const meeting = encounters.update(canvas, chars, {
+      time, dt, speed, walking: mode === 'walk' && !act, foxX: FOX_X, y: PATH_Y - 3, rain, winter: st.season === 'winter', hour: st.hours, force: steer?.npc, forceChat: steer?.chat,
+    });
+    paused = meeting.pause;
 
     // The fox.
-    const step = mod(ground / STRIDE, 1);
-    const moving = speed > 0.3;
+    // Walking left (back across a set) mirrors the stride so the feet stay planted.
+    const facing = actPose?.facing ?? 1;
+    const step = mod((facing * ground) / STRIDE, 1);
+    const moving = Math.abs(speed) > 0.3;
     const pose = moving
       ? { legs: 'walk', step, bob: -Math.round(Math.abs(Math.sin(2 * Math.PI * step))), tail: Math.sin(2 * Math.PI * step), front: [2 + Math.round(Math.sin(2 * Math.PI * step) * 2), 5], back: [-2 - Math.round(Math.sin(2 * Math.PI * step) * 2), 5] }
       : { legs: 'stand', tail: Math.sin(time * 1.3) * 0.6 };
@@ -337,30 +372,20 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       pose.eyes = 'up';
       pose.front = [3, -9];
     }
-    if (greeting) {
-      pose.eyes = 'happy';
-      pose.front = [3, -9];
-      pose.mouth = 'open';
-    }
+    if (meeting.fox) Object.assign(pose, meeting.fox);
     if (actPose) Object.assign(pose, actPose);
     if (mod(time, 4.3) < 0.12 && (pose.eyes === 'open' || pose.eyes === 'focus')) pose.eyes = 'blink';
-    if (st.season === 'winter') {
-      pose.beanie = true;
-      pose.scarf = true;
+    if (st.season === 'winter' && !actPose?.indoors) pose.winter = true;
+    // Under an umbrella in the rain (outdoors, hands free): it leans into the
+    // walk and the wind and rocks with each step.
+    if (rain > 0.35 && !actPose?.indoors && act?.kind !== 'fly' && !actPose?.back) {
+      pose.umbrella = (moving ? 0.16 + Math.sin(2 * Math.PI * step) * 0.05 : 0.04) + wind * 0.12;
     }
-    const umbrella = rain > 0.35 && act?.kind !== 'desk' && act?.kind !== 'fly';
-    if (umbrella && !actPose?.back) pose.back = [1, -12];
-    const paws = chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, 1, pose);
-    if (umbrella) {
-      const [ux, uy] = umbrella && !actPose?.back ? paws.backPaw : [FOX_X - 4, PATH_Y - 20];
-      canvas.line(ux, uy, ux, PATH_Y - 44, S.ink);
-      for (let dx = -14; dx <= 14; dx++) {
-        const h = Math.round(Math.sqrt(Math.max(0, 196 - dx * dx)) * 0.45);
-        for (let y = 0; y <= h; y++) canvas.set(ux + dx, PATH_Y - 42 - y, (dx + 14) % 7 < 4 ? S.furDark : S.fur);
-      }
-    }
+    const paws = chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, facing, pose);
     if (after) after(paws);
     for (const o of overlays) o(paws);
+    for (const p of props) if (p.kind === 'creek') creekRail(canvas, Math.round(p.wx - ground), PATH_Y);
+    for (const b of meeting.bubbles) b(paws.top);
 
     weatherFx.draw(canvas, {
       dt, time, rain, snow, wind, scroll: speed,
@@ -403,5 +428,5 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     }
   }
 
-  return { render, state: () => ({ mode, act: act?.kind ?? null, region: world?.region, biome: world?.biome }) };
+  return { render, state: () => ({ mode, act: act?.kind ?? null, region: world?.region, biome: world?.biome, meeting: Boolean(encounters.active) }) };
 }

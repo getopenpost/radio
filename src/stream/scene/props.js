@@ -112,3 +112,43 @@ export function convergeMask(size) {
   }
   return mask;
 }
+
+// A creek crossing the path under an arched wooden footbridge. The fox walks
+// up and over the arch, behind the near handrail.
+export const CREEK_SPAN = 46;
+const ARCH = 5;
+
+/** How high the deck is `dx` pixels from the bridge's left end. */
+export const creekLift = (dx) => (dx < 0 || dx > CREEK_SPAN ? 0 : Math.round(ARCH * Math.sin((Math.PI * dx) / CREEK_SPAN)));
+
+/** The water, the banks and the deck; drawn before the fox. */
+export function drawCreek(canvas, x, Y, time) {
+  // The creek runs from the hills towards us, widening as it comes.
+  for (let y = Y - 6; y < Y + 46; y++) {
+    const k = y - (Y - 6);
+    const half = 9 + k * 0.35;
+    const mid = x + CREEK_SPAN / 2 + Math.sin(k * 0.08) * 3;
+    for (let px = Math.round(mid - half); px <= Math.round(mid + half); px++) {
+      const edge = Math.abs(px - mid) > half - 1.5;
+      let c = edge ? S.pathEdge : (k + Math.floor(time * 6)) % 7 === 0 && (px + k) % 5 < 2 ? S.waterHi : (px + y) % 3 === 0 ? S.water1 : S.water0;
+      if (edge && (px + y) % 3 === 0) c = S.hill1;
+      canvas.set(px, y, c);
+    }
+  }
+  // The deck: planks following the arch, with a dark underside.
+  for (let dx = -3; dx <= CREEK_SPAN + 3; dx++) {
+    const top = Y - creekLift(dx);
+    canvas.set(x + dx, top, (dx + 300) % 4 === 0 ? S.pathEdge : S.trunk);
+    canvas.set(x + dx, top + 1, S.bag);
+    if (dx > 2 && dx < CREEK_SPAN - 2) canvas.set(x + dx, top + 2, S.door);
+  }
+  // The far handrail.
+  for (let dx = 0; dx <= CREEK_SPAN; dx += 1) canvas.set(x + dx, Y - creekLift(dx) - 11, S.trunk);
+  for (let dx = 0; dx <= CREEK_SPAN; dx += 9) canvas.rect(x + dx, Y - creekLift(dx) - 11, 1, 11, S.trunk);
+}
+
+/** The near handrail and posts, drawn over the fox. */
+export function creekRail(canvas, x, Y) {
+  for (let dx = -2; dx <= CREEK_SPAN + 2; dx++) canvas.set(x + dx, Y - creekLift(dx) - 9, S.bag);
+  for (let dx = -2; dx <= CREEK_SPAN + 2; dx += 12) canvas.rect(x + dx, Y - creekLift(dx) - 9, 2, 11, S.bag);
+}

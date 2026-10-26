@@ -20,7 +20,7 @@ npm run compose -- --style focus --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
 npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
-npm run stream -- --tour --output tour.mp4                  # 10-minute fast-forward through every scene
+npm run stream -- --tour --output tour.mp4                  # 12-minute fast-forward through every scene
 npm run audition -- --styles focus --seeds 1,2              # score excerpts with earshot (needs uv)
 npm test
 ```
@@ -126,15 +126,29 @@ now start in phase with each note.
   hours, seasons recolour and rebuild the land (snow, autumn trees, blossom,
   fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
   two hours the walk crosses into new country (hills, alpine, forest, village,
-  coast). Every 15 minutes the fox may stop: fishing from a footbridge, working
-  at a desk that rises out of the ground (headphones, laptop, lamp), a campfire
-  where friends join, reading on a bench, stargazing, or flying: it unfolds a
-  letter from its bag into a paper plane and flies over the hills in an
-  aviator cap, bobbing and waving (on a broom in a pointed hat around
-  Halloween). Planes towing
-  encouraging banners, birds, shooting stars, passers-by who wave, and four
-  visualizer looks (grass, dithered bars, dot matrix, ridge) that change with
-  the track keep it moving. A frame takes about 2 ms to draw.
+  coast, highlands). Every 15 minutes the fox may stop:
+  - fishing from a footbridge, sometimes landing a fish and letting it go;
+  - working in its studio: it walks in, the front wall dissolves through the
+    dither, and it sits at the desk with headphones and laptop, then leaves
+    by the far door;
+  - on cold days, curling up at home in an armchair by the fire with a book
+    and cocoa, the cat asleep on the rug;
+  - a workout in a calisthenics park: pull-ups, dips, push-ups, handstand
+    push-ups and muscle-ups, counting reps, resting with water, sometimes
+    with a friend training alongside;
+  - rowing across a wide river past ducks, leaving the boat at the far jetty;
+  - a campfire where friends join, reading on a bench where friends sit down
+    for a chat, or stargazing, where a round view opens in the sky on what the
+    telescope sees (the moon at its real phase, Saturn, Jupiter, a galaxy);
+  - flying: it unfolds a letter from its bag into a paper plane and flies
+    over the hills in an aviator cap (on a broom around Halloween).
+
+  On the way, friends pass by and wave, or stop for a short chat in speech
+  bubbles about their projects; in the rain everyone has an umbrella or a
+  raincoat, and in winter a knitted beanie and scarf. Creeks cross the path
+  under little footbridges, light aircraft tow encouraging banners, birds and
+  shooting stars go by, and four visualizer looks (grass, dithered bars, dot
+  matrix, ridge) change with the track. A frame takes about 2 ms to draw.
 - **Encoder**: one ffmpeg process upscales 3x with nearest neighbour (crisp
   1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
   (Geist Mono), and encodes H.264 + AAC once for every output. Several

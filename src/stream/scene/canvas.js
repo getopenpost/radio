@@ -26,10 +26,11 @@ export function maskSprite(mask, slot) {
 export function createCanvas() {
   const index = new Uint8Array(WIDTH * HEIGHT);
 
+  // Coordinates are floored: a fractional index into a typed array is silently ignored.
   const set = (x, y, c) => {
-    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) index[y * WIDTH + x] = c;
+    if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) index[(y | 0) * WIDTH + (x | 0)] = c;
   };
-  const get = (x, y) => (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT ? index[y * WIDTH + x] : CLEAR);
+  const get = (x, y) => (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT ? index[(y | 0) * WIDTH + (x | 0)] : CLEAR);
 
   function rect(x0, y0, w, h, c) {
     const xa = Math.max(0, x0);

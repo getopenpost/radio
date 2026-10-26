@@ -145,13 +145,25 @@ export function createSky(seed = 1) {
   }
 
   // Sky events, each lasting until it leaves the frame.
+  // A high-wing light aircraft flying left: wing over the cabin, a pilot in
+  // the window, an orange stripe, a tail fin, struts and wheels. 'p' is the
+  // propeller, drawn per frame.
   const PLANE = [
-    '....xx.......',
-    '...xxxx...x..',
-    'xxxxxxxxxxxx.',
-    '.xxooooxxxxxx',
-    '...xxxx......',
+    '.............kkkkkkkkkkkkkkkkkk.........',
+    '.............kwwwwwwwwwwwwwwwwk......kk.',
+    '.............kvvvvvvvvvvvvvvvvk.....ktk.',
+    '.........kkkkkkkkkkkkkkkkkkkkkkkk..kttk.',
+    '.......kkgggkgggkbbbbbbbbbbbbbbbbkkkttk.',
+    '......kbbgagkgggkbbbbbbbbbbbbbbbbbbbbbk.',
+    '..kk.kbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbkkkk',
+    '.kkkkssssssssssssssssssssssssssssssskkk.',
+    '..kk..kbbbbbbbbbbbbbbbbbbbbbbbbbkkkk....',
+    '.......kkkbbbbbbbbbbbbbbbkkkkkkk........',
+    '.........k......k.......................',
+    '........kok....kok......................',
+    '.........k......k.......................',
   ];
+  const PLANE_COLORS = { k: S.ink, w: S.banner, v: S.cloudShade, b: S.paper, g: S.window, a: S.bear, s: S.logo, t: S.logo, o: S.metal };
   const BALLOON = [
     '..xxxxx..',
     '.xoxxxox.',
@@ -171,7 +183,7 @@ export function createSky(seed = 1) {
     if (e.kind === 'plane') {
       const text = r.pick(QUOTES);
       const mask = textMask(text);
-      return { ...e, x: WIDTH + 20, y: r.int(40, 90), speed: 34, mask, banner: mask[0].length + 8, dir: -1 };
+      return { ...e, x: WIDTH + 20, y: r.int(40, 90), speed: 34, mask, banner: mask[0].length + 18, dir: -1 };
     }
     if (e.kind === 'birds') {
       const dir = r.chance(0.5) ? 1 : -1;
@@ -194,17 +206,26 @@ export function createSky(seed = 1) {
     if (e.kind === 'plane') {
       e.x += e.dir * e.speed * dt;
       const x = Math.round(e.x);
-      // Plane, rope, then the banner trailing behind with a little flutter.
-      PLANE.forEach((row, y) => [...row].forEach((ch, i) => ch !== '.' && canvas.set(x + i, e.y + y, ch === 'o' ? S.paper : S.ink)));
-      const bx = x + 13 + 10;
-      canvas.line(x + 12, e.y + 2, bx, e.y + 3, S.ink);
+      // Plane (bobbing a little), a spinning propeller, two tow lines, then
+      // the banner on its pole, outlined, rippling more towards its tail.
+      const py = e.y + Math.round(Math.sin(time * 1.3) * 1.2);
+      PLANE.forEach((row, y) => [...row].forEach((ch, i) => ch !== '.' && canvas.set(x + i, py + y, PLANE_COLORS[ch])));
+      const blade = Math.floor(time * 20) % 2;
+      canvas.rect(x, py + (blade ? 3 : 6), 1, blade ? 8 : 3, S.ink);
+      const bx = x + PLANE[0].length + 16;
+      canvas.line(x + 39, py + 6, bx, e.y + 1, S.ink);
+      canvas.line(x + 39, py + 7, bx, e.y + 10, S.ink);
+      canvas.rect(bx, e.y - 1, 1, 13, S.trunk);
       const bh = 11;
-      for (let i = 0; i < e.banner; i++) {
-        const wave = Math.round(Math.sin(time * 6 - i * 0.25) * (i / e.banner) * 1.5);
+      for (let i = 1; i <= e.banner; i++) {
+        // The lettered cloth stays taut; only the last stretch ripples.
+        const wave = Math.round(Math.sin(time * 6 - i * 0.3) * Math.max(0, (i - (e.banner - 10)) / 10) * 1.6);
         for (let y = 0; y < bh; y++) {
           const textY = y - 2;
+          const edge = y === 0 || y === bh - 1 || i === e.banner;
           const ink = textY >= 0 && textY < 7 && i >= 4 && e.mask[textY][i - 4];
-          canvas.set(bx + i, e.y - 2 + y + wave, ink ? S.ink : i === e.banner - 1 && y % 2 ? S.cloudShade : S.banner);
+          if (i === e.banner && (y + Math.floor(time * 6)) % 3 === 0) continue; // a frayed, flapping end
+          canvas.set(bx + i, e.y + y + wave, edge ? S.ink : ink ? S.ink : S.banner);
         }
       }
       if (x + e.banner + 30 < 0) e.done = true;

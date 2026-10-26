@@ -49,3 +49,20 @@ test('the scene renders through a year of seasons, weather and activities', () =
     assert.ok(colours.size > 6, `flat frame at ${new Date(start).toISOString()}`);
   }
 });
+
+test('every activity plays through its arrival, middle and outro', async () => {
+  const { ACTS } = await import('../src/stream/scene/acts/index.js');
+  const bands = new Float32Array(64).fill(0.5);
+  for (const kind of Object.keys(ACTS)) {
+    const night = ACTS[kind].light === 'night';
+    const start = Date.parse(night ? '2027-01-10T23:00:00Z' : '2027-01-10T12:00:00Z');
+    const scene = createScene({ seed: 7 });
+    const seen = new Set();
+    for (let f = 0; f < 15 * (50 + ACTS[kind].outro + 6); f++) {
+      const time = f / 15;
+      scene.render({ time, dt: 1 / 15, date: new Date(start + time * 1000), beat: time * 1.5, bpm: 90, bands, pillWidth: 0, steer: { activity: time < 50 ? kind : 'walk', key: 1 } });
+      seen.add(scene.state().mode);
+    }
+    assert.ok(seen.has('stay') && seen.has('leave'), `${kind} went through ${[...seen].join(', ')}`);
+  }
+});

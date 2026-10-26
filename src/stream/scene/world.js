@@ -13,7 +13,7 @@ export const LAYERS = {
   ground: { top: 282, height: 78 },
 };
 export const PATH_Y = 296; // where feet land
-export const BIOMES = ['hills', 'alpine', 'forest', 'village', 'coast'];
+export const BIOMES = ['hills', 'alpine', 'forest', 'village', 'coast', 'highlands'];
 
 function makeStrip({ top, height }) {
   return { top, height, data: new Uint8Array(STRIP * height).fill(CLEAR), dynamic: [] };
@@ -52,14 +52,32 @@ function shadeRange(strip, line, { lit, shade, mist, mistFrom, mistTo, slopeGain
       const below = y - h;
       // Rising faces (slope < 0) catch the light near the ridge, fading lower
       // down; a soft rim right under the ridge.
-      let t = base + slope * slopeGain * 0.25 * Math.max(0, 1 - below / 28) + below * depthGain - (below < 2 ? 0.25 : 0);
-      t = clamp01(t);
+      let t = base + slope * slopeGain * 0.25 * Math.max(0, 1 - below / 28) + below * depthGain;
+      // A crisp lit rim along the ridge sets each range apart from the one behind.
+      t = below < 1.5 ? 0 : clamp01(t);
       const i = (y - strip.top) * STRIP + x;
       strip.data[i] = t > bayer(x, y) ? shade : lit;
       if (mist != null) {
         const m = smooth((y - mistFrom) / (mistTo - mistFrom)) * 0.5;
         if (m > bayer(x + 3, y + 5)) strip.data[i] = mist;
       }
+    }
+  }
+}
+
+/**
+ * Contour hatching: broken lines that follow a ridge's shape down its face,
+ * every `spacing` pixels, so slopes read as land with form rather than flat
+ * fills. Drawn in the darker tone of the pair.
+ */
+function strata(strip, line, { color, spacing, depth, density = 0.55, salt = 0 }) {
+  for (let x = 0; x < STRIP; x++) {
+    const h = line(x);
+    for (let k = 1; k * spacing < depth; k++) {
+      const y = Math.round(h + k * spacing + Math.sin(x * 0.021 + k * 1.7 + salt) * 1.6 + k * k * 0.35);
+      if (y < strip.top || y >= strip.top + strip.height) continue;
+      // Dashes, thinning out with depth.
+      if (grain(x >> 2, k, 31 + salt) < density * (1 - k * spacing / depth) && strip.data[(y - strip.top) * STRIP + x] !== CLEAR) put(strip, x, y, color);
     }
   }
 }
@@ -112,18 +130,51 @@ function broadleaf(strip, x, base, h, season, rng) {
   }
 }
 
+/**
+ * A cottage on the hills seen at three-quarters: a gable front with a door
+ * and window, a shaded side wall with windows, a sloping roof (snow-capped in
+ * winter) and a chimney. Returns where its smoke rises.
+ */
 function house(strip, x, base, rng) {
-  const w = rng.int(9, 15);
-  const h = rng.int(6, 9);
-  const roof = Math.ceil(w / 2);
-  for (let y = 0; y < h; y++) for (let dx = 0; dx < w; dx++) put(strip, (x + dx) % STRIP, base - h + y, S.wall);
-  for (let y = 0; y < roof; y++) for (let dx = y - 1; dx <= w - y; dx++) put(strip, (x + dx + STRIP) % STRIP, base - h - roof + y + 1, S.roof);
-  const lit = rng.chance(0.75);
-  for (let wx = 2; wx + 2 <= w - 1; wx += 4) {
-    for (let y = 0; y < 2; y++) for (let dx = 0; dx < 2; dx++) put(strip, (x + wx + dx) % STRIP, base - h + 2 + y, lit && rng.chance(0.8) ? S.window : S.windowOff);
+  const fw = rng.int(4, 6) * 2 + 1; // gable front, odd so the apex is centred
+  const sw = rng.int(7, 13); // side wall
+  const h = rng.int(6, 8);
+  const half = (fw - 1) / 2;
+  const apexY = base - h - half - 1;
+  const wrap = (dx) => (x + dx + STRIP) % STRIP;
+  // Side wall and roof slope, behind the gable.
+  for (let y = 0; y < h; y++) for (let dx = fw; dx < fw + sw; dx++) put(strip, wrap(dx), base - h + y, y === h - 1 ? S.wallShade : S.wallShade);
+  for (let y = apexY; y < base - h; y++) {
+    const from = half + (y - apexY);
+    for (let dx = from; dx < from + sw + 1; dx++) {
+      if (dx < half) continue;
+      const row = y - apexY;
+      put(strip, wrap(dx), y, row < 2 ? S.roofSnow : (dx + row) % 4 === 0 ? S.roofShade : S.roof);
+    }
   }
-  if (rng.chance(0.6)) for (let y = 0; y < 3; y++) put(strip, (x + w - 3) % STRIP, base - h - roof + y, S.roof);
-  return { kind: 'chimney', x: x + w - 3, y: base - h - roof - 1 };
+  for (let dx = fw - 1; dx < fw + sw + 1; dx++) put(strip, wrap(dx), base - h - 1, S.roofShade);
+  // The gable front: wall triangle over the wall, a door and a window.
+  for (let y = apexY; y < base; y++) {
+    const spread = y < base - h ? y - apexY : half;
+    for (let dx = half - spread; dx <= half + spread; dx++) put(strip, wrap(dx), y, S.wall);
+  }
+  for (let k = 0; k <= half; k++) {
+    put(strip, wrap(half - k), apexY + k, S.roofShade);
+    put(strip, wrap(half + k), apexY + k, S.roofShade);
+  }
+  const lit = rng.chance(0.75);
+  for (let y = 0; y < 3; y++) put(strip, wrap(half), base - 1 - y, S.door);
+  put(strip, wrap(half - 2), base - h + 2, lit ? S.window : S.windowOff);
+  put(strip, wrap(half + 2), base - h + 2, lit ? S.window : S.windowOff);
+  for (let wx = fw + 2; wx < fw + sw - 1; wx += 4) {
+    const on = lit && rng.chance(0.7);
+    for (let y = 0; y < 2; y++) for (let dx = 0; dx < 2; dx++) put(strip, wrap(wx + dx), base - h + 2 + y, on ? S.window : S.windowOff);
+  }
+  // Chimney on the slope.
+  const cx = fw + sw - 4;
+  const cy = apexY + Math.max(1, cx - half - sw + 3);
+  for (let y = 0; y < 4; y++) for (let dx = 0; dx < 2; dx++) put(strip, wrap(cx + dx), cy - 2 + y, S.pathEdge);
+  return { kind: 'chimney', x: x + cx, y: cy - 3 };
 }
 
 function put(strip, x, y, c) {
@@ -155,6 +206,7 @@ function buildFar(rng, biome) {
     forest: { base: 210, octaves: [[1024, 14], [512, 8], [256, 4], [128, 2]], sharp: 0.2 },
     hills: { base: 212, octaves: [[1024, 12], [512, 7], [256, 4], [128, 2]], sharp: 0 },
     village: { base: 214, octaves: [[1024, 11], [512, 6], [256, 3], [128, 2]], sharp: 0.1 },
+    highlands: { base: 186, octaves: [[1024, 28], [512, 18], [256, 8], [128, 3]], sharp: 0.15 },
   }[biome];
   const back = ridge(rng, shapes.octaves, shapes.sharp);
   const front = ridge(rng, shapes.octaves.map(([p, a]) => [p, a * 0.6]), shapes.sharp * 0.6);
@@ -162,7 +214,16 @@ function buildFar(rng, biome) {
   const frontLine = (x) => shapes.base + 18 + front(x);
   // Mist dithers towards the lit tone, a low-contrast pair, so it reads as haze rather than dotted rows.
   shadeRange(strip, backLine, { lit: S.far0, shade: S.far1, mist: S.far0, mistFrom: shapes.base + 6, mistTo: shapes.base + 70, base: 0.35 });
+  strata(strip, backLine, { color: S.far1, spacing: 6, depth: 30, density: biome === 'highlands' ? 0.6 : 0.35, salt: 1 });
+  if (biome === 'highlands') {
+    // Rolling ranges one behind another, each with its own contours.
+    const mid = ridge(rng, [[1024, 20], [512, 12], [256, 5], [128, 2]], 0.1);
+    const midLine = (x) => shapes.base + 16 + mid(x);
+    shadeRange(strip, midLine, { lit: S.far0, shade: S.far1, mist: S.far0, mistFrom: shapes.base + 20, mistTo: shapes.base + 85, base: 0.5 });
+    strata(strip, midLine, { color: S.far1, spacing: 5, depth: 34, density: 0.6, salt: 2 });
+  }
   shadeRange(strip, frontLine, { lit: S.far0, shade: S.far1, mist: S.far0, mistFrom: shapes.base + 30, mistTo: shapes.base + 95, base: 0.62 });
+  strata(strip, frontLine, { color: S.far1, spacing: 5, depth: 36, density: biome === 'highlands' ? 0.65 : 0.4, salt: 3 });
   // Snow on the high ground (only visible in winter, or always on alpine
   // peaks): it follows the ridge down, deeper on higher peaks, with a ragged
   // dithered edge.
@@ -181,12 +242,20 @@ function buildFar(rng, biome) {
 
 function buildHills(rng, biome, season) {
   const strip = makeStrip(LAYERS.hills);
-  const base = { alpine: 246, forest: 244, hills: 250, village: 250, coast: 262 }[biome];
+  const base = { alpine: 246, forest: 244, hills: 250, village: 250, coast: 262, highlands: 244 }[biome];
   const shape = ridge(rng, [[1024, 9], [512, 6], [256, 3], [128, 1.5]]);
   const line = (x) => base + shape(x);
+  if (biome === 'highlands') {
+    // A rounder hill rising behind the near one.
+    const back = ridge(rng, [[1024, 18], [512, 10], [256, 4]], 0);
+    const backLine = (x) => base - 14 + back(x);
+    shadeRange(strip, backLine, { lit: S.hill0, shade: S.hill1, mist: S.hill0, mistFrom: base + 2, mistTo: base + 50, base: 0.3 });
+    strata(strip, backLine, { color: S.hill1, spacing: 5, depth: 26, density: 0.6, salt: 4 });
+  }
   shadeRange(strip, line, { lit: S.hill0, shade: S.hill1, mist: S.hill0, mistFrom: base + 12, mistTo: base + 60, base: 0.4 });
-  const density = { alpine: [40, 110], forest: [7, 20], hills: [30, 90], village: [40, 110], coast: [70, 200] }[biome];
-  const pineShare = { alpine: 0.9, forest: 0.7, hills: 0.25, village: 0.35, coast: 0.3 }[biome];
+  strata(strip, line, { color: S.hill1, spacing: 5, depth: 30, density: biome === 'highlands' ? 0.6 : 0.3, salt: 5 });
+  const density = { alpine: [40, 110], forest: [7, 20], hills: [30, 90], village: [40, 110], coast: [70, 200], highlands: [60, 180] }[biome];
+  const pineShare = { alpine: 0.9, forest: 0.7, hills: 0.25, village: 0.35, coast: 0.3, highlands: 0.5 }[biome];
   for (let x = rng.int(0, 40); x < STRIP - 24; x += rng.int(...density)) {
     const b = Math.round(line(x)) + 1;
     const h = rng.int(10, biome === 'forest' ? 26 : 22);

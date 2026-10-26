@@ -54,6 +54,10 @@ Project-specific rules. The shared global instructions still apply.
 - The Converge mark appears only as the logo in the brand chip; keep its
   geometry exact (`convergeMask`). The host character is the fox in
   `character.js`.
+- Activities live in `src/stream/scene/acts/`, one file each, registered in
+  `acts/index.js`. They return the fox's pose and may walk it through their
+  set by asking for ground speed (indoors, the gym, the river); keep every
+  stop's set reading clearly at 640x360 and check it with the tour.
 - Several outputs share one encode through tee with a fifo per output; keep
   `-flags +global_header` or flv outputs lose their codec headers.
 
@@ -64,5 +68,5 @@ and a stream preview (`npm run stream -- --output tmp/p.mp4 --duration 60`) for
 changes in those areas. For scene changes, look at stills across the day and
 year (`npm run scene -- --at <iso> --at <iso>`); `--clock` and
 `--clock-speed` on the stream preview start it at a chosen time, and
-`npm run stream -- --tour` renders the scripted 10-minute tour in
+`npm run stream -- --tour` renders the scripted twelve-minute tour in
 `src/stream/tour.js` (extend it when adding scene features).
