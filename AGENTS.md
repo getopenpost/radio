@@ -43,9 +43,10 @@ Project-specific rules. The shared global instructions still apply.
   audio pipe deadlocks while x264 fills its lookahead.
 - The scene (`src/stream/scene`) draws palette slots at 640x360; colours are
   set per frame in `palette.js` for light, season and weather, so new art
-  should use slots rather than fixed colours. The stream is always in dark
-  mode: daylight lifts the charcoal, it never turns to paper. New art must
-  read on a dark background (dark outlines vanish there). Dither as OpenPost does: two
+  should use slots rather than fixed colours. Light follows the real sun:
+  OpenPost's light scheme by day, its dark scheme by night. New art must read
+  on both, and day and night palettes must keep the same depth order (sky
+  lightest, foreground darkest) or dusk washes the landscape out. Dither as OpenPost does: two
   neighbouring slots with a 4x4 Bayer band between solid ends, anchored to the
   layer that moves.
 - Sky, season, weather, region and activity derive from the wall clock

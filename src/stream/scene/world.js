@@ -46,16 +46,18 @@ const grain = (x, y, salt) => {
 function shadeRange(strip, line, { lit, shade, mist, mistFrom, mistTo, slopeGain = 2.2, base = 0.45, depthGain = 0 }) {
   for (let x = 0; x < STRIP; x++) {
     const h = line(x);
-    const slope = line((x + 1) % STRIP) - line((x + STRIP - 1) % STRIP);
+    // Slope over a few pixels, so jagged ridges shade in faces, not in stripes.
+    const slope = (line((x + 4) % STRIP) - line((x + STRIP - 4) % STRIP)) / 4;
     for (let y = Math.max(strip.top, Math.ceil(h)); y < strip.top + strip.height; y++) {
       const below = y - h;
-      // Rising faces (slope < 0) catch the light; a soft rim right under the ridge.
-      let t = base + slope * slopeGain * 0.25 + below * depthGain - (below < 2 ? 0.25 : 0);
+      // Rising faces (slope < 0) catch the light near the ridge, fading lower
+      // down; a soft rim right under the ridge.
+      let t = base + slope * slopeGain * 0.25 * Math.max(0, 1 - below / 28) + below * depthGain - (below < 2 ? 0.25 : 0);
       t = clamp01(t);
       const i = (y - strip.top) * STRIP + x;
       strip.data[i] = t > bayer(x, y) ? shade : lit;
       if (mist != null) {
-        const m = smooth((y - mistFrom) / (mistTo - mistFrom)) * 0.55;
+        const m = smooth((y - mistFrom) / (mistTo - mistFrom)) * 0.5;
         if (m > bayer(x + 3, y + 5)) strip.data[i] = mist;
       }
     }
@@ -158,15 +160,19 @@ function buildFar(rng, biome) {
   const front = ridge(rng, shapes.octaves.map(([p, a]) => [p, a * 0.6]), shapes.sharp * 0.6);
   const backLine = (x) => shapes.base + back(x);
   const frontLine = (x) => shapes.base + 18 + front(x);
-  shadeRange(strip, backLine, { lit: S.far0, shade: S.far1, mist: S.sky2, mistFrom: shapes.base + 6, mistTo: shapes.base + 70, base: 0.35 });
-  shadeRange(strip, frontLine, { lit: S.far0, shade: S.far1, mist: S.sky2, mistFrom: shapes.base + 30, mistTo: shapes.base + 95, base: 0.62 });
-  // Snow on the high ground (only visible in winter, or always on alpine peaks).
+  // Mist dithers towards the lit tone, a low-contrast pair, so it reads as haze rather than dotted rows.
+  shadeRange(strip, backLine, { lit: S.far0, shade: S.far1, mist: S.far0, mistFrom: shapes.base + 6, mistTo: shapes.base + 70, base: 0.35 });
+  shadeRange(strip, frontLine, { lit: S.far0, shade: S.far1, mist: S.far0, mistFrom: shapes.base + 30, mistTo: shapes.base + 95, base: 0.62 });
+  // Snow on the high ground (only visible in winter, or always on alpine
+  // peaks): it follows the ridge down, deeper on higher peaks, with a ragged
+  // dithered edge.
   const capLine = shapes.base - (biome === 'alpine' ? 6 : 4);
   for (let x = 0; x < STRIP; x++) {
     const h = backLine(x);
     if (h > capLine) continue;
-    for (let y = Math.ceil(h); y < capLine + 6; y++) {
-      const t = smooth((capLine + 6 - y) / 10);
+    const depth = (capLine - h) * 0.7 + 2 + (grain(x >> 2, 0, 21) - 0.5) * 4;
+    for (let y = Math.ceil(h); y < h + depth; y++) {
+      const t = 1 - smooth((y - h) / depth - 0.4);
       if (t > bayer(x, y)) put(strip, x, y, biome === 'alpine' ? S.glacier : S.peak);
     }
   }
@@ -178,7 +184,7 @@ function buildHills(rng, biome, season) {
   const base = { alpine: 246, forest: 244, hills: 250, village: 250, coast: 262 }[biome];
   const shape = ridge(rng, [[1024, 9], [512, 6], [256, 3], [128, 1.5]]);
   const line = (x) => base + shape(x);
-  shadeRange(strip, line, { lit: S.hill0, shade: S.hill1, mist: S.far0, mistFrom: base + 12, mistTo: base + 60, base: 0.4 });
+  shadeRange(strip, line, { lit: S.hill0, shade: S.hill1, mist: S.hill0, mistFrom: base + 12, mistTo: base + 60, base: 0.4 });
   const density = { alpine: [40, 110], forest: [7, 20], hills: [30, 90], village: [40, 110], coast: [70, 200] }[biome];
   const pineShare = { alpine: 0.9, forest: 0.7, hills: 0.25, village: 0.35, coast: 0.3 }[biome];
   for (let x = rng.int(0, 40); x < STRIP - 24; x += rng.int(...density)) {

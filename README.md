@@ -115,9 +115,10 @@ now start in phase with each note.
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
-- **Scene** (`src/stream/scene`): a 640x360 landscape in dark mode (OpenPost's
-  Dither dark scheme: warm charcoal with the orange-brown signal), drawn in
-  palette slots and dithered the way OpenPost's Dither material is: two
+- **Scene** (`src/stream/scene`): a 640x360 landscape that follows the real
+  sun: OpenPost's light scheme (warm paper and ink) by day, its dark Dither
+  scheme (warm charcoal) by night, blended through dawn and dusk. It is drawn
+  in palette slots and dithered the way OpenPost's Dither material is: two
   neighbouring colours with a 4x4 Bayer band between solid ends. A fox with a
   postbag walks it one step per beat. Everything follows the wall clock in Porto: the sun
   rises on the right and sets on the left, the moon follows its real phase and
@@ -134,7 +135,7 @@ now start in phase with each note.
   visualizer looks (grass, dithered bars, dot matrix, ridge) that change with
   the track keep it moving. A frame takes about 2 ms to draw.
 - **Encoder**: one ffmpeg process upscales 3x with nearest neighbour (crisp
-  1080p pixel art), draws the `openpo.st/radio` chip and now-playing text
+  1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
   (Geist Mono), and encodes H.264 + AAC once for every output. Several
   outputs (YouTube and Twitch) share the encode through ffmpeg's tee muxer,
   each behind its own fifo, so a platform that drops reconnects without

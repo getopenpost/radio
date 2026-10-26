@@ -22,8 +22,8 @@ import { buildWorld, PATH_Y, STRIP } from './world.js';
 
 export { HEIGHT, WIDTH };
 
-/** Where the brand chip sits, so the encoder can place its text. */
-export const BRAND = { x: 12, y: 320, w: 130, h: 28, textX: 44 };
+/** Where the brand chip (top left) sits, so the encoder can place its text. Both chips share its height. */
+export const BRAND = { x: 16, y: 12, w: 130, h: 26, textX: 47 };
 export const BRAND_TEXT = 'openpo.st/radio';
 
 const FOX_X = 300;
@@ -371,12 +371,12 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     if (trackId) visualizer.choose(MODES[hashString(trackId) % MODES.length]);
     visualizer.draw(canvas, { dt, bands, scroll: ground });
 
-    // Brand chip (bottom left) and now-playing pill (top right); ffmpeg draws the text.
+    // Brand chip (top left) and now-playing pill (top right); ffmpeg draws the text.
     roundedRect(BRAND.x, BRAND.y, BRAND.w, BRAND.h, 7, S.pill);
-    canvas.draw(LOGO, BRAND.x + 5, BRAND.y + 4);
+    canvas.draw(LOGO, BRAND.x + 5, BRAND.y + 3);
     if (pillWidth > 0) {
-      roundedRect(WIDTH - 16 - pillWidth, 14, pillWidth, 22, 6, S.pill);
-      canvas.draw(NOTE, WIDTH - 16 - pillWidth + 9, 22);
+      roundedRect(WIDTH - 16 - pillWidth, BRAND.y, pillWidth, BRAND.h, 7, S.pill);
+      canvas.draw(NOTE, WIDTH - 16 - pillWidth + 9, BRAND.y + 10);
     }
 
     const { index } = canvas;

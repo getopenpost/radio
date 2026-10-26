@@ -23,10 +23,10 @@ export function pictureFilters({ nowPlayingFile, scale = 3 }) {
   const text = `fontcolor=0xf4f1ea:fontsize=${TEXT_SIZE * SCALE}`;
   return [
     `scale=${WIDTH * SCALE}:${HEIGHT * SCALE}:flags=neighbor`,
-    // Brand chip (bottom left): the address right of the pixel logo, centred on the chip.
+    // Brand chip (top left): the address right of the pixel logo, centred on the chip.
     `drawtext=fontfile='${mono}':text='${BRAND_TEXT}':${text}:x=${BRAND.textX * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
     // Now-playing pill: text after the note icon; the pill width comes from the scene.
-    `drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${25 * SCALE}-max_glyph_a/2-2`,
+    `drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
   ].join(',');
 }
 

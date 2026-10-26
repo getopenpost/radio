@@ -2,12 +2,11 @@
 // slots are recoloured for the time of day, the season and the weather. So
 // dawn, dusk, fog and a full moon cost nothing per pixel.
 //
-// The stream is always in dark mode, after OpenPost's Dither dark scheme:
-// warm charcoal at neutral hue 50 with the orange-brown signal at hue 45.
-// Daylight lifts the charcoal and lights the textures; night sinks them to
-// near black under the moon and stars. Layers are two-tone pairs (a lit
-// texture over a dark base) so the Bayer bands read as texture, and depth
-// order stays the same at every hour.
+// The picture follows the real sun: OpenPost's light scheme by day (warm
+// paper and ink), its dark Dither scheme by night (warm charcoal), blended
+// through dawn and dusk, with the orange-brown signal at hue 45 throughout.
+// Both keep the same depth order (sky lightest, foreground darkest) so the
+// landscape never washes into one grey while the light changes.
 
 const NAMES = [
   'sky0', 'sky1', 'sky2', 'sunGlow', 'sun', 'moon', 'moonDark', 'star', 'cloud', 'cloudShade',
@@ -42,62 +41,62 @@ function rgb(value) {
 const table = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, rgb(v)]));
 
 const DAY = table({
-  sky0: '#161311', sky1: '#1c1916', sky2: '#26211d', sunGlow: '#3b2c21', sun: 'oklch(0.76 0.14 45)', moon: '#cfc8bd', moonDark: '#221e1b', star: '#8a8178',
-  cloud: '#2e2925', cloudShade: '#221e1b',
-  far0: '#4a433d', far1: '#2a2521', peak: '#4a433d', glacier: '#a39b90', sea0: '#2b3231', sea1: '#1f2524',
-  hill0: '#3a3430', hill1: '#211d1a', pine0: '#323628', pine1: '#22251c', leaf0: '#3e4430', leaf1: '#2c3122', blossom: '#3e4430', snowcap: '#323628',
-  trunk: '#3a2e25', roof: 'oklch(0.4 0.1 45)', wall: '#4a433d', window: '#2a2522', windowOff: '#2a2522',
-  ground0: '#2e2925', ground1: '#221e1b', path: '#3a3530', pathEdge: '#1a1715', flower: '#221e1b',
-  water0: '#28302f', water1: '#1c2221', waterHi: '#9aa29f',
-  grass: '#0f0d0c', grassTip: '#3d3732',
-  fur: 'oklch(0.6 0.14 45)', furDark: 'oklch(0.46 0.12 45)', cream: '#f2e6d4', outline: 'oklch(0.22 0.04 45)', blush: 'oklch(0.68 0.12 30)', bag: 'oklch(0.36 0.06 55)',
-  bunny: '#cfc8bd', bunnyDark: '#8f877c', bear: '#6b5242', bearDark: '#4a372b', ink: '#0e0c0b', paper: '#d9d2c7', screen: '#fff4e0', cat: '#5a524b', logo: 'oklch(0.76 0.14 45)',
-  fire0: '#e0702a', fire1: '#f2a548', fire2: '#fbe3a0', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#4a433d', lampLight: '#efe9de',
-  rain: '#5f5850', snow: '#d8d1c7', leafFall: 'oklch(0.55 0.12 45)', light: '#f4f1ea', banner: '#d9d2c7', pill: 'oklch(0.19 0.013 50)',
-  hat: '#5f5751', straw: '#c9a25a',
+  sky0: '#e8e2d6', sky1: '#f1ede4', sky2: '#f6f1e6', sunGlow: '#f7ead4', sun: '#f2b36b', moon: '#f1ede4', moonDark: '#e3ddd1', star: '#f6f1e6',
+  cloud: '#fbf9f4', cloudShade: '#ddd6ca',
+  far0: '#d7cfc2', far1: '#c9c0b2', peak: '#d7cfc2', glacier: '#f6f3ed', sea0: '#c5cbc8', sea1: '#aab3b1',
+  hill0: '#b8af9f', hill1: '#a39a8b', pine0: '#6e715a', pine1: '#565a46', leaf0: '#7d855f', leaf1: '#636b4a', blossom: '#7d855f', snowcap: '#6e715a',
+  trunk: '#5a4b3f', roof: '#7c3a07', wall: '#e9e4da', window: '#7a7266', windowOff: '#7a7266',
+  ground0: '#d3cab9', ground1: '#bcb2a1', path: '#e6dfd2', pathEdge: '#9b9081', flower: '#bcb2a1',
+  water0: '#c3c9c6', water1: '#a7b0ae', waterHi: '#fbf9f4',
+  grass: '#2b2623', grassTip: '#5c544b',
+  fur: 'oklch(0.6 0.14 45)', furDark: 'oklch(0.46 0.12 45)', cream: '#f7ecdc', outline: 'oklch(0.3 0.07 45)', blush: 'oklch(0.68 0.12 30)', bag: 'oklch(0.36 0.06 55)',
+  bunny: '#dcd5ca', bunnyDark: '#a59b8d', bear: '#6b5242', bearDark: '#4a372b', ink: '#302b28', paper: '#fbf9f4', screen: '#fff4e0', cat: '#3a3330', logo: 'oklch(0.76 0.14 45)',
+  fire0: '#e0702a', fire1: '#f2a548', fire2: '#fbe3a0', glow0: '#d3cab9', glow1: '#d3cab9', smoke: '#b5ac9e', lampLight: '#efe9de',
+  rain: '#a19788', snow: '#ffffff', leafFall: '#b45309', light: '#ffffff', banner: '#fbf9f4', pill: '#1c1917',
+  hat: '#4a433d', straw: '#c9a25a',
 });
 
 const NIGHT = table({
-  sky0: '#0f0d0c', sky1: '#141210', sky2: '#1b1815', sunGlow: '#1b1815', sun: '#1b1815', moon: '#ece7df', moonDark: '#1f1b18', star: '#fff6e5',
-  cloud: '#221e1b', cloudShade: '#181513',
-  far0: '#252120', far1: '#171412', peak: '#252120', glacier: '#4a443f', sea0: '#171a1a', sea1: '#101211',
-  hill0: '#1c1917', hill1: '#100e0d', pine0: '#121310', pine1: '#0c0d0b', leaf0: '#14150f', leaf1: '#0e0f0b', blossom: '#14150f', snowcap: '#121310',
-  trunk: '#0d0b0a', roof: '#110f0d', wall: '#1a1715', window: '#fdb36b', windowOff: '#1a1715',
-  ground0: '#15120f', ground1: '#0e0c0b', path: '#1c1916', pathEdge: '#0b0908', flower: '#0e0c0b',
-  water0: '#161919', water1: '#0f1111', waterHi: '#6a6a64',
-  grass: '#060504', grassTip: '#1d1916',
-  fur: 'oklch(0.56 0.11 45)', furDark: 'oklch(0.42 0.09 45)', cream: '#a79a89', outline: 'oklch(0.16 0.03 45)', blush: 'oklch(0.5 0.09 30)', bag: 'oklch(0.26 0.04 55)',
-  bunny: '#8a8277', bunnyDark: '#57504a', bear: '#4a3a30', bearDark: '#2f241e', ink: '#070605', paper: '#9a9086', screen: '#ffe8c4', cat: '#5a524b', logo: 'oklch(0.76 0.14 45)',
+  sky0: '#1b1715', sky1: '#211c19', sky2: '#2a231f', sunGlow: '#2a231f', sun: '#2a231f', moon: '#ece7df', moonDark: '#2c2622', star: '#fff6e5',
+  cloud: '#2e2723', cloudShade: '#241f1c',
+  far0: '#1c1815', far1: '#181412', peak: '#1c1815', glacier: '#35302c', sea0: '#1b1c1b', sea1: '#141514',
+  hill0: '#141110', hill1: '#110f0d', pine0: '#0e0d0b', pine1: '#0b0a09', leaf0: '#100e0c', leaf1: '#0c0b0a', blossom: '#100e0c', snowcap: '#0e0d0b',
+  trunk: '#0b0908', roof: '#0e0c0a', wall: '#161311', window: '#fdb36b', windowOff: '#161311',
+  ground0: '#110e0c', ground1: '#0d0b0a', path: '#16130f', pathEdge: '#0b0908', flower: '#0d0b0a',
+  water0: '#1a1c1c', water1: '#111313', waterHi: '#6a6a64',
+  grass: '#070605', grassTip: '#1b1714',
+  fur: 'oklch(0.56 0.11 45)', furDark: 'oklch(0.42 0.09 45)', cream: '#a79a89', outline: 'oklch(0.2 0.04 45)', blush: 'oklch(0.5 0.09 30)', bag: 'oklch(0.26 0.04 55)',
+  bunny: '#7a7268', bunnyDark: '#4f4841', bear: '#3e3029', bearDark: '#2a201b', ink: '#0a0807', paper: '#9a9086', screen: '#ffe8c4', cat: '#5a524b', logo: 'oklch(0.76 0.14 45)',
   fire0: '#fd7d3a', fire1: '#ffb35c', fire2: '#fff0c4', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#3a332e', lampLight: '#ffd9a0',
-  rain: '#4a433d', snow: '#d8d1c7', leafFall: '#4a2f1f', light: '#fff6e5', banner: '#b8b0a5', pill: 'oklch(0.17 0.012 50)',
+  rain: '#4a433d', snow: '#d8d1c7', leafFall: '#4a2f1f', light: '#fff6e5', banner: '#c9c1b6', pill: '#0c0a09',
   hat: '#4a443f', straw: '#8a6f40',
 });
 
-// Sunrise and sunset: the low sun warms the sky and the far hills.
+// Sunrise and sunset: the sky warms and the low sun turns orange.
 const GOLDEN = table({
-  sky0: '#1e1714', sky1: '#2a1c15', sky2: '#4a2616', sunGlow: '#5e2f17', sun: '#e8692a', cloud: '#4a2c1c', cloudShade: '#331f15',
-  far0: '#55392a', far1: '#2e211a', sea0: '#4a2b1c', sea1: '#2a1b13', water0: '#4a2b1c', water1: '#2a1b13',
+  sky0: '#e6d3bf', sky1: '#efc9a3', sky2: '#f1a96b', sunGlow: '#f4b678', sun: '#e8692a', cloud: '#f3c79c', cloudShade: '#d39a72',
+  far0: '#d6b394', far1: '#c49c7d', sea0: '#e2b08a', sea1: '#c48f6d', water0: '#e6b38a', water1: '#c99470',
 });
 
 // Seasons recolour the vegetation and the ground. Day and night pairs.
 const SEASONS = {
   spring: {
-    day: table({ leaf0: '#46503a', leaf1: '#323a29', blossom: '#b9a49c', flower: '#8f857a', grassTip: '#3c4232' }),
+    day: table({ leaf0: '#8a9567', leaf1: '#6f7a52', blossom: '#f4e6e0', flower: '#f1ece2', grassTip: '#5e6448' }),
     night: table({ blossom: '#2a2421', flower: '#1d1916' }),
   },
   summer: {
-    day: table({ leaf0: '#3e4630', leaf1: '#2c3222', flower: 'oklch(0.6 0.12 70)', grassTip: '#363a2b' }),
+    day: table({ leaf0: '#717b4e', leaf1: '#5b643f', flower: '#d9963f', grassTip: '#4f5338' }),
     night: table({}),
   },
   autumn: {
-    day: table({ leaf0: 'oklch(0.52 0.13 45)', leaf1: 'oklch(0.4 0.1 45)', blossom: 'oklch(0.62 0.12 70)', pine0: '#34352a', ground0: '#302a24', flower: '#4a3f33', grassTip: '#4a3a2c' }),
+    day: table({ leaf0: '#c4691c', leaf1: '#9c4c12', blossom: '#d99a3e', pine0: '#64624e', ground0: '#cfc1a8', flower: '#c4a582', grassTip: '#6e5a40' }),
     night: table({ leaf0: '#1f150e', leaf1: '#160f0a', blossom: '#1f150e' }),
   },
   winter: {
     day: table({
-      peak: '#a39b90', snowcap: '#a39b90', pine0: '#2f302a', pine1: '#22231e', leaf0: '#3a342e', leaf1: '#2a2622', blossom: '#a39b90',
-      ground0: '#5a554f', ground1: '#46423d', path: '#4f4a44', pathEdge: '#36322e', flower: '#46423d',
-      hill0: '#4a4540', hill1: '#36322e', water0: '#4f5452', water1: '#3e4341', waterHi: '#cfd3d1', grassTip: '#6a655e',
+      peak: '#fdfcf9', snowcap: '#fdfcf9', pine0: '#5a5a50', pine1: '#45463e', leaf0: '#6b6157', leaf1: '#584f47', blossom: '#fdfcf9',
+      ground0: '#f3f0ea', ground1: '#e1dcd3', path: '#e7e2d9', pathEdge: '#c4bdb1', flower: '#e1dcd3',
+      hill0: '#d9d4cb', hill1: '#c6c0b6', water0: '#e4e8e6', water1: '#cdd3d1', waterHi: '#ffffff', grassTip: '#d9d4cb',
     }),
     night: table({
       peak: '#3a3531', snowcap: '#2e2a26', ground0: '#24201d', ground1: '#1c1917', path: '#211d1a', hill0: '#1e1b18', hill1: '#191614',
