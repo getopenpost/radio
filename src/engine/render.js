@@ -136,9 +136,19 @@ async function convolversReady() {
 // envelope is tracked here and an overlapping duck restarts from the value the
 // previous recovery ramp has reached.
 function patchDuck() {
-  const proto = Object.getPrototypeOf(webaudio.getSuperdoughAudioController().getOrbit(1));
+  const controller = webaudio.getSuperdoughAudioController();
+  const proto = Object.getPrototypeOf(controller.getOrbit(1));
   if (proto.__offlineDuck) return;
   proto.__offlineDuck = true;
+  // Each chunk starts with no buses, so a kick can duck a bus before its first
+  // chord arrives. superdough reports that as an error; create the bus instead,
+  // so the duck still shapes the chord when it lands.
+  const controllerProto = Object.getPrototypeOf(controller);
+  const duckOrbits = controllerProto.duck;
+  controllerProto.duck = function (targets, ...rest) {
+    for (const target of [targets].flat()) if (this.nodes[target] == null) this.getOrbit(target);
+    return duckOrbits.call(this, targets, ...rest);
+  };
   proto.duck = function (t, onsettime = 0, attacktime = 0.1, depth = 1) {
     const gain = this.output.gain;
     const attack = Math.max(attacktime, 0.002);
