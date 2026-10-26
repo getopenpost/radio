@@ -45,7 +45,7 @@ export function createVisualizer(seed = 1) {
 
     if (mode === 'grass') {
       for (let x = 0; x < WIDTH; x++) {
-        const target = 6 + at(bands, x) * 36 * blades[(x + shift) % WIDTH] * gain;
+        const target = 6 + at(bands, x) * 36 * blades[(((x + shift) % WIDTH) + WIDTH) % WIDTH] * gain;
         levels[x] += (target - levels[x]) * (target > levels[x] ? 0.55 : 0.12);
         const top = BASE - Math.round(levels[x]);
         for (let y = Math.max(TOP, top); y < HEIGHT; y++) index[y * WIDTH + x] = y - top < 2 && bayer(x + shift, y) < 0.5 ? S.grassTip : S.grass;

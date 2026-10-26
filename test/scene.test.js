@@ -66,3 +66,17 @@ test('every activity plays through its arrival, middle and outro', async () => {
     assert.ok(seen.has('stay') && seen.has('leave'), `${kind} went through ${[...seen].join(', ')}`);
   }
 });
+
+test('the grass visualizer covers every column when the ground has scrolled backwards', async () => {
+  const { createCanvas } = await import('../src/stream/scene/canvas.js');
+  const { createVisualizer } = await import('../src/stream/scene/visualizer.js');
+  const { S } = await import('../src/stream/scene/palette.js');
+  const canvas = createCanvas();
+  const visualizer = createVisualizer(0);
+  visualizer.choose('grass');
+  const bands = new Float32Array(64).fill(0.5);
+  for (let f = 0; f < 30; f++) visualizer.draw(canvas, { dt: 1 / 30, bands, scroll: -100 - f });
+  const bare = [];
+  for (let x = 0; x < WIDTH; x++) if (canvas.get(x, HEIGHT - 1) !== S.grass) bare.push(x);
+  assert.deepEqual(bare, []);
+});
