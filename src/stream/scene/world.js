@@ -245,10 +245,12 @@ function buildGround(rng) {
   return strip;
 }
 
+/** The kind of country a region is. */
+export const biomeOf = (region) => createRng(hashString(`region:${region}`)).pick(BIOMES);
+
 /** Build all three strips for a region and season. */
 export function buildWorld(region, season) {
-  const rng = createRng(hashString(`region:${region}`));
-  const biome = rng.pick(BIOMES);
+  const biome = biomeOf(region);
   const seed = (n) => createRng(hashString(`region:${region}:${n}`));
   return {
     region,

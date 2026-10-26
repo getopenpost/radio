@@ -20,6 +20,7 @@ npm run compose -- --style focus --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
 npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
+npm run stream -- --tour --output tour.mp4                  # 10-minute fast-forward through every scene
 npm run audition -- --styles focus --seeds 1,2              # score excerpts with earshot (needs uv)
 npm test
 ```

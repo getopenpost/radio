@@ -167,11 +167,13 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
    * @param {Float32Array} s.bands spectrum levels in [0, 1], low to high
    * @param {number} s.pillWidth now-playing pill width (0 hides it)
    * @param {string} [s.trackId] current track; each track picks a visualizer look
+   * @param {object} [s.steer] for previews: force `activity`, `weather` ({ previous, current, mix }),
+   *   `region`, a sky event (`trigger`), a passer-by (`npc`) or a visualizer `look`
    * @returns {Buffer} RGB24 frame
    */
-  function render({ time, dt, date, beat, bpm = 90, bands, pillWidth, trackId }) {
+  function render({ time, dt, date, beat, bpm = 90, bands, pillWidth, trackId, steer }) {
     const st = skyAt(date, timeZone);
-    const w = weatherAt(date, st.season);
+    const w = steer?.weather ?? weatherAt(date, st.season);
     const rain = weatherAmount(w, 'rain');
     const snow = weatherAmount(w, 'snow');
     const fog = weatherAmount(w, 'fog');
@@ -184,7 +186,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
 
     // The region changes every couple of hours, and with the season; the new
     // country dissolves in through the dither.
-    const region = Math.floor(date.getTime() / REGION_MS);
+    const region = steer?.region ?? Math.floor(date.getTime() / REGION_MS);
     if (!world || world.region !== region || world.season !== st.season) {
       const next = buildWorld(region, st.season);
       previous = world ? world : null;
@@ -200,7 +202,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     const err = mod(beat * 0.5 - stepPhase + 0.25, 0.5) - 0.25;
     const walkSpeed = base * (1 + Math.max(-0.3, Math.min(0.3, err * 1.5)));
 
-    const plan = planned(date, st.light, rain, snow, overcast);
+    const plan = steer?.activity ? { kind: steer.activity, start: 0, end: date.getTime() + 3600000 } : planned(date, st.light, rain, snow, overcast);
+    if (steer?.trigger) sky.trigger(steer.trigger, `${steer.trigger}:${time}`);
     if (!started) {
       started = true;
       if (plan.kind !== 'walk' && plan.end - date.getTime() > 120000) startAct(plan.kind, plan, time, true);
@@ -299,7 +302,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     lift = actLift;
 
     // A friend passing the other way now and then; they wave at each other.
-    if (!npc && mode === 'walk' && time > nextNpc) {
+    if (!npc && mode === 'walk' && (time > nextNpc || steer?.npc)) {
       npc = { species: rng.chance(0.5) ? 'bunny' : 'bear', x: WIDTH + 24, walked: 0 };
       nextNpc = time + rng.int(240, 720);
     }
@@ -368,7 +371,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     // Light pools after dark.
     if (st.light < 0.75) for (const g of glows) canvas.glow(g.x, g.y, g.r, g.strength, [S.glow0, S.glow1], LIT, g.squash ?? 1);
 
-    if (trackId) visualizer.choose(MODES[hashString(trackId) % MODES.length]);
+    if (steer?.look) visualizer.choose(steer.look);
+    else if (trackId) visualizer.choose(MODES[hashString(trackId) % MODES.length]);
     visualizer.draw(canvas, { dt, bands, scroll: ground });
 
     // Brand chip (top left) and now-playing pill (top right); ffmpeg draws the text.

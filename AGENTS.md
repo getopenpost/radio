@@ -63,4 +63,6 @@ Project-specific rules. The shared global instructions still apply.
 and a stream preview (`npm run stream -- --output tmp/p.mp4 --duration 60`) for
 changes in those areas. For scene changes, look at stills across the day and
 year (`npm run scene -- --at <iso> --at <iso>`); `--clock` and
-`--clock-speed` on the stream preview start it at a chosen time.
+`--clock-speed` on the stream preview start it at a chosen time, and
+`npm run stream -- --tour` renders the scripted 10-minute tour in
+`src/stream/tour.js` (extend it when adding scene features).

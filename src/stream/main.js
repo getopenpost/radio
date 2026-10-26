@@ -4,6 +4,7 @@
 // Usage:
 //   RGO_MUSIC_OUTPUTS="rtmp://a.rtmp.youtube.com/live2/<key> rtmp://live.twitch.tv/app/<key>" npm run stream
 //   npm run stream -- --output tmp/preview.mp4 --duration 120   (renders a file as fast as possible)
+//   npm run stream -- --output tmp/tour.mp4 --tour   (a 10-minute fast-forward through every scene)
 // --output can repeat; RGO_MUSIC_OUTPUTS takes several separated by whitespace.
 // Options: --library <dir> | --library-url <url>, --fps 30, --preset veryfast,
 //          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,
@@ -18,8 +19,10 @@ import { cacheDir, libraryDir } from '../paths.js';
 import { openDeck } from './deck.js';
 import { createDirector } from './director.js';
 import { CHAR_WIDTH, isRtmp, startEncoder } from './encoder.js';
-import { createScene } from './scene/index.js';
+import { createScene, HEIGHT, WIDTH } from './scene/index.js';
+import { bayer } from './scene/dither.js';
 import { createSource } from './source.js';
+import { createTour, TOUR_SECONDS } from './tour.js';
 import { createSpectrum } from './spectrum.js';
 
 const SR = 48000;
@@ -34,6 +37,7 @@ const { values } = parseArgs({
     bitrate: { type: 'string', default: process.env.RGO_MUSIC_VIDEO_BITRATE ?? '4500k' },
     scale: { type: 'string', default: process.env.RGO_MUSIC_SCALE ?? '3' },
     duration: { type: 'string' },
+    tour: { type: 'boolean', default: false },
     clock: { type: 'string' },
     'clock-speed': { type: 'string', default: '1' },
     timezone: { type: 'string', default: process.env.RGO_MUSIC_TIMEZONE ?? 'Europe/Lisbon' },
@@ -47,7 +51,7 @@ const fps = Number(values.fps);
 const spf = SR / fps;
 if (!Number.isInteger(spf)) throw new Error(`fps must divide 48000 (got ${fps})`);
 const realtime = values.output.some(isRtmp);
-const stopAfter = values.duration ? Number(values.duration) * SR : Infinity;
+const stopAfter = values.duration ? Number(values.duration) * SR : values.tour ? TOUR_SECONDS * SR : Infinity;
 
 await mkdir(values.state, { recursive: true });
 const nowPlayingFile = join(values.state, 'nowplaying.txt');
@@ -95,6 +99,12 @@ const clockStart = values.clock ? new Date(values.clock).getTime() : null;
 const clockSpeed = Number(values['clock-speed']);
 // Live streams follow the wall clock; previews can start anywhere and run fast.
 const sceneDate = (seconds) => (clockStart == null ? new Date() : new Date(clockStart + seconds * 1000 * clockSpeed));
+// Tour mode: the script picks date and stops, and runs the scene faster between them.
+const tour = values.tour ? createTour() : null;
+let tourTime = 0;
+let tourScene = -1;
+const lastFrame = tour ? Buffer.alloc(WIDTH * HEIGHT * 3) : null;
+const cutFrom = tour ? Buffer.alloc(WIDTH * HEIGHT * 3) : null;
 
 for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   // Line up the next track about half a minute before the crossfade.
@@ -136,16 +146,34 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     pillWidth = Math.round(26 + text.length * CHAR_WIDTH);
     console.log(`now playing ${active.track.id} "${active.track.title}"`);
   }
-  const rgb = scene.render({
-    time: t / SR,
-    dt: spf / SR,
-    date: sceneDate(t / SR),
-    beat: Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60)),
-    bpm: active.track.bpm,
-    bands: spectrum.update(mix),
-    pillWidth,
-    trackId: active.track.id,
-  });
+  let rgb;
+  if (tour) {
+    const step = tour(t / SR, scene.state());
+    if (step.scene !== tourScene) {
+      tourScene = step.scene;
+      cutFrom.set(lastFrame);
+      console.log(`tour ${(t / SR).toFixed(0)}s: ${step.title}`);
+    }
+    const dt = (spf / SR) * step.rate;
+    tourTime += dt;
+    rgb = scene.render({ time: tourTime, dt, date: step.date, beat: (tourTime * active.track.bpm) / 60, bpm: active.track.bpm, bands: spectrum.update(mix), pillWidth, steer: step.steer });
+    // A jump in time dissolves through the Bayer pattern from the last picture.
+    if (step.cut != null) {
+      for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x >> 1, y >> 1) >= step.cut) cutFrom.copy(rgb, o, o, o + 3);
+    }
+    lastFrame.set(rgb);
+  } else {
+    rgb = scene.render({
+      time: t / SR,
+      dt: spf / SR,
+      date: sceneDate(t / SR),
+      beat: Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60)),
+      bpm: active.track.bpm,
+      bands: spectrum.update(mix),
+      pillWidth,
+      trackId: active.track.id,
+    });
+  }
   await encoder.frame(rgb, mix);
   if (!encoder.alive) {
     if (!realtime) throw new Error('ffmpeg exited early');
