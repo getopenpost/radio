@@ -1,15 +1,19 @@
 // The characters: a small postal fox in OpenPost's orange-brown (the host of
 // the stream), and friends who share the same build (a bunny, a bear). They
 // are drawn from simple shapes each frame into a little buffer, outlined, then
-// stamped onto the frame (optionally turned on their side or upside down for
-// push-ups and handstands), so any pose, outfit or prop costs the same.
+// stamped onto the frame (optionally rotated, for push-ups and handstands), so
+// any pose, outfit or prop costs the same. Activities that need hands planted
+// on a bar or the ground leave the arms off and draw them with `arm`, which
+// bends the elbow to reach.
 import { S, CLEAR } from './palette.js';
 
 const W = 64;
 const H = 64;
 const OX = 32; // origin: the ground point under the body
 const OY = 58;
-const PIVOT = 9; // turns happen around the middle of the body, this far above the origin
+const PIVOT = [0, -9]; // rotation happens around the middle of the body by default
+export const UPPER_ARM = 7;
+export const FOREARM = 7;
 
 export const SPECIES = {
   fox: { fur: S.fur, dark: S.furDark, light: S.cream, ears: 'pointy', tail: 'fox', bag: true },
@@ -31,6 +35,7 @@ export const SPECIES = {
  * @property {number} [headY]
  * @property {'open'|'blink'|'happy'|'closed'|'focus'|'wide'|'up'|'side'} [eyes]
  * @property {'none'|'smile'|'open'|'o'} [mouth]
+ * @property {'back'} [ears]      ears laid flat along the head (and no pompom), for handstands
  * @property {[number, number]} [front] front paw relative to its shoulder
  * @property {[number, number]} [back]  back paw relative to its shoulder
  * @property {number} [tail]      tail sway in [-1, 1]
@@ -38,20 +43,25 @@ export const SPECIES = {
  * @property {boolean} [winter]   knitted beanie and striped scarf
  * @property {boolean} [scarf]    just the scarf (flying)
  * @property {boolean} [raincoat] a hooded raincoat
- * @property {number} [umbrella]  hold an umbrella in the back paw, leaning this much (radians, + is forwards)
+ * @property {number} [umbrella]  hold an umbrella up in the front paw, leaning this much (radians, + is forwards)
  * @property {'aviator'|'witch'} [cap] a flying cap with goggles, or a pointed hat
  * @property {boolean} [sweat]    a drop of sweat after effort
- * @property {0|90|180|270} [turn] draw turned clockwise by this many degrees (push-ups lie at 90, handstands at 180)
+ * @property {number} [angle]     rotate clockwise by this many radians (a push-up lies near PI/2, a handstand at PI)
+ * @property {[number, number]} [pivot] the local point the rotation turns about (default the middle of the body)
+ * @property {boolean} [arms]     false leaves the arms off, for the caller to draw with `arm`
  * @property {number} [blush]     0..1
+ * @property {number} [nod]       turn the head clockwise about its centre, relative to the body (radians)
  */
 
 export function createCharacters() {
   const buf = new Uint8Array(W * H);
+  const headBuf = new Uint8Array(W * H); // the head, when it turns apart from the body
+  let target = buf;
 
   const put = (x, y, c) => {
     const px = OX + Math.round(x);
     const py = OY + Math.round(y);
-    if (px >= 0 && px < W && py >= 0 && py < H) buf[py * W + px] = c;
+    if (px >= 0 && px < W && py >= 0 && py < H) target[py * W + px] = c;
   };
   const fillRect = (x0, y0, w, h, c) => {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) put(x0 + x, y0 + y, c);
@@ -95,13 +105,12 @@ export function createCharacters() {
     return { x: -3 + s * 6, lift: Math.sin(Math.PI * s) * 2.2 };
   }
 
-  /** The shaft of an umbrella held at (px, py) with its hooked handle; drawn behind the head. */
+  /** The shaft of an umbrella held at (px, py), with a small hooked handle under the paw. */
   function umbrellaShaft(px, py, top, lean) {
     const cx = px + Math.sin(lean) * (py - top);
     stroke(px, py, cx, top + 1, S.ink, 1);
     put(px, py + 1, S.ink);
-    put(px + 1, py + 2, S.ink);
-    put(px + 2, py + 1, S.ink);
+    put(px - 1, py + 2, S.ink);
   }
 
   /** The canopy: ribbed panels with a scalloped hem, leaning by `lean` radians. */
@@ -147,7 +156,12 @@ export function createCharacters() {
 
     // Tail, behind everything.
     const sway = pose.tail ?? 0;
-    if (sp.tail === 'fox') {
+    if (sp.tail === 'fox' && legs === 'plank') {
+      // Lying along the legs.
+      stroke(-4, by - 6, -5, by - 1, sp.fur, 4);
+      stroke(-5, by - 1, -4, by + 3, sp.fur, 3);
+      ellipse(-4, by + 3, 1.5, 1.5, sp.light);
+    } else if (sp.tail === 'fox') {
       const tx = -9;
       const ty = by - 10 + sway * 1.5;
       stroke(-4, by - 6, -7, by - 7 + sway * 0.6, sp.fur, 4);
@@ -186,10 +200,11 @@ export function createCharacters() {
       stroke(-1, hipY, -1 + swing, hipY + 7, sp.dark, 2);
       stroke(1.5, hipY, 1.5 + swing, hipY + 7, sp.fur, 2);
     } else if (legs === 'plank') {
-      // Straight legs reaching forwards to the toes; turned 90 degrees this is a push-up.
-      const reach = pose.reach ?? 10;
-      stroke(-1, hipY, reach - 1, hipY + 9, sp.dark, 2);
-      stroke(1.5, hipY, reach + 0.5, hipY + 9, sp.fur, 2);
+      // Long straight legs in line with the body, toes at local y 7: rotated
+      // about the toes this is a push-up plank.
+      stroke(-1, hipY, -1, hipY + 11, sp.dark, 2);
+      stroke(1.5, hipY, 1.5, hipY + 11, sp.fur, 2);
+      fillRect(1, hipY + 11, 2, 1, sp.dark);
     } else if (legs === 'tuck') {
       // Knees bent, shins crossed behind (as on a dip bar).
       stroke(-1, hipY, 0, hipY + 4, sp.dark, 2);
@@ -201,11 +216,11 @@ export function createCharacters() {
       drawLeg(1.5, 2, -1, sp.dark);
     }
 
-    // Back arm (holding an umbrella's shaft up behind the head), body, belly.
+    // Back arm, body, belly.
     const shoulderY = by - 11;
-    const back = pose.umbrella != null ? [-1, -6] : pose.back ?? [-2, 5];
-    stroke(-2, shoulderY, -2 + back[0], shoulderY + back[1], sleeveBack, 2);
-    if (pose.umbrella != null) umbrellaShaft(-2 + back[0], shoulderY + back[1], hy - 15, pose.umbrella);
+    const arms = pose.arms !== false;
+    const back = pose.back ?? [-2, 5];
+    if (arms) stroke(-2, shoulderY, -2 + back[0], shoulderY + back[1], sleeveBack, 2);
     ellipse(-0.5, by - 8.5, 5, 4.5, sp.fur);
     ellipse(1.8, by - 7.5, 2.4, 3, sp.light);
     if (coat) {
@@ -232,7 +247,13 @@ export function createCharacters() {
       put(5, by - 4 + flutter, S.cream);
     }
 
-    // Head, then whatever covers it, then the ears unless covered.
+    // Head, then whatever covers it, then the ears unless covered. A nodding
+    // head is drawn on its own and turned into place.
+    const nod = pose.nod ?? 0;
+    if (nod) {
+      headBuf.fill(CLEAR);
+      target = headBuf;
+    }
     ellipse(hx, hy, 7, 6, sp.fur);
     const covered = pose.winter || coat || pose.cap === 'witch';
     if (pose.cap === 'aviator') {
@@ -247,21 +268,28 @@ export function createCharacters() {
     }
     if (pose.winter && !coat && !pose.cap) {
       // A knitted beanie pulled over the ears (two soft bumps show where they are), a ribbed cuff and a pompom.
-      ellipse(hx, hy - 2.5, 7.4, 5.4, S.knit, (xx, yy) => yy <= hy - 1);
-      if (sp.ears === 'pointy') {
-        ellipse(hx - 4, hy - 7, 2.2, 2.4, S.knit);
-        ellipse(hx + 3, hy - 7.5, 2.2, 2.4, S.knit);
+      // It sits on the forehead, above the eyes.
+      ellipse(hx, hy - 4.5, 7.2, 4.8, S.knit, (xx, yy) => yy <= hy - 4);
+      if (sp.ears === 'pointy' && pose.ears !== 'back') {
+        ellipse(hx - 4, hy - 8.5, 2.2, 2.4, S.knit);
+        ellipse(hx + 3, hy - 9, 2.2, 2.4, S.knit);
       }
-      for (let xx = -7; xx <= 7; xx++) put(hx + xx, hy - 2, (xx + 20) % 2 ? S.knitDark : S.knit);
-      for (let xx = -7; xx <= 7; xx++) put(hx + xx, hy - 1, S.knitDark);
-      ellipse(hx - 0.5, hy - 9.5, 1.8, 1.6, S.cream);
+      for (let xx = -7; xx <= 7; xx++) put(hx + xx, hy - 4, (xx + 20) % 2 ? S.knitDark : S.knit);
+      for (let xx = -7; xx <= 7; xx++) put(hx + xx, hy - 3, S.knitDark);
+      if (pose.ears !== 'back') ellipse(hx - 0.5, hy - 11, 1.8, 1.6, S.cream);
     }
     if (coat) {
       // The hood over the head with a rim around the face.
       ellipse(hx - 0.5, hy - 1, 7.6, 6.2, S.raincoat, (xx, yy) => yy <= hy + 1 && !(xx > hx + 1 && yy > hy - 3));
       stroke(hx + 2, hy - 6, hx + 7, hy - 1, S.raincoatDark, 1);
     }
-    if (!covered && sp.ears === 'pointy') {
+    if (!covered && sp.ears === 'pointy' && pose.ears === 'back') {
+      // Ears laid flat along the head (upside down, so they clear the floor).
+      triangle(hx - 3, hy - 4, hx + 1, hy - 6, hx - 9, hy - 5, sp.fur);
+      triangle(hx - 1, hy - 5, hx + 3, hy - 6, hx - 6, hy - 6, sp.fur);
+      put(hx - 4, hy - 5, sp.dark);
+      put(hx - 5, hy - 5, sp.dark);
+    } else if (!covered && sp.ears === 'pointy') {
       triangle(hx - 6, hy - 3, hx - 2, hy - 5, hx - 5, hy - 10, sp.fur);
       triangle(hx + 1, hy - 5, hx + 5, hy - 4, hx + 3, hy - 11, sp.fur);
       put(hx - 4, hy - 6, sp.dark);
@@ -355,14 +383,33 @@ export function createCharacters() {
       fillRect(hx - 8, hy - 2, 3, 5, S.ink);
       put(hx - 7, hy, S.logo);
     }
+    if (nod) {
+      target = buf;
+      const cos = Math.cos(nod);
+      const sin = Math.sin(nod);
+      for (let ly = -16; ly <= 16; ly++) {
+        for (let lx = -16; lx <= 16; lx++) {
+          // Inverse turn back into the upright head.
+          const ux = Math.round(cos * lx + sin * ly + hx);
+          const uy = Math.round(-sin * lx + cos * ly + hy);
+          const bx = OX + ux;
+          const byy = OY + uy;
+          if (bx < 0 || bx >= W || byy < 0 || byy >= H) continue;
+          const v = headBuf[byy * W + bx];
+          if (v !== CLEAR) put(hx + lx, hy + ly, v);
+        }
+      }
+    }
 
-    // Front arm and paw, over the body.
-    const front = pose.front ?? [2, 5];
-    stroke(3, shoulderY, 3 + front[0], shoulderY + front[1], sleeve, 2);
-    fillRect(Math.round(3 + front[0]) - 1, Math.round(shoulderY + front[1]) - 1, 2, 2, sp.light);
-
-    // An umbrella in the back paw, over everything.
-    if (pose.umbrella != null) umbrella(-2 + back[0], shoulderY + back[1], hy - 15, pose.umbrella);
+    // Front arm and paw, over the body; holding an umbrella, the paw is up
+    // beside the head with the shaft rising from it.
+    const front = pose.umbrella != null ? [5, -8] : pose.front ?? [2, 5];
+    if (pose.umbrella != null) umbrellaShaft(3 + front[0], shoulderY + front[1], hy - 15, pose.umbrella);
+    if (arms) {
+      stroke(3, shoulderY, 3 + front[0], shoulderY + front[1], sleeve, 2);
+      fillRect(Math.round(3 + front[0]) - 1, Math.round(shoulderY + front[1]) - 1, 2, 2, sp.light);
+    }
+    if (pose.umbrella != null) umbrella(3 + front[0], shoulderY + front[1], hy - 15, pose.umbrella);
 
     // Outline everything drawn, then stamp onto the frame, turned if asked.
     for (let py = 1; py < H - 1; py++) {
@@ -372,35 +419,120 @@ export function createCharacters() {
         if (buf[i - 1] < 254 || buf[i + 1] < 254 || buf[i - W] < 254 || buf[i + W] < 254) buf[i] = 254;
       }
     }
-    const turn = pose.turn ?? 0;
+    const turn = transform(pose);
     const place = (dx, dy) => {
-      // (dx, dy) relative to the origin, upright, facing right -> screen.
-      let rx = dx;
-      let ry = dy;
-      if (turn) {
-        const px = dx;
-        const py = dy + PIVOT;
-        [rx, ry] = turn === 90 ? [-py, px] : turn === 180 ? [-px, -py] : [py, -px];
-        ry -= PIVOT;
-      }
+      const [rx, ry] = turn(dx, dy);
       return [x + facing * rx, y + ry];
     };
-    for (let py = 0; py < H; py++) {
-      for (let px = 0; px < W; px++) {
-        let v = buf[py * W + px];
-        if (v === CLEAR) continue;
-        if (v === 254) v = S.outline;
-        const [sx, sy] = place(px - OX, py - OY);
-        canvas.set(sx, sy, v);
+    const angle = pose.angle ?? 0;
+    if (!angle) {
+      for (let py = 0; py < H; py++) {
+        for (let px = 0; px < W; px++) {
+          let v = buf[py * W + px];
+          if (v === CLEAR) continue;
+          if (v === 254) v = S.outline;
+          canvas.set(x + facing * (px - OX), y + py - OY, v);
+        }
+      }
+    } else {
+      // Rotated: walk the screen around the figure and sample back into the buffer.
+      const [ppx, ppy] = pose.pivot ?? PIVOT;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const [cx, cy] = turn(ppx, ppy);
+      const reach = 46;
+      for (let sy = -reach; sy <= reach; sy++) {
+        for (let sx = -reach; sx <= reach; sx++) {
+          const qx = sx + cx - ppx;
+          const qy = sy + cy - ppy;
+          // Inverse rotation of (q - pivot) back to the upright figure.
+          const lx = Math.round(cos * qx + sin * qy + ppx);
+          const ly = Math.round(-sin * qx + cos * qy + ppy);
+          const bx = lx + OX;
+          const byy = ly + OY;
+          if (bx < 0 || bx >= W || byy < 0 || byy >= H) continue;
+          let v = buf[byy * W + bx];
+          if (v === CLEAR) continue;
+          if (v === 254) v = S.outline;
+          canvas.set(x + facing * (sx + cx), y + sy + cy, v);
+        }
       }
     }
     return {
       frontPaw: place(3 + front[0], shoulderY + front[1]),
       backPaw: place(-2 + back[0], shoulderY + back[1]),
+      frontShoulder: place(3, shoulderY),
+      backShoulder: place(-2, shoulderY),
       head: place(hx, hy),
-      top: place(hx, hy - 11),
+      top: place(hx + Math.sin(nod) * 11, hy - Math.cos(nod) * 11),
+      place,
     };
   }
 
-  return { draw };
+  /** Where a local point of a figure in this pose lands, relative to its origin and before facing. */
+  function transform(pose) {
+    const angle = pose.angle ?? 0;
+    if (!angle) return (dx, dy) => [dx, dy];
+    const [px, py] = pose.pivot ?? PIVOT;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return (dx, dy) => [cos * (dx - px) - sin * (dy - py) + px, sin * (dx - px) + cos * (dy - py) + py];
+  }
+
+  /** Local shoulder positions for a pose (front, back), before rotation. */
+  function shoulders(pose = {}) {
+    const legs = pose.legs ?? 'stand';
+    const seat = legs === 'sit' ? pose.seat ?? 6 : 0;
+    const by = (legs === 'sit' ? -seat + 3 : legs === 'sitGround' ? 3 : 0) + (pose.bob ?? 0);
+    return { front: [3, by - 11], back: [-2, by - 11] };
+  }
+
+  /**
+   * An arm from a shoulder to a hand on screen, the elbow bending to the side
+   * given (+1 or -1, relative to the shoulder-to-hand direction) when the hand
+   * is closer than full reach. Drawn with an outline; the paw at the hand.
+   */
+  function arm(canvas, species, shoulder, hand, bend, { back = false, upper = UPPER_ARM, fore = FOREARM } = {}) {
+    const sp = SPECIES[species];
+    const UPPER = upper;
+    const FORE = fore;
+    const [sx, sy] = shoulder;
+    let [hx, hy] = hand;
+    let dx = hx - sx;
+    let dy = hy - sy;
+    let d = Math.hypot(dx, dy);
+    const reach = UPPER + FORE - 0.5;
+    if (d > reach) {
+      hx = sx + (dx / d) * reach;
+      hy = sy + (dy / d) * reach;
+      dx = hx - sx;
+      dy = hy - sy;
+      d = reach;
+    }
+    // Two-bone reach: the elbow sits off the line, by how much the arm is folded.
+    const along = (UPPER * UPPER - FORE * FORE + d * d) / (2 * Math.max(d, 0.001));
+    const off = Math.sqrt(Math.max(0, UPPER * UPPER - along * along));
+    const ux = dx / Math.max(d, 0.001);
+    const uy = dy / Math.max(d, 0.001);
+    const ex = sx + ux * along - uy * off * bend;
+    const ey = sy + uy * along + ux * off * bend;
+    const line = (x0, y0, x1, y1, c, w) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+      for (let i = 0; i <= n; i++) {
+        const px = Math.round(x0 + ((x1 - x0) * i) / n - (w - 1) / 2);
+        const py = Math.round(y0 + ((y1 - y0) * i) / n - (w - 1) / 2);
+        canvas.rect(px, py, w, w, c);
+      }
+    };
+    const c = back ? sp.dark : sp.fur;
+    line(sx, sy, ex, ey, S.outline, 4);
+    line(ex, ey, hx, hy, S.outline, 4);
+    line(sx, sy, ex, ey, c, 2);
+    line(ex, ey, hx, hy, c, 2);
+    canvas.rect(Math.round(hx) - 1, Math.round(hy) - 1, 3, 3, S.outline);
+    canvas.rect(Math.round(hx) - 1, Math.round(hy) - 1, 2, 2, sp.light);
+    return [ex, ey];
+  }
+
+  return { draw, transform, shoulders, arm };
 }

@@ -61,14 +61,14 @@ const DAY = table({
 });
 
 const NIGHT = table({
-  sky0: '#1b1715', sky1: '#211c19', sky2: '#2a231f', sunGlow: '#2a231f', sun: '#2a231f', moon: '#ece7df', moonDark: '#2c2622', star: '#fff6e5',
-  cloud: '#2e2723', cloudShade: '#241f1c',
-  far0: '#1c1815', far1: '#181412', peak: '#1c1815', glacier: '#35302c', sea0: '#1b1c1b', sea1: '#141514',
-  hill0: '#141110', hill1: '#110f0d', pine0: '#0e0d0b', pine1: '#0b0a09', leaf0: '#100e0c', leaf1: '#0c0b0a', blossom: '#100e0c', snowcap: '#0e0d0b',
-  trunk: '#0b0908', roof: '#0e0c0a', wall: '#161311', window: '#fdb36b', windowOff: '#161311',
-  ground0: '#110e0c', ground1: '#0d0b0a', path: '#16130f', pathEdge: '#0b0908', flower: '#0d0b0a',
-  water0: '#1a1c1c', water1: '#111313', waterHi: '#6a6a64',
-  grass: '#070605', grassTip: '#1b1714',
+  sky0: '#26211e', sky1: '#2d2723', sky2: '#3b332d', sunGlow: '#3b332d', sun: '#3b332d', moon: '#ece7df', moonDark: '#3a332e', star: '#fff6e5',
+  cloud: '#3a332e', cloudShade: '#302a26',
+  far0: '#352e29', far1: '#2d2723', peak: '#352e29', glacier: '#4f4842', sea0: '#2c3030', sea1: '#232726',
+  hill0: '#2a2420', hill1: '#231e1b', pine0: '#1e1d18', pine1: '#181713', leaf0: '#221e18', leaf1: '#1b1814', blossom: '#221e18', snowcap: '#1e1d18',
+  trunk: '#16120f', roof: '#2c1c13', wall: '#2c2622', window: '#fdb36b', windowOff: '#2c2622',
+  ground0: '#231e1a', ground1: '#1c1815', path: '#302924', pathEdge: '#17130f', flower: '#1c1815',
+  water0: '#262b2b', water1: '#1c2020', waterHi: '#7c7b71',
+  grass: '#110e0c', grassTip: '#2f2823',
   fur: 'oklch(0.56 0.11 45)', furDark: 'oklch(0.42 0.09 45)', cream: '#a79a89', outline: 'oklch(0.2 0.04 45)', blush: 'oklch(0.5 0.09 30)', bag: 'oklch(0.26 0.04 55)',
   bunny: '#7a7268', bunnyDark: '#4f4841', bear: '#3e3029', bearDark: '#2a201b', ink: '#0a0807', paper: '#9a9086', screen: '#ffe8c4', cat: '#5a524b', logo: 'oklch(0.76 0.14 45)',
   fire0: '#fd7d3a', fire1: '#ffb35c', fire2: '#fff0c4', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#3a332e', lampLight: '#ffd9a0',
@@ -82,7 +82,7 @@ const NIGHT = table({
 // Sunrise and sunset: the sky warms and the low sun turns orange.
 const GOLDEN = table({
   sky0: '#e6d3bf', sky1: '#efc9a3', sky2: '#f1a96b', sunGlow: '#f4b678', sun: '#e8692a', cloud: '#f3c79c', cloudShade: '#d39a72',
-  far0: '#d6b394', far1: '#c49c7d', sea0: '#e2b08a', sea1: '#c48f6d', water0: '#e6b38a', water1: '#c99470',
+  far0: '#d6b394', far1: '#c49c7d', sea0: '#c9b6a6', sea1: '#a8968a', waterHi: '#f6c99a',
 });
 
 // Seasons recolour the vegetation and the ground. Day and night pairs.
@@ -97,7 +97,7 @@ const SEASONS = {
   },
   autumn: {
     day: table({ leaf0: '#c4691c', leaf1: '#9c4c12', blossom: '#d99a3e', pine0: '#64624e', ground0: '#cfc1a8', flower: '#c4a582', grassTip: '#6e5a40' }),
-    night: table({ leaf0: '#1f150e', leaf1: '#160f0a', blossom: '#1f150e' }),
+    night: table({ leaf0: '#332013', leaf1: '#28190f', blossom: '#332013' }),
   },
   winter: {
     day: table({
@@ -107,8 +107,8 @@ const SEASONS = {
       roofSnow: '#fdfcf9',
     }),
     night: table({
-      peak: '#3a3531', snowcap: '#2e2a26', ground0: '#24201d', ground1: '#1c1917', path: '#211d1a', hill0: '#1e1b18', hill1: '#191614',
-      water0: '#28231f', water1: '#201c19', grassTip: '#2a2622', roofSnow: '#3a3531',
+      peak: '#4c4640', snowcap: '#403a35', ground0: '#3b3632', ground1: '#332e2a', path: '#37322d', hill0: '#302b27', hill1: '#292420',
+      water0: '#38332e', water1: '#2e2a26', grassTip: '#3b3632', roofSnow: '#4c4640',
     }),
   },
 };

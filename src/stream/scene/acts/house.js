@@ -7,6 +7,7 @@ import { maskSprite } from '../canvas.js';
 import { band, bayer } from '../dither.js';
 import { S } from '../palette.js';
 import { convergeMask } from '../props.js';
+import { above, APPS, book, laptop, panel } from '../pov.js';
 import { BOOK, drawFire, MUG, seg, steam, walkTo } from './common.js';
 
 const LEFT = -14; // outer walls, in set coordinates
@@ -258,6 +259,7 @@ function makeHouse(kind) {
       let speed = 0;
       const pose = { indoors: fox > 8 && fox < DOOR_OUT + 6 };
       let item = null;
+      let view = null; // what the fox is looking at, shown above the house
       if (out === 0) {
         speed = walkTo(fox, seatX);
         if (speed === 0) {
@@ -285,6 +287,10 @@ function makeHouse(kind) {
               pose.eyes = 'closed';
               item = 'sip';
             }
+            // Every so often we see its screen: code, email, the team chat, a study app.
+            const k = Math.floor(s / 34);
+            const v = s % 34;
+            if (s > 5) view = { kind: 'laptop', app: APPS[(k + c.seed) % APPS.length], t: Math.max(0, v - 3), amount: seg(v, 3, 4.2) * (1 - seg(v, 27, 28.2)) };
           } else {
             // Reading, sipping cocoa, dozing off by the fire.
             const u = s % 50;
@@ -294,6 +300,7 @@ function makeHouse(kind) {
               pose.eyes = 'focus';
               pose.headY = 1;
               item = 'book';
+              view = { kind: 'book', t: s, amount: seg(u, 3, 4.2) * (1 - seg(u, 20, 21.2)) };
             } else if (u < 30) {
               pose.back = [5, -6];
               pose.eyes = 'closed';
@@ -337,6 +344,10 @@ function makeHouse(kind) {
           if (item === 'sip') canvas.draw(MUG, paws.backPaw[0] - 1, paws.backPaw[1] - 2);
           if (item === 'book') canvas.draw(BOOK, paws.frontPaw[0] - 3, paws.frontPaw[1] - 4);
           if (inFront) facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, glows, time });
+          if (view?.amount > 0) {
+            const paint = view.kind === 'laptop' ? (sc, b) => laptop(sc, b, view.app, view.t, c.seed) : (sc, b) => book(sc, b, view.t, c.seed);
+            panel(canvas, above(), view.amount, paint, paws.top);
+          }
         },
       };
     },

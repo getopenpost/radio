@@ -5,14 +5,15 @@
 // with a friend.
 import { createRng } from '../../../compose/rng.js';
 import { bubble, dialogue } from '../bubbles.js';
+import { createCanvas } from '../canvas.js';
+import { panel } from '../pov.js';
 import { bayer } from '../dither.js';
-import { S } from '../palette.js';
+import { CLEAR, S } from '../palette.js';
 import { bench, seg } from './common.js';
 import { dressFor, visitor } from './visitor.js';
 
 const CYCLE = 52;
 const BENCH = -46; // where the fox sits, in set coordinates
-const R = 30; // radius of the view
 
 const NAMES = { moon: 'THE MOON!', saturn: 'SATURN!', jupiter: 'JUPITER!', galaxy: 'A GALAXY!', cluster: 'SO MANY STARS' };
 
@@ -93,19 +94,24 @@ function object(canvas, kind, cx, cy, moonAge, seed) {
   }
 }
 
-/** The round view, dissolving in and out through the dither. */
-function view(canvas, cx, cy, amount, draw) {
-  if (amount <= 0) return;
-  // Draw the scene inside the circle into place, then mask it by the dissolve.
-  for (let y = -R - 3; y <= R + 3; y++) {
-    for (let x = -R - 3; x <= R + 3; x++) {
-      const d = Math.sqrt(x * x + y * y);
-      if (d > R + 2.5 || bayer(x, y) >= amount) continue;
-      canvas.set(cx + x, cy + y, d > R + 1.5 ? S.ink : d > R ? S.paper : S.sky0);
+/**
+ * The view through the eyepiece: the object drawn at its own size into a
+ * scratch frame, then magnified 2x into a big round panel with a few stars.
+ */
+const lens = createCanvas();
+function view(canvas, box, amount, kind, moonAge, seed, from) {
+  lens.index.fill(CLEAR);
+  object(lens, kind, 100, 100, moonAge, seed);
+  panel(canvas, box, amount, (sc, b) => {
+    sc.rect(b.x, b.y, b.w, b.h, S.ink);
+    for (const [x, y] of [[-48, -20], [30, -50], [44, 30], [-30, 44], [8, -58], [-56, 18], [52, -12]]) sc.set(b.x + b.w / 2 + x, b.y + b.h / 2 + y, S.star);
+    for (let y = 0; y < b.h; y++) {
+      for (let x = 0; x < b.w; x++) {
+        const v = lens.get(100 + Math.floor((x - b.w / 2) / 2), 100 + Math.floor((y - b.h / 2) / 2));
+        if (v !== CLEAR) sc.set(b.x + x, b.y + y, v);
+      }
     }
-  }
-  if (amount > 0.6) draw();
-  if (amount > 0.6) for (const [x, y] of [[-18, -12], [14, -20], [20, 14], [-12, 19], [3, -25]]) canvas.set(cx + x, cy + y, S.star);
+  }, from);
 }
 
 export default {
@@ -175,21 +181,12 @@ export default {
       } else bubbles.push(() => bubble(canvas, friend.head[0], friend.head[1], text, typed, 'right'));
     }
 
-    const cx = Math.max(R + 8, Math.min(632 - R, X + 112));
-    const cy = 86;
+    const box = { x: Math.round(320 - 70), y: 30, w: 140, h: 140, round: true };
     return {
       pose,
       speed,
       after(paws) {
-        if (looking > 0) {
-          // A faint sight line from the telescope to the view.
-          for (let i = 0; i < 40; i++) {
-            const x = Math.round(X + 44 + ((cx - R * 0.7 - X - 44) * i) / 40);
-            const y = Math.round(Y - 42 + ((cy + R * 0.7 - Y + 42) * i) / 40);
-            if (i % 3 === 0 && looking > bayer(x, y)) canvas.set(x, y, S.paper);
-          }
-          view(canvas, cx, cy, looking, () => object(canvas, kind, cx, cy, moonAge, c.seed + k));
-        }
+        if (looking > 0) view(canvas, box, looking, kind, moonAge, c.seed + k, paws.top);
         for (const b of bubbles) b(paws);
       },
     };

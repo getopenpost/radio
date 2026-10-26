@@ -1,8 +1,9 @@
 // Fishing from a long footbridge over a lake: casts, waits, sometimes lands a
 // fish, admires it and lets it go. The lake freezes in winter.
 import { sprite } from '../canvas.js';
-import { band, bayer } from '../dither.js';
 import { S } from '../palette.js';
+import { drawWater } from '../water.js';
+import { above, panel, underwater } from '../pov.js';
 import { hash01, inside, lerp, seg } from './common.js';
 
 const FISH = sprite(['.ppp..', 'pkpppp', '.ppp.p'], { p: S.paper, k: S.ink });
@@ -15,18 +16,7 @@ export default {
     // The lake replaces the ground under a long footbridge.
     const left = X - 96;
     const right = X + 250;
-    for (let y = 287; y < 324; y++) {
-      const k = y - 287;
-      const xl = Math.max(0, left + Math.round(k * 0.9));
-      const xr = Math.min(639, right - Math.round(k * 0.9));
-      const rate = 2 + (y % 5);
-      for (let x = xl; x <= xr; x++) {
-        let col = band(k / 36, 0.15, 0.9) > bayer(x, y) ? S.water1 : S.water0;
-        if (!winter && (y === 290 || y === 301 || y === 308 || y === 316) && (x + Math.floor(time * rate)) % 31 < 3) col = S.waterHi;
-        if (!winter && rain > 0.2 && ((x * 7 + y * 13 + Math.floor(time * 6)) % 97) < rain * 2) col = S.waterHi;
-        canvas.set(x, y, col);
-      }
-    }
+    drawWater(canvas, { top: 287, bottom: 324, left: (y) => left + (y - 287) * 0.9, right: (y) => right - (y - 287) * 0.9, time, rain, winter, current: 3 });
     // Footbridge planks at the path level, posts into the water.
     for (let x = left - 6; x <= right + 6; x++) {
       canvas.set(x, Y, (x - left) % 7 === 0 ? S.pathEdge : S.trunk);
@@ -98,6 +88,8 @@ export default {
     return {
       pose,
       after(paws) {
+        // Around a bite we see under the water: the hook, the fish coming in.
+        if (u >= 38 && u < 58) panel(canvas, above(), seg(u, 38, 39.2) * (1 - seg(u, 56, 57.2)), (sc, b) => underwater(sc, b, u - 41, { strike: 12, caught: catches }), paws.top);
         if (angle == null) return;
         const [px, py] = paws.frontPaw;
         const rad = (angle * Math.PI) / 180;

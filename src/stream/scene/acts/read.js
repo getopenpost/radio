@@ -3,6 +3,7 @@
 // bench is free, a small bird drops in.
 import { bubble, dialogue, dialogueLength } from '../bubbles.js';
 import { S } from '../palette.js';
+import { above, book, panel } from '../pov.js';
 import { BIRD, BOOK, bench, lerp, seg } from './common.js';
 import { dressFor, visitor } from './visitor.js';
 
@@ -22,6 +23,7 @@ const VISITS = [
 ];
 const PERIOD = 160; // a visitor at most every this many seconds
 const STAY = 75;
+const FIRST = 36; // the first visitor comes once the fox has read a while
 
 export default {
   spec: { anchored: true, extent: [-20, 46], intro: 5, outro: 5, light: 'day' },
@@ -30,9 +32,9 @@ export default {
     bench(canvas, X - 14, Y, 54);
     if (t < 0) return null;
 
-    // A visitor each period, once the fox has settled.
-    const k = t > 12 ? Math.floor((t - 12) / PERIOD) : -1;
-    const local = { ...c, t: t - 12 - k * PERIOD };
+    // A visitor each period, once the fox has read a while.
+    const k = t > FIRST ? Math.floor((t - FIRST) / PERIOD) : -1;
+    const local = { ...c, t: t - FIRST - k * PERIOD };
     const visit = VISITS[(k + c.seed) % VISITS.length];
     const species = (k + c.seed) % 2 ? 'bear' : 'bunny';
     const byeAt = STAY - dialogueLength(visit.bye) - 1;
@@ -78,10 +80,20 @@ export default {
     }
     if (out > 3.5) pose.legs = 'stand';
 
+    // While it reads alone we look over its shoulder at the page now and
+    // then, closing the view before a friend arrives or the fox gets up.
+    const { state } = c;
+    if (friend || !reading) state.alone = null;
+    else state.alone ??= t;
+    const nextVisit = FIRST + (k + 1) * PERIOD;
+    const u = state.alone == null ? 0 : (t - state.alone) % 40;
+    const view = state.alone == null ? 0 : seg(u, 2, 3.2) * (1 - seg(u, 20, 21.2)) * (1 - seg(t, nextVisit - 2.4, nextVisit - 1.2)) * (1 - seg(out, 0, 1.2));
+
     // A small bird lands on the free end of the backrest now and then.
+    // It comes while the fox is alone and leaves before anyone arrives.
     let bird = null;
-    const bt = t % 75;
-    if (!friend && bt > 30 && bt < 46 && out === 0) {
+    const bt = state.alone == null ? 0 : (t - state.alone) % 75;
+    if (state.alone != null && bt > 30 && bt < 46 && nextVisit - (t - bt + 30) > 18 && out === 0) {
       const landed = bt > 33 && bt < 43;
       bird = {
         x: landed ? X + 34 + (Math.floor(bt * 1.5) % 3 === 0 ? 1 : 0) : bt <= 33 ? lerp(X + 120, X + 34, seg(bt, 30, 33)) : lerp(X + 34, X + 140, seg(bt, 43, 46)),
@@ -94,6 +106,7 @@ export default {
       pose,
       after(paws) {
         if (bird) canvas.draw(BIRD, bird.x, bird.y, { flip: true });
+        panel(canvas, above(), view, (sc, b) => book(sc, b, t, c.seed), paws.top);
         if (reading) {
           const [px, py] = paws.frontPaw;
           canvas.draw(BOOK, px - 3, py - 4);

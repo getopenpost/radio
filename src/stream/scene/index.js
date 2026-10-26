@@ -16,7 +16,7 @@ import { activity, sky as skyAt, weather as weatherAt, weatherAmount } from './c
 import { bayer, clamp01 } from './dither.js';
 import { computePalette, S, SLOTS } from './palette.js';
 import { convergeMask, CREEK_SPAN, creekLift, creekRail, drawCreek, drawProp, PROP_KINDS } from './props.js';
-import { createSky } from './sky.js';
+import { arc, createSky } from './sky.js';
 import { createVisualizer, MODES } from './visualizer.js';
 import { createWeather } from './weather.js';
 import { buildWorld, PATH_Y, STRIP } from './world.js';
@@ -27,7 +27,7 @@ export { HEIGHT, WIDTH };
 export const BRAND = { x: 16, y: 12, w: 130, h: 26, textX: 47 };
 export const BRAND_TEXT = 'openpo.st/radio';
 
-const FOX_X = 300;
+const FOX_X = WIDTH / 2; // the fox walks in the middle of the frame
 const REGION_MS = 2 * 3600 * 1000;
 const STRIDE = 12; // ground pixels per full walk cycle (two steps)
 const DECEL = 5; // px/s² when stopping or setting off
@@ -65,6 +65,9 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   let lastStep = 0;
   let actSpeed = 0; // what the current stop asks the ground to do (flying keeps it moving)
   let actDone = false; // the current stop says it is finished (the river is crossed)
+  let actZoom = 1; // how close the current stop wants the camera
+  let zoom = 1;
+  const zoomed = new Uint8Array(WIDTH * HEIGHT);
   const finished = new Set(); // stops already done in their time slot
   let lift = 0; // how high the fox is off the path
   const footprints = [];
@@ -272,6 +275,23 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     const farOffset = ground * 0.08;
     const hillOffset = ground * 0.3;
     blit(world.far, farOffset, prev?.far, dissolve);
+    if (world.biome === 'coast') {
+      // The sea glints: short streaks drifting along each swell line, all
+      // over by day, gathered into a path under a low sun or the moon.
+      const { index } = canvas;
+      const low = st.light < 0.75 ? (st.sun != null ? arc(st.sun) : st.moon != null ? arc(st.moon, 135) : null) : undefined;
+      for (let y = 234; y < 262; y += 3) {
+        const rate = 2 + (y % 4);
+        const period = low ? 19 + (y % 5) * 4 : 47 + (y % 5) * 9;
+        for (let x = 0; x < WIDTH; x++) {
+          const i = y * WIDTH + x;
+          const v = index[i];
+          if (v !== S.sea0 && v !== S.sea1) continue;
+          if (low === null || (low && Math.exp(-(((x - low.x) / 56) ** 2)) < bayer(x, y) * 1.2)) continue;
+          if ((x + Math.floor(time * rate + farOffset) + y * 31) % period < 4) index[i] = S.waterHi;
+        }
+      }
+    }
     blit(world.hills, hillOffset, prev?.hills, dissolve);
     const glows = [];
     drawHillLife(time, hillOffset, st.light);
@@ -322,13 +342,14 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     let actPose = null;
     let after = null;
     let actLift = 0;
+    actZoom = 1;
     if (act) {
       const X = spec.anchored ? Math.round(act.wx - ground) : FOX_X; // unanchored sets travel with the fox
       const t = act.start == null ? -1 : time - act.start;
       const out = act.outStart == null ? 0 : Math.min(spec.outro, time - act.outStart);
       const res = drawAct(act.kind, {
         canvas, chars, X, Y: PATH_Y, foxX: FOX_X, t, out, time, dt, beat, light: st.light, season: st.season, rain, glows, overlays, seed: act.seed, state: act.state,
-        hours: st.hours, moonUp: st.moon != null && st.light < 0.5, moonAge: st.moonAge,
+        hours: st.hours, moonUp: st.moon != null && st.light < 0.5, moonAge: st.moonAge, winter: st.season === 'winter',
         festive: (st.month === 10 && st.day >= 24) || (st.month === 11 && st.day <= 1),
         trigger: (kind, key) => sky.trigger(kind, key),
       });
@@ -339,6 +360,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       after = res?.after ?? null; // sets still draw over the fox while it walks away
       actSpeed = res?.speed ?? 0;
       actDone = Boolean(res?.done);
+      actZoom = (mode === 'stay' && res?.zoom) || 1;
     }
     lift = actLift || bridge;
 
@@ -381,7 +403,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     if (rain > 0.35 && !actPose?.indoors && act?.kind !== 'fly' && !actPose?.back) {
       pose.umbrella = (moving ? 0.16 + Math.sin(2 * Math.PI * step) * 0.05 : 0.04) + wind * 0.12;
     }
-    const paws = chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, facing, pose);
+    // Some stops draw the fox themselves (the gym plants its hands with drawn arms).
+    const paws = actPose?.hidden
+      ? { top: [FOX_X, PATH_Y - 30], head: [FOX_X, PATH_Y - 18], frontPaw: [FOX_X + 5, PATH_Y - 6], backPaw: [FOX_X - 4, PATH_Y - 6] }
+      : chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, facing, pose);
     if (after) after(paws);
     for (const o of overlays) o(paws);
     for (const p of props) if (p.kind === 'creek') creekRail(canvas, Math.round(p.wx - ground), PATH_Y);
@@ -395,6 +420,22 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
 
     // Light pools after dark.
     if (st.light < 0.75) for (const g of glows) canvas.glow(g.x, g.y, g.r, g.strength, [S.glow0, S.glow1], LIT, g.squash ?? 1);
+
+    // The camera moves in on some stops (the gym), easing in and out; the
+    // ground line sits lower in the frame as it closes in.
+    zoom += (actZoom - zoom) * Math.min(1, dt * 1.2);
+    if (zoom > 1.01) {
+      const { index } = canvas;
+      zoomed.set(index);
+      const cx = FOX_X;
+      const cy = HEIGHT / 2 + (PATH_Y - 54 - HEIGHT / 2) * (zoom - 1);
+      for (let y = 0; y < HEIGHT; y++) {
+        const sy = Math.max(0, Math.min(HEIGHT - 1, Math.floor(cy + (y - HEIGHT / 2) / zoom)));
+        const row = sy * WIDTH;
+        const out = y * WIDTH;
+        for (let x = 0; x < WIDTH; x++) index[out + x] = zoomed[row + Math.max(0, Math.min(WIDTH - 1, Math.floor(cx + (x - WIDTH / 2) / zoom)))];
+      }
+    }
 
     if (steer?.look) visualizer.choose(steer.look);
     else if (trackId) visualizer.choose(MODES[hashString(trackId) % MODES.length]);

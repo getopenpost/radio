@@ -2,8 +2,8 @@
 // takes the paddle and rows across past ducks and the odd jumping fish,
 // moors at the far jetty and walks on, leaving the boat there.
 import { sprite } from '../canvas.js';
-import { band, bayer } from '../dither.js';
 import { S } from '../palette.js';
+import { drawWater } from '../water.js';
 import { hash01, seg } from './common.js';
 
 const WIDTH = 560; // of open water
@@ -51,25 +51,24 @@ export default {
     // as moving glints, the far shore a line of reeds.
     const x0 = Math.max(0, X + NEAR - 10);
     const x1 = Math.min(639, X + FAR + 10);
-    for (let y = Y - 8; y < Y + 40; y++) {
-      const k = y - (Y - 8);
-      const inset = Math.max(0, 10 - Math.round(k * 0.6));
-      const rate = 6 + (y % 4) * 3;
-      for (let x = Math.max(x0, X + NEAR - 10 + inset); x <= Math.min(x1, X + FAR + 10 - inset); x++) {
-        let col = band(k / 48, 0.1, 0.85) > bayer(x, y) ? S.water1 : S.water0;
-        if (y % 5 === 1 && (x + Math.floor(time * rate) + y * 13) % 37 < 4) col = S.waterHi;
-        if (rain > 0.2 && ((x * 7 + y * 13 + Math.floor(time * 6)) % 89) < rain * 2) col = S.waterHi;
-        canvas.set(x, y, col);
-      }
-    }
     for (let x = x0; x <= x1; x += 1) {
       const lx = x - X;
       if (lx < NEAR || lx > FAR) continue;
       if (hash01(`reed:${Math.floor(lx / 3)}`) < 0.3) {
         const h = 2 + Math.floor(hash01(`reedh:${lx}`) * 4);
-        canvas.rect(x, Y - 8 - h, 1, h, winter ? S.trunk : S.leaf1);
+        canvas.rect(x, Y - 8 - h, 1, h, winter ? S.trunk : S.pine1);
       }
     }
+    drawWater(canvas, {
+      top: Y - 8,
+      bottom: Y + 40,
+      left: (y) => X + NEAR - 10 + Math.max(0, 10 - Math.round((y - Y + 8) * 0.6)),
+      right: (y) => X + FAR + 10 - Math.max(0, 10 - Math.round((y - Y + 8) * 0.6)),
+      time,
+      rain,
+      winter,
+      current: 8,
+    });
     // Ducks bobbing midstream; now and then a fish jumps.
     for (const [dx, phase] of [[180, 0], [190, 1.3], [199, 2.1], [380, 0.6]]) {
       const x = X + dx + Math.round(Math.sin(time * 0.3 + phase) * 4);
