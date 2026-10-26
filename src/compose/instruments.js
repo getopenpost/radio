@@ -83,10 +83,10 @@ export const PRESETS = [
   p('arp.kalimba', 'arp', ['organic'], () => '.s("kalimba").lpf(3200)'),
   p('arp.music-box', 'arp', ['bright', 'soft'], () => '.s("gm_music_box").lpf(3200)'),
 
-  // Texture: constant quiet air and grain above the music.
-  p('tex.hiss', 'texture', ['clean'], () => '.s("pink").slow(16).legato(1.1).attack(6).release(6).hpf(3500).lpf(9000)'),
-  p('tex.vinyl', 'texture', ['lofi'], () => '.s("crackle").density(.03).slow(4).attack(.5).release(1).hpf(1200).lpf(9000)'),
-  p('tex.air', 'texture', ['airy'], () => '.s("pink").slow(16).legato(1.1).attack(6).release(6).bpf(4500).bpq(.7)'),
+  // Texture: a little grain under the music, never a steady hiss (listeners
+  // hear a noise bed as noise over hours). Not calibrated: sparse crackle has
+  // little RMS, so its level is set by ear and the high-frequency floor.
+  p('tex.vinyl', 'texture', ['lofi'], () => '.s("crackle").density(.02).slow(4).attack(.5).release(1).hpf(900).lpf(4500)'),
   p('tex.wind', 'texture', ['ambient'], () => '.s("white").slow(16).legato(1.1).attack(6).release(6).bpf(sine.slow(64).range(500, 1200)).bpq(2)'),
 ];
 

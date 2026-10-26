@@ -19,10 +19,10 @@ export const wave = makeStyle({
     keys: ['synth', 'wave'],
     lead: ['wave', 'synth'],
     arp: ['wave', 'synth'],
-    texture: ['clean'],
   },
+  texture: false,
   kitTags: ['wave'],
-  levels: { sub: 1.1, bass: 0.55, kick: 1.1, snare: 0.55, hat: 0.24, openhat: 0.18, perc: 0.25, pad: 0.6, keys: 0.36, lead: 0.4, arp: 0.34, texture: 0.1 },
+  levels: { sub: 1.1, bass: 0.55, kick: 1.1, snare: 0.55, hat: 0.24, openhat: 0.18, perc: 0.25, pad: 0.6, keys: 0.36, lead: 0.4, arp: 0.34 },
   groove: 'wave',
   snareBus: 'hall',
   duckDepth: [0.3, 0.5],
@@ -47,17 +47,17 @@ export const wave = makeStyle({
   sections: (name, bars) => {
     switch (name) {
       case 'intro':
-        return [`pad(A).lpf(${rise(bars)})`, `arp(A).lpf(${rise(bars, 400, 1800)})${enterAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${rise(bars)})`, `arp(A).lpf(${rise(bars, 400, 1800)})${enterAfter(bars / 2, bars)}`];
       case 'A':
-        return ['pad(A)', 'arp(A)', 'sub(subA)', 'bass(lineA)', 'drums', 'air'];
+        return ['pad(A)', 'arp(A)', 'sub(subA)', 'bass(lineA)', 'drums'];
       case 'B':
-        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(4, bars)}`, 'air'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(4, bars)}`];
       case 'break':
-        return ['pad(A)', 'pad2(A)', 'arp(A).lpf(900)', 'sub(subA)', 'air'];
+        return ['pad(A)', 'pad2(A)', 'arp(A).lpf(900)', 'sub(subA)'];
       case 'C':
-        return ['pad(A)', 'arp(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'air'];
+        return ['pad(A)', 'arp(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat'];
       case 'outro':
-        return [`pad(A).lpf(${fall(bars)})`, `arp(A).lpf(${fall(bars, 1800, 400)})`, 'air'];
+        return [`pad(A).lpf(${fall(bars)})`, `arp(A).lpf(${fall(bars, 1800, 400)})`];
       default:
         throw new Error(`unknown section ${name}`);
     }

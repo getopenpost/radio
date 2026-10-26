@@ -106,9 +106,5 @@
   "sub.shaped": 0.401,
   "sub.sine": 0.612,
   "sub.sine-harm": 0.595,
-  "sub.tri": 0.704,
-  "tex.air": 6.17,
-  "tex.hiss": 4.69,
-  "tex.vinyl": 50,
-  "tex.wind": 4.83
+  "sub.tri": 0.704
 }

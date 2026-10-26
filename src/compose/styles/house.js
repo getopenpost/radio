@@ -19,10 +19,10 @@ export const house = makeStyle({
     keys: ['house', 'synth', 'jazzy'],
     lead: ['vocal', 'soft', 'bright'],
     arp: ['synth', 'organic'],
-    texture: ['clean', 'airy'],
   },
+  texture: false,
   kitTags: ['house'],
-  levels: { sub: 1.3, bass: 0.55, kick: 1.15, snare: 0.4, hat: 0.3, openhat: 0.26, perc: 0.3, pad: 0.5, keys: 0.5, lead: 0.32, arp: 0.28, texture: 0.12 },
+  levels: { sub: 1.3, bass: 0.55, kick: 1.15, snare: 0.4, hat: 0.3, openhat: 0.26, perc: 0.3, pad: 0.5, keys: 0.5, lead: 0.32, arp: 0.28 },
   groove: 'house',
   swing: ['', '.swingBy(1/12, 8)'],
   duckDepth: [0.45, 0.65],
@@ -44,19 +44,19 @@ export const house = makeStyle({
   sections: (name, bars, rng) => {
     switch (name) {
       case 'intro':
-        return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`];
       case 'A':
-        return ['pad(A)', 'sub(subA)', 'bass(lineA)', 'drums', 'openhat', 'air'];
+        return ['pad(A)', 'sub(subA)', 'bass(lineA)', 'drums', 'openhat'];
       case 'A2':
-        return ['keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', `lead(motif)${enterAfter(8, bars)}`, 'air'];
+        return ['keys(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', `lead(motif)${enterAfter(8, bars)}`];
       case 'B':
-        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', 'openhat', rng.chance(0.5) ? 'arp(B)' : 'lead(motifB)', 'air'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', 'openhat', rng.chance(0.5) ? 'arp(B)' : 'lead(motifB)'];
       case 'break':
-        return ['pad(A).lpf(800)', 'keys(A).lpf(1200)', 'sub(subA)', `hats${enterAfter(bars / 2, bars)}`, 'air'];
+        return ['pad(A).lpf(800)', 'keys(A).lpf(1200)', 'sub(subA)', `hats${enterAfter(bars / 2, bars)}`];
       case 'C':
-        return ['keys(A)', 'pad2(A).postgain(.7)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
+        return ['keys(A)', 'pad2(A).postgain(.7)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)'];
       case 'outro':
-        return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`];
       default:
         throw new Error(`unknown section ${name}`);
     }

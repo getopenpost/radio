@@ -47,6 +47,8 @@ function compose(config, { rng, key, bpm, progressions }) {
     arp: pickPreset(rng, 'arp', role('arp')),
     texture: pickPreset(rng, 'texture', role('texture')),
   };
+  // Styles without grain still draw the pick, so a seed keeps its later choices.
+  if (config.texture === false) pick.texture = null;
   pick.pad2 = pickPreset(rng, 'pad', role('pad2'), [pick.pad.id]);
   const kitTags = config.kitTags ?? tags;
   const kits = Object.fromEntries(['kick', 'snare', 'hat', 'openhat', 'perc'].map((part) => [part, pickKit(rng, part, kitTags)]));
@@ -118,8 +120,7 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.drum('fill', kits.perc, '[~ ~ ~ [x x x x]]', { role: 'perc', extra: `.pan(sine.range(.3, .7)).mask("<0!7 1>")${drumExtra}`, scale: 0.8 });
   b.def('drums', 'stack(kick, snare, hats, perc, fill).lastOf(8, x => x.mask("1 1 1 [1 0]"))');
   b.def('drumsB', 'stack(kickB, snareB, hatsB, perc, fill).lastOf(8, x => x.mask("1 1 1 [1 0]"))');
-  b.texture('air', pick.texture);
-  if (config.texture2) b.texture('air2', pickPreset(rng, 'texture', config.texture2, [pick.texture.id]), { scale: 0.8 });
+  if (pick.texture) b.texture('air', pick.texture);
   config.extraLayers?.(b, { rng, key, chordsA, chordsB, kits });
 
   const plan = sectionsOf(rng.pick(config.plans(rng)));
@@ -127,7 +128,7 @@ function compose(config, { rng, key, bpm, progressions }) {
   return {
     code: `setcps(${bpm}/60/4)\n${b.code(sections)}`,
     sections: sections.map(({ name, bars }) => [name, bars]),
-    instruments: Object.fromEntries([...Object.entries(pick).map(([k, v]) => [k, v.id]), ...Object.entries(kits).map(([k, v]) => [k, v.id])]),
+    instruments: Object.fromEntries([...Object.entries(pick).filter(([, v]) => v).map(([k, v]) => [k, v.id]), ...Object.entries(kits).map(([k, v]) => [k, v.id])]),
     introBars: sections[0].bars,
     outroBars: sections.at(-1).bars,
   };

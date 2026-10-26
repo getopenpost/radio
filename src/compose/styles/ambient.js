@@ -18,11 +18,10 @@ export const ambient = makeStyle({
     keys: ['acoustic', 'ambient', 'soft'],
     lead: ['soft', 'organic', 'bright'],
     arp: ['organic', 'soft'],
-    texture: ['ambient', 'airy'],
+    texture: ['ambient'],
   },
-  texture2: ['clean'],
   kitTags: ['ambient', 'focus'],
-  levels: { sub: 1.35, bass: 0.3, kick: 0.6, snare: 0.3, hat: 0.15, openhat: 0.1, perc: 0.25, pad: 0.75, keys: 0.4, lead: 0.28, arp: 0.24, texture: 0.1 },
+  levels: { sub: 1.35, bass: 0.3, kick: 0.6, snare: 0.3, hat: 0.15, openhat: 0.1, perc: 0.25, pad: 0.75, keys: 0.4, lead: 0.28, arp: 0.24, texture: 0.3 },
   // Dark and warm: the calm space between grooves should not be brighter than them.
   padSweep: false,
   padExtra: '.lpf(sine.slow(32).range(700, 1300))',
@@ -44,15 +43,15 @@ export const ambient = makeStyle({
   sections: (name, bars) => {
     switch (name) {
       case 'intro':
-        return [`pad2(A).lpf(${rise(bars, 400, 1600)})`, 'air', 'air2'];
+        return [`pad2(A).lpf(${rise(bars, 400, 1600)})`, 'air'];
       case 'A':
-        return ['pad(A)', `pad2(A)${leaveAfter(bars / 2, bars)}`, 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`, 'air', 'air2'];
+        return ['pad(A)', `pad2(A)${leaveAfter(bars / 2, bars)}`, 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`, 'air'];
       case 'B':
-        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)', 'air', 'air2'];
+        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)', 'air'];
       case 'C':
-        return ['pad(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)', 'air', 'air2'];
+        return ['pad(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)', 'air'];
       case 'outro':
-        return [`pad(A).lpf(${fall(bars, 1400, 300)})`, 'pad2(A)', `sub(subA).postgain(.7)${leaveAfter(bars / 2, bars)}`, 'air', 'air2'];
+        return [`pad(A).lpf(${fall(bars, 1400, 300)})`, 'pad2(A)', `sub(subA).postgain(.7)${leaveAfter(bars / 2, bars)}`, 'air'];
       default:
         throw new Error(`unknown section ${name}`);
     }

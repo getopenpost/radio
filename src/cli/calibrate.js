@@ -1,6 +1,7 @@
 // Measure every instrument preset on a reference phrase for its role and write
 // gain multipliers to src/compose/calibration.json, so all presets of a role
-// sit at the same loudness. Re-run after adding or changing presets.
+// sit at the same loudness. Re-run after adding or changing presets. Textures
+// are left out: their levels are absolute.
 // Usage: npm run calibrate [-- --only pad.warm]
 import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -32,7 +33,7 @@ const grids = {
 };
 
 const items = [
-  ...PRESETS.map((preset) => ({ id: preset.id, code: reference[preset.role](preset.chain(createRng(1))) })),
+  ...PRESETS.filter((preset) => preset.role !== 'texture').map((preset) => ({ id: preset.id, code: reference[preset.role](preset.chain(createRng(1))) })),
   ...Object.entries(KITS).flatMap(([part, kits]) =>
     kits.map((kit) => ({ id: kit.id, code: `s("[${grids[part].replaceAll(/\b(bd|x)\b/g, kit.sound)}]")${kit.mods}` })),
   ),

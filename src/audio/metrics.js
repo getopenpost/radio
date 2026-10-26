@@ -89,6 +89,12 @@ export function analyze({ left, right, sampleRate }) {
   const bedMedian = percentile(bed, 0.5);
   const bedGaps = (100 * bed.filter((e) => e < bedMedian / 100).length) / Math.max(1, bed.length);
 
+  // Steady high-frequency floor: the quiet moments above 3 kHz against the
+  // median frame. A noise bed (hiss, air) keeps this high; hats and other
+  // transients do not.
+  const hf = active.map((f) => f.mid[5] + f.mid[6] + f.side[5] + f.side[6]);
+  const hfFloor = db(percentile(hf, 0.2)) - db(percentile(active.map((f) => f.energy), 0.5));
+
   // Correlation and level statistics in the time domain.
   let sl = 0;
   let sr = 0;
@@ -125,6 +131,7 @@ export function analyze({ left, right, sampleRate }) {
     correlation: slr / Math.sqrt(Math.max(sl * sr, 1e-20)),
     lowFloorDb: lowFloor,
     bedGapsPct: bedGaps,
+    hfFloorDb: hfFloor,
     movementDb: movement,
   };
 }
@@ -143,6 +150,7 @@ export function formatComparison(results) {
     ['L/R corr', (m) => m.correlation.toFixed(2)],
     ['bass floor dB', (m) => m.lowFloorDb.toFixed(1)],
     ['bed gaps %', (m) => m.bedGapsPct.toFixed(1)],
+    ['hf floor dB', (m) => m.hfFloorDb.toFixed(1)],
     ['movement dB', (m) => m.movementDb.toFixed(1)],
   ];
   const width = Math.max(14, ...names.map((n) => n.length + 2));
