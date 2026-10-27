@@ -71,7 +71,7 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
     '-c:v', codec, '-threads', String(threads),
     ...(vaapi ? ['-profile:v', 'high', '-bf', '0', '-async_depth', '1', '-rc_mode', 'CBR'] : hardware ? ['-profile:v', 'high', '-bf', '0', '-realtime', '0', '-allow_sw', '0'] : ['-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high']),
     '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', String(parseInt(videoBitrate) * 2) + 'k',
-    '-g', String(gop), ...(hardware ? [] : ['-keyint_min', String(gop), '-sc_threshold', '0', '-pix_fmt', 'yuv420p']),
+    '-g', String(gop), ...(hardware ? ['-force_key_frames', 'expr:gte(t,n_forced*2)'] : []), ...(hardware ? [] : ['-keyint_min', String(gop), '-sc_threshold', '0', '-pix_fmt', 'yuv420p']),
     // ffmpeg's AAC noise substitution and intensity stereo produce loud
     // one-channel bursts on this material; at these bitrates they gain nothing.
     // 160 kbps is Twitch's ceiling for audio.
