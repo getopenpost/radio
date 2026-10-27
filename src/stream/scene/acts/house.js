@@ -341,7 +341,7 @@ function makeHouse(kind) {
           if (thought && state.viewAmount > 0.02) {
             const paint = thought.kind === 'laptop' ? (sc, b) => laptop(sc, b, thought.t, c.seed) : (sc, b) => book(sc, b, thought.t, c.seed);
             // Keep the book above the natively framed fireplace and chairs.
-            const box = thought.kind === 'laptop' ? { ...above(312, 158), y: 42 } : { ...above(), x: Math.round(X + 88 - 108), y: 46 };
+            const box = thought.kind === 'laptop' ? { ...above(312, 158), y: 42 } : { ...above(292, 152), x: Math.round(X + 88 - 146), y: 46 };
             c.overlays.push(() => panel(canvas, box, state.viewAmount, paint, paws.top));
           }
         },

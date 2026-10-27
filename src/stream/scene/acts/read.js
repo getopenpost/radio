@@ -109,7 +109,7 @@ export default {
       pose,
       after(paws) {
         if (bird) canvas.draw(BIRD, bird.x, bird.y, { flip: true });
-        c.overlays.push(() => panel(canvas, above(), state.view, (sc, b) => book(sc, b, t, c.seed), paws.top));
+        c.overlays.push(() => panel(canvas, above(292, 152), state.view, (sc, b) => book(sc, b, t, c.seed), paws.top));
         if (reading) {
           const [px, py] = paws.frontPaw;
           canvas.draw(BOOK, px - 3, py - 4);
