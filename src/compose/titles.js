@@ -11,7 +11,22 @@ const SECOND = [
   'Echo', 'Interval', 'Patterns', 'Satellite', 'Workshop', 'Platform', 'Postcard', 'Reply', 'Schedule',
 ];
 
-export function makeTitle(rng) {
+// Cafe tracks sound like an afternoon at a coffee shop with homework.
+const CAFE_TREATS = [
+  'Cold Brew', 'Oat Milk', 'Cinnamon', 'Honey', 'Mocha', 'Espresso', 'Matcha', 'Caramel', 'Vanilla', 'Hazelnut',
+  'Chai', 'Cocoa', 'Maple', 'Almond', 'Flat White', 'Croissant', 'Biscotti', 'Brown Sugar', 'Cortado', 'Lemon Cake',
+];
+const CAFE_WORK = [
+  'Notes', 'Chapters', 'Drafts', 'Margins', 'Revisions', 'Homework', 'Deadlines', 'Bookmarks', 'Highlights',
+  'Footnotes', 'Flashcards', 'Pages', 'Sketches', 'Errands', 'Ideas', 'Index Cards', 'Lists', 'Outlines', 'Essays',
+];
+
+export function makeTitle(rng, style) {
+  if (style === 'cafe') {
+    const treat = rng.pick(CAFE_TREATS);
+    const work = rng.pick(CAFE_WORK);
+    return rng.chance(0.3) ? `${work} and ${treat}` : `${treat} ${work}`;
+  }
   const first = rng.pick(FIRST);
   let second = rng.pick(SECOND);
   if (rng.chance(0.15)) return `${second}s of ${rng.pick(SECOND)}`.replace(/ss of/, 's of');
