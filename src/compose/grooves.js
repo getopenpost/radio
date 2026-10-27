@@ -31,6 +31,15 @@ export const GROOVES = {
     { kick: 'x..x......x.....', snare: '....x.......x..x', hat: 'x.x.x.x.x.x.x.x.', perc: '' },
     { kick: 'x.......x.x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.xxx.', perc: '' },
   ],
+  // Cafe chillhop: straight, unhurried eighths, a kick that answers the bass,
+  // a ghost note or rim now and then.
+  chillhop: [
+    { kick: 'x.........x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', perc: '.......x.......x' },
+    { kick: 'x......x..x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.xx', perc: '..x.......x.....' },
+    { kick: 'x.....x...x..x..', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', perc: '' },
+    { kick: 'x..x......x.....', snare: '....x.......x..x', hat: 'x.x.x.x.x.x.x.x.', perc: '......x.......x.' },
+    { kick: 'x.......x.x...x.', snare: '....x.......x...', hat: 'x.xxx.x.x.xxx.x.', perc: '' },
+  ],
   // Synthwave: straight rock and dance beats.
   wave: [
     { kick: 'x.......x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', perc: '' },

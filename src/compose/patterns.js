@@ -25,6 +25,11 @@ export const BASS_RHYTHMS = {
   octPump: [[0, 2, 'R'], [2, 2, 'O'], [4, 2, 'R'], [6, 2, 'O'], [8, 2, 'R'], [10, 2, 'O'], [12, 2, 'R'], [14, 2, 'O']],
   lazy: [[0, 12, 'R'], [12, 4, '7']],
   pedal: [[0, 16, 'T']], // T: the key tonic regardless of chord
+  // Plucked funk and soul lines: short notes with air between them.
+  pocket: [[0, 4, 'R'], [6, 2, 'R'], [10, 4, '5'], [14, 2, 'O']],
+  funk: [[0, 3, 'R'], [3, 1, 'R'], [6, 2, 'O'], [8, 3, '5'], [11, 2, 'R'], [14, 2, 'A']],
+  soul: [[0, 6, 'R'], [7, 1, 'R'], [8, 4, '5'], [12, 2, '3'], [14, 2, 'A']],
+  strut: [[0, 2, 'R'], [3, 2, 'R'], [6, 1, 'O'], [7, 2, 'R'], [10, 3, '5'], [14, 2, 'A']],
 };
 
 /**

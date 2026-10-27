@@ -30,12 +30,13 @@ strudel.cc to hear it in the browser and edit it.
 
 ## Music
 
-Six styles share one sound library and mixing system, so the stream changes
+Seven styles share one sound library and mixing system, so the stream changes
 colour without changing world:
 
 | style   | label         | bpm     | character |
 | ------- | ------------- | ------- | --------- |
 | focus   | deep focus    | 84-98   | bass-led downtempo and future beats: sustained sub, electric piano over soft pads, detail between the pulses |
+| cafe    | cafe          | 76-88   | coffee-shop chillhop: fingerpicked jazz guitar over Rhodes, plucked finger bass, soft lazy drums, dark and clean |
 | garage  | future garage | 128-136 | two-step shuffle, reese bass, vowel pads, crackle |
 | house   | chill house   | 112-122 | soft four on the floor, stabs, rolling bass |
 | lofi    | lofi          | 70-88   | jazzy keys with tape wobble, swung boom-bap, upright bass, vinyl |
@@ -50,7 +51,7 @@ What keeps 8 hours from getting boring:
   arpeggio vocabularies, and several arrangement plans per style. Sections
   swap progressions, bass rhythms and drum grooves so a track moves through
   different bass and harmonic profiles.
-- **Sound** (`src/compose/instruments.js`): 65 presets across sub, bass,
+- **Sound** (`src/compose/instruments.js`): 73 presets across sub, bass,
   pad, keys, lead, arp and texture, plus 42 drum kit pieces from 9 classic
   machines and the CC0 VCSL percussion.
   Each style picks presets by tag or names them outright.
@@ -68,6 +69,12 @@ What keeps 8 hours from getting boring:
   140-260 Hz spectral centroid, a sustained bass floor, no gaps in the
   harmonic bed and wide low mids. The main sections of rendered focus tracks
   measure about 85% below 400 Hz, a 205-225 Hz centroid and a continuous bass.
+  The cafe style was tuned against a coffee-shop chillhop mix: 80-95 bpm,
+  mostly major keys, a 255-346 Hz centroid, almost nothing above 3 kHz and a
+  plucked bass with air between the notes; cafe renders measure 272-330 Hz.
+  Its guitar picks broken chords, because the soundfont guitars struck as
+  block chords read as an electric piano. No style carries a steady noise
+  bed: `analyze` reports the high-frequency floor, which stays below -30 dB.
 - **Listening**: `npm run audition` renders the opening of a few seeds per
   style and scores them with [earshot](https://github.com/Leonxlnx/earshot):
   how well each matches its style's description against "cheap synth demo",

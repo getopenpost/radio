@@ -13,6 +13,7 @@ import { rootDir } from '../paths.js';
 
 export const DESCRIPTIONS = {
   focus: 'deep bass-led downtempo electronic focus music',
+  cafe: 'warm jazzy chillhop with clean electric guitar, rhodes and bass guitar',
   lofi: 'relaxing lofi hip hop beat with warm jazzy keys',
   house: 'deep chill house music',
   garage: 'future garage music with shuffled beats and reese bass',

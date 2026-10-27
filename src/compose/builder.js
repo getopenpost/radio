@@ -30,9 +30,13 @@ export function createBuilder({ rng, levels }) {
     comment: (text) => lines.push(`\n// ${text}`),
     def: (name, code) => lines.push(`const ${name} = ${code}`),
 
-    /** A chord-pattern instrument: `name(c)` voices the chords of `c`. */
-    chords(name, preset, { role = preset.role, anchor = 'a4', struct, extra = '', on = 'harmony', scale = 1 } = {}) {
-      const rhythm = struct ? `.struct("${struct}")` : '';
+    /**
+     * A chord-pattern instrument: `name(c)` voices the chords of `c`, struck
+     * together on the `struct` rhythm, or picked one note at a time when
+     * `pick` gives voicing indices (a guitarist's broken chords).
+     */
+    chords(name, preset, { role = preset.role, anchor = 'a4', struct, pick, extra = '', on = 'harmony', scale = 1 } = {}) {
+      const rhythm = pick ? `.n("${pick}")` : struct ? `.struct("${struct}")` : '';
       b.def(name, `c => c${rhythm}.anchor("${anchor}").voicing()${preset.chain(rng)}${extra}\n  .gain(${gain(role, preset.id, scale)})${bus[on]}`);
     },
 

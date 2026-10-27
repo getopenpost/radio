@@ -25,6 +25,7 @@ export const PRESETS = [
   p('bass.fretless', 'bass', ['acoustic', 'jazzy'], () => '.s("gm_fretless_bass").lpf(900).release(.15)'),
   p('bass.upright', 'bass', ['acoustic', 'jazzy', 'lofi'], () => '.s("gm_acoustic_bass").lpf(1100).release(.1)'),
   p('bass.finger', 'bass', ['acoustic', 'funky'], () => '.s("gm_electric_bass_finger").lpf(1000).release(.1)'),
+  p('bass.pick', 'bass', ['funky', 'cafe'], () => '.s("gm_electric_bass_pick").lpf(800).release(.08)'),
   p('bass.synth2', 'bass', ['synth', 'wave'], () => '.s("gm_synth_bass_2").lpf(800).release(.1)'),
   p('bass.wave8', 'bass', ['synth', 'wave'], (r) => `.s("sawtooth").attack(.002).decay(.12).sustain(.2).release(.06).lpf(${r.int(5, 8) * 100}).lpenv(2).lpdecay(.1)`),
 
@@ -42,6 +43,9 @@ export const PRESETS = [
   p('pad.strings', 'pad', ['acoustic', 'soft'], () => '.s("gm_string_ensemble_1").attack(1).release(2.5).lpf(1600).layer(x => x.pan(.25), x => x.add(note(.06)).pan(.75))'),
   p('pad.synth-strings', 'pad', ['synth', 'wave'], () => '.s("gm_synth_strings_1").attack(.8).release(2.5).lpf(1800).layer(x => x.pan(.1), x => x.add(note(.1)).pan(.9))'),
   p('pad.organ', 'pad', ['jazzy', 'warm'], () => '.s("gm_drawbar_organ").attack(.4).release(1.5).lpf(1400).layer(x => x.pan(.3), x => x.add(note(.05)).pan(.7))'),
+  // Electric pianos held through the bar: the chord rings out and fades like a played Rhodes.
+  p('pad.rhodes', 'pad', ['cafe', 'warm'], () => '.s("gm_epiano1:5").release(1.5).lpf(1800).layer(x => x.pan(.08), x => x.add(note(.12)).late(.005).pan(.92))'),
+  p('pad.wurli', 'pad', ['cafe', 'warm'], () => '.s("gm_epiano2").release(1.2).lpf(1500).layer(x => x.pan(.08), x => x.add(note(.12)).late(.005).pan(.92))'),
 
   // Keys: rhythmic chord comping.
   p('keys.rhodes', 'keys', ['jazzy', 'lofi', 'warm'], (r) => `.s("gm_epiano1:1").phaser(${r.pick(['.25', '.5'])}).phaserdepth(.4).lpf(${r.int(18, 26) * 100})`),
@@ -55,6 +59,10 @@ export const PRESETS = [
   p('keys.organ', 'keys', ['jazzy', 'warm'], () => '.s("gm_drawbar_organ").lpf(1600).release(.2)'),
   p('keys.guitar', 'keys', ['acoustic', 'lofi'], () => '.s("gm_electric_guitar_jazz").lpf(2400)'),
   p('keys.nylon', 'keys', ['acoustic', 'lofi', 'soft'], () => '.s("gm_acoustic_guitar_nylon").lpf(2600)'),
+  // Clean electric guitars for cafe comping, doubled a hair apart and spread wide.
+  p('keys.jazz-guitar', 'keys', ['cafe', 'jazzy'], () => '.s("gm_electric_guitar_jazz").lpf(2200).release(.15).layer(x => x.pan(.12), x => x.add(note(.1)).late(.005).pan(.88))'),
+  p('keys.clean-guitar', 'keys', ['cafe', 'funky'], () => '.s("gm_electric_guitar_clean").lpf(2300).release(.1).layer(x => x.pan(.12), x => x.add(note(.1)).late(.005).pan(.88))'),
+  p('keys.muted-guitar', 'keys', ['cafe', 'funky'], () => '.s("gm_electric_guitar_muted").lpf(2600).layer(x => x.pan(.12), x => x.add(note(.1)).late(.005).pan(.88))'),
   p('keys.stab', 'keys', ['synth', 'house'], (r) => `.s("sawtooth").attack(.005).decay(.22).sustain(0).release(.1).lpf(${r.int(9, 14) * 100}).lpenv(2).lpdecay(.15).layer(x => x.pan(.35), x => x.add(note(.1)).pan(.65))`),
   p('keys.organ-stab', 'keys', ['house', 'warm'], () => '.s("gm_percussive_organ").lpf(2000).release(.1)'),
 
@@ -72,6 +80,9 @@ export const PRESETS = [
   p('lead.square', 'lead', ['synth', 'wave'], () => '.s("square").attack(.02).decay(.3).sustain(.5).release(.4).lpf(1600).vib(5).vibmod(.1)'),
   p('lead.saw', 'lead', ['synth', 'wave'], () => '.s("sawtooth").attack(.03).decay(.3).sustain(.6).release(.5).lpf(1800).vib(5).vibmod(.08).add(note("0,.1"))'),
   p('lead.harmonics', 'lead', ['organic', 'bright'], () => '.s("gm_guitar_harmonics").lpf(3500)'),
+  p('lead.jazz-guitar', 'lead', ['cafe', 'jazzy'], () => '.s("gm_electric_guitar_jazz").lpf(2600).release(.25)'),
+  p('lead.rhodes', 'lead', ['cafe', 'jazzy'], () => '.s("gm_epiano1:1").lpf(2000).release(.4)'),
+  p('lead.muted-trumpet', 'lead', ['cafe', 'soul'], () => '.s("gm_muted_trumpet").lpf(1600).attack(.03).release(.3)'),
 
   // Arps and plucks: 8th/16th figures.
   p('arp.tri', 'arp', ['synth', 'soft'], () => '.s("triangle").decay(.18).sustain(0).lpq(4)'),
@@ -82,6 +93,7 @@ export const PRESETS = [
   p('arp.harp', 'arp', ['organic', 'soft'], () => '.s("harp").lpf(3000)'),
   p('arp.kalimba', 'arp', ['organic'], () => '.s("kalimba").lpf(3200)'),
   p('arp.music-box', 'arp', ['bright', 'soft'], () => '.s("gm_music_box").lpf(3200)'),
+  p('arp.guitar', 'arp', ['cafe'], () => '.s("gm_electric_guitar_clean").lpf(2400).release(.2)'),
 
   // Texture: a little grain under the music, never a steady hiss (listeners
   // hear a noise bed as noise over hours). Not calibrated: sparse crackle has
@@ -99,10 +111,10 @@ export const KITS = {
     { id: 'kick.linn', sound: 'bd', mods: '.bank("LinnDrum").lpf(3000)', tags: ['wave', 'focus'] },
     { id: 'kick.dmx', sound: 'bd', mods: '.bank("OberheimDMX").n(1).lpf(3000)', tags: ['wave'] },
     { id: 'kick.707', sound: 'bd', mods: '.bank("RolandTR707").lpf(3000)', tags: ['wave', 'house'] },
-    { id: 'kick.sp12', sound: 'bd', mods: '.bank("EmuSP12").n(4).lpf(2600)', tags: ['lofi', 'focus'] },
-    { id: 'kick.sp12-b', sound: 'bd', mods: '.bank("EmuSP12").n(9).lpf(2400)', tags: ['lofi'] },
-    { id: 'kick.mpc60', sound: 'bd', mods: '.bank("AkaiMPC60").lpf(2400)', tags: ['lofi'] },
-    { id: 'kick.xr10', sound: 'bd', mods: '.bank("AkaiXR10").n(2).lpf(2600)', tags: ['focus', 'lofi'] },
+    { id: 'kick.sp12', sound: 'bd', mods: '.bank("EmuSP12").n(4).lpf(2600)', tags: ['lofi', 'focus', 'cafe'] },
+    { id: 'kick.sp12-b', sound: 'bd', mods: '.bank("EmuSP12").n(9).lpf(2400)', tags: ['lofi', 'cafe'] },
+    { id: 'kick.mpc60', sound: 'bd', mods: '.bank("AkaiMPC60").lpf(2400)', tags: ['lofi', 'cafe'] },
+    { id: 'kick.xr10', sound: 'bd', mods: '.bank("AkaiXR10").n(2).lpf(2600)', tags: ['focus', 'lofi', 'cafe'] },
   ],
   snare: [
     { id: 'snare.909-clap', sound: 'cp', mods: '.bank("RolandTR909").n(2).hpf(400).lpf(5000)', tags: ['house'] },
@@ -112,21 +124,21 @@ export const KITS = {
     { id: 'snare.dmx', sound: 'sd', mods: '.bank("OberheimDMX").n(1).hpf(200).lpf(5000)', tags: ['wave'] },
     { id: 'snare.707', sound: 'sd', mods: '.bank("RolandTR707").hpf(200).lpf(5000)', tags: ['wave'] },
     { id: 'snare.m1-clap', sound: 'cp', mods: '.bank("KorgM1").hpf(500).lpf(5000)', tags: ['house', 'focus'] },
-    { id: 'snare.sp12', sound: 'sd', mods: '.bank("EmuSP12").n(9).hpf(300).lpf(4000)', tags: ['lofi', 'focus'] },
-    { id: 'snare.sp12-b', sound: 'sd', mods: '.bank("EmuSP12").n(14).hpf(250).lpf(3800)', tags: ['lofi'] },
-    { id: 'snare.mpc60', sound: 'sd', mods: '.bank("AkaiMPC60").n(1).hpf(250).lpf(4200)', tags: ['lofi'] },
-    { id: 'snare.rim', sound: 'snare_rim', mods: '.hpf(300).lpf(5000)', tags: ['lofi', 'focus'] },
+    { id: 'snare.sp12', sound: 'sd', mods: '.bank("EmuSP12").n(9).hpf(300).lpf(4000)', tags: ['lofi', 'focus', 'cafe'] },
+    { id: 'snare.sp12-b', sound: 'sd', mods: '.bank("EmuSP12").n(14).hpf(250).lpf(3800)', tags: ['lofi', 'cafe'] },
+    { id: 'snare.mpc60', sound: 'sd', mods: '.bank("AkaiMPC60").n(1).hpf(250).lpf(4200)', tags: ['lofi', 'cafe'] },
+    { id: 'snare.rim', sound: 'snare_rim', mods: '.hpf(300).lpf(5000)', tags: ['lofi', 'focus', 'cafe'] },
   ],
   hat: [
     { id: 'hat.909', sound: 'hh', mods: '.bank("RolandTR909").n(2)', tags: ['house'] },
     { id: 'hat.808', sound: 'hh', mods: '.bank("RolandTR808")', tags: ['garage', 'focus'] },
     { id: 'hat.linn', sound: 'hh', mods: '.bank("LinnDrum")', tags: ['wave', 'focus'] },
     { id: 'hat.dmx', sound: 'hh', mods: '.bank("OberheimDMX")', tags: ['wave'] },
-    { id: 'hat.sp12', sound: 'hh', mods: '.bank("EmuSP12")', tags: ['lofi'] },
-    { id: 'hat.mpc60', sound: 'hh', mods: '.bank("AkaiMPC60")', tags: ['lofi'] },
+    { id: 'hat.sp12', sound: 'hh', mods: '.bank("EmuSP12")', tags: ['lofi', 'cafe'] },
+    { id: 'hat.mpc60', sound: 'hh', mods: '.bank("AkaiMPC60")', tags: ['lofi', 'cafe'] },
     { id: 'hat.shaker', sound: 'shaker_small', mods: '', tags: ['lofi', 'focus', 'organic'] },
     { id: 'hat.808-shaker', sound: 'sh', mods: '.bank("RolandTR808")', tags: ['focus', 'garage'] },
-    { id: 'hat.xr10', sound: 'hh', mods: '.bank("AkaiXR10")', tags: ['focus', 'lofi'] },
+    { id: 'hat.xr10', sound: 'hh', mods: '.bank("AkaiXR10")', tags: ['focus', 'lofi', 'cafe'] },
   ],
   openhat: [
     { id: 'oh.909', sound: 'oh', mods: '.bank("RolandTR909").n(1)', tags: ['house'] },
@@ -135,11 +147,11 @@ export const KITS = {
   ],
   perc: [
     { id: 'perc.linn-tom', sound: 'lt', mods: '.bank("LinnDrum").lpf(1800)', tags: ['focus', 'wave'] },
-    { id: 'perc.conga', sound: 'conga', mods: '.n(1).lpf(2400)', tags: ['focus', 'house', 'organic'] },
-    { id: 'perc.bongo', sound: 'bongo', mods: '.lpf(3000)', tags: ['house', 'organic', 'lofi'] },
+    { id: 'perc.conga', sound: 'conga', mods: '.n(1).lpf(2400)', tags: ['focus', 'house', 'organic', 'cafe'] },
+    { id: 'perc.bongo', sound: 'bongo', mods: '.lpf(3000)', tags: ['house', 'organic', 'lofi', 'cafe'] },
     { id: 'perc.909-tom', sound: 'lt', mods: '.bank("RolandTR909").n(3).lpf(1800)', tags: ['house'] },
     { id: 'perc.clave', sound: 'clave', mods: '.lpf(4000)', tags: ['house', 'organic'] },
-    { id: 'perc.rim', sound: 'rim', mods: '.bank("RolandTR909").lpf(4000)', tags: ['focus', 'house'] },
+    { id: 'perc.rim', sound: 'rim', mods: '.bank("RolandTR909").lpf(4000)', tags: ['focus', 'house', 'cafe'] },
     { id: 'perc.woodblock', sound: 'woodblock', mods: '.lpf(3500)', tags: ['lofi', 'organic'] },
     { id: 'perc.cabasa', sound: 'cabasa', mods: '.hpf(3000)', tags: ['house', 'organic'] },
   ],

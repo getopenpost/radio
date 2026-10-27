@@ -91,7 +91,10 @@ function compose(config, { rng, key, bpm, progressions }) {
   // Comping varies on the fourth bar of each phrase so loops do not sit still.
   const comps = rng.shuffle(config.comps ?? DEFAULT_COMPS);
   const comp = comps.length > 1 ? `<[${comps[0]}]!3 [${comps[1]}]>` : comps[0];
-  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, extra: `.hpf(200).pan(.42)${feel(0.012, 0.72)}${config.keysExtra ?? ''}${swing}` });
+  // Guitar styles pick broken chords instead; the fourth bar varies the same way.
+  const picks = config.picks ? rng.shuffle(config.picks) : null;
+  const picked = picks ? `<[${picks[0]}]!3 [${picks[1]}]>` : undefined;
+  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, pick: picked, extra: `.hpf(200)${config.keysWide ? '' : '.pan(.42)'}${feel(0.012, 0.72)}${config.keysExtra ?? ''}${swing}` });
 
   b.comment('Melody: a sparse motif and an arpeggio, both through the delay.');
   const [lo, hi] = config.motifRange ?? [64, 81];

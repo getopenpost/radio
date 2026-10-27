@@ -7,16 +7,17 @@ import { keyDistance } from '../compose/theory.js';
 
 // Relative chance of moving from a style (rows) to another (columns).
 export const STYLE_FLOW = {
-  focus: { focus: 6, garage: 2, house: 1.5, lofi: 1.2, ambient: 1, wave: 1 },
+  focus: { focus: 6, garage: 2, cafe: 1.5, house: 1.5, lofi: 1.2, ambient: 1, wave: 1 },
+  cafe: { cafe: 4, lofi: 2, focus: 1.5, ambient: 1, house: 0.6 },
   garage: { garage: 3, focus: 3, ambient: 1, house: 0.8, wave: 0.5 },
-  house: { house: 3, focus: 2.5, garage: 1, wave: 1 },
-  lofi: { lofi: 4, focus: 1.5, ambient: 1.5, wave: 0.5 },
+  house: { house: 3, focus: 2.5, garage: 1, wave: 1, cafe: 0.8 },
+  lofi: { lofi: 4, cafe: 2.5, focus: 1.5, ambient: 1.5, wave: 0.5 },
   wave: { wave: 3, focus: 1.5, house: 1, ambient: 1, lofi: 0.5 },
-  ambient: { ambient: 1, focus: 2, lofi: 1.5, wave: 1, garage: 0.5 },
+  ambient: { ambient: 1, focus: 2, lofi: 1.5, cafe: 1.2, wave: 1, garage: 0.5 },
 };
 
 // Late at night the stream leans calmer.
-const NIGHT = { ambient: 2, lofi: 1.5, focus: 1, wave: 1, garage: 0.8, house: 0.5 };
+const NIGHT = { ambient: 2, lofi: 1.5, cafe: 1.2, focus: 1, wave: 1, garage: 0.8, house: 0.5 };
 
 export function createDirector({ rng, history = [], hourOf = () => new Date().getHours() }) {
   const played = [...history]; // most recent last: { id, style, at }
