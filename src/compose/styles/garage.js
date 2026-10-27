@@ -1,5 +1,5 @@
 // Future garage: shuffled two-step drums, reese bass and a punchy sub, vowel
-// pads that stand in for vocal chops, crackle and heavy reverb.
+// pads that stand in for vocal chops and deep reverb.
 import { enterAfter, fall, leaveAfter, makeStyle, rise } from './common.js';
 
 export const garage = makeStyle({
@@ -20,6 +20,7 @@ export const garage = makeStyle({
     arp: ['synth', 'soft'],
     texture: ['lofi'],
   },
+  texture: false,
   kitTags: ['garage', 'focus'],
   levels: { sub: 1.4, bass: 0.42, kick: 1.05, snare: 0.45, hat: 0.26, openhat: 0.16, perc: 0.3, pad: 0.6, keys: 0.36, lead: 0.36, arp: 0.26, texture: 0.6 },
   groove: 'garage',
@@ -45,17 +46,17 @@ export const garage = makeStyle({
   sections: (name, bars) => {
     switch (name) {
       case 'intro':
-        return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${rise(bars)})`, 'pad2(A)', `sub(subA)${enterAfter(bars / 2, bars)}`];
       case 'A':
-        return ['pad(A)', 'sub(subA)', `bass(lineA)${enterAfter(8, bars)}`, 'drums', 'air'];
+        return ['pad(A)', 'sub(subA)', `bass(lineA)${enterAfter(8, bars)}`, 'drums'];
       case 'B':
-        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(8, bars)}`, 'air'];
+        return ['pad(B)', 'sub(subB)', 'bass(lineB)', 'drumsB', `lead(motifB)${enterAfter(8, bars)}`];
       case 'break':
-        return ['pad(A).lpf(650)', 'pad2(A)', 'sub(subA)', 'lead(motif).postgain(.8)', `hats${enterAfter(bars / 2, bars)}`, 'air'];
+        return ['pad(A).lpf(650)', 'pad2(A)', 'sub(subA)', 'lead(motif).postgain(.8)', `hats${enterAfter(bars / 2, bars)}`];
       case 'C':
-        return ['pad(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)', 'air'];
+        return ['pad(A)', 'sub(subA2)', 'bass(lineA2)', 'drums', 'openhat', 'lead(motif)'];
       case 'outro':
-        return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${fall(bars)})`, 'pad2(A)', `sub(subA)${leaveAfter(bars / 2, bars)}`];
       default:
         throw new Error(`unknown section ${name}`);
     }

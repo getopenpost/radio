@@ -2,6 +2,16 @@
 import { gridMini } from './patterns.js';
 
 export const GROOVES = {
+  // Focus-house and chillstep: a soft pulse with a few displaced answers.
+  // Keep the upper rhythm sparse, rather than filling every sixteenth.
+  focus: [
+    { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.', perc: '.......x......x.' },
+    { kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.', perc: '...x.......x....' },
+    { kick: 'x...x...x.x.x...', snare: '....x.......x...', hat: '..x...x...x...x.', perc: '......x.......x.' },
+    { kick: 'x.........x.....', snare: '....x.......x...', hat: '..x...x.x.....x.', perc: '.......x......x.' },
+    { kick: 'x......x..x.....', snare: '....x.......x...', hat: '..x...x...x...x.', perc: '...x.......x....' },
+    { kick: 'x.....x...x.....', snare: '....x.......x...', hat: '..x...x...x...x.', perc: '......x.......x.' },
+  ],
   // Downtempo and future beats: kick on one, syncopation late in the bar.
   downtempo: [
     { kick: 'x.........x.....', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.', perc: '......x.......x.' },

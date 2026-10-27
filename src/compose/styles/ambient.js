@@ -1,5 +1,5 @@
 // Ambient: beatless rooms of slow chords over a tonic drone, with sparse
-// bells, felt piano and wind. The stream's breathing space between grooves.
+// bells and felt piano. The stream's breathing space between grooves.
 import { enterAfter, fall, leaveAfter, makeStyle, rise } from './common.js';
 
 export const ambient = makeStyle({
@@ -20,6 +20,7 @@ export const ambient = makeStyle({
     arp: ['organic', 'soft'],
     texture: ['ambient'],
   },
+  texture: false,
   kitTags: ['ambient', 'focus'],
   levels: { sub: 1.35, bass: 0.3, kick: 0.6, snare: 0.3, hat: 0.15, openhat: 0.1, perc: 0.25, pad: 0.75, keys: 0.4, lead: 0.28, arp: 0.24, texture: 0.3 },
   // Dark and warm: the calm space between grooves should not be brighter than them.
@@ -43,15 +44,15 @@ export const ambient = makeStyle({
   sections: (name, bars) => {
     switch (name) {
       case 'intro':
-        return [`pad2(A).lpf(${rise(bars, 400, 1600)})`, 'air'];
+        return [`pad2(A).lpf(${rise(bars, 400, 1600)})`];
       case 'A':
-        return ['pad(A)', `pad2(A)${leaveAfter(bars / 2, bars)}`, 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`, 'air'];
+        return ['pad(A)', `pad2(A)${leaveAfter(bars / 2, bars)}`, 'sub(subA).postgain(.7)', `keys(A)${enterAfter(bars / 2, bars)}`];
       case 'B':
-        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)', 'air'];
+        return ['pad(B)', 'pad2(B)', 'sub(subB).postgain(.7)', 'arp(B)'];
       case 'C':
-        return ['pad(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)', 'air'];
+        return ['pad(A)', 'keys(A)', 'sub(subA).postgain(.7)', 'lead(motif)'];
       case 'outro':
-        return [`pad(A).lpf(${fall(bars, 1400, 300)})`, 'pad2(A)', `sub(subA).postgain(.7)${leaveAfter(bars / 2, bars)}`, 'air'];
+        return [`pad(A).lpf(${fall(bars, 1400, 300)})`, 'pad2(A)', `sub(subA).postgain(.7)${leaveAfter(bars / 2, bars)}`];
       default:
         throw new Error(`unknown section ${name}`);
     }

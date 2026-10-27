@@ -13,6 +13,7 @@
   "bass.fretless": 1.16,
   "bass.pick": 1.85,
   "bass.reese": 0.701,
+  "bass.rounded": 0.891,
   "bass.saw-pluck": 1.25,
   "bass.square": 0.883,
   "bass.synth2": 0.9,
@@ -25,6 +26,7 @@
   "hat.linn": 1.29,
   "hat.mpc60": 2.38,
   "hat.shaker": 35.7,
+  "hat.soft": 2.06,
   "hat.sp12": 2.5,
   "hat.xr10": 2.19,
   "keys.clean-guitar": 0.701,
@@ -114,6 +116,6 @@
   "sub.808": 0.558,
   "sub.shaped": 0.401,
   "sub.sine": 0.612,
-  "sub.sine-harm": 0.595,
+  "sub.sine-harm": 0.609,
   "sub.tri": 0.704
 }

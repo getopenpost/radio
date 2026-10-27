@@ -35,7 +35,7 @@ colour without changing world:
 
 | style   | label         | bpm     | character |
 | ------- | ------------- | ------- | --------- |
-| focus   | deep focus    | 84-98   | bass-led downtempo and future beats: sustained sub, electric piano over soft pads, detail between the pulses |
+| focus   | deep focus    | 112-124   | bass-led downtempo and future beats: sustained sub, electric piano over soft pads, detail between the pulses |
 | cafe    | cafe          | 76-88   | coffee-shop chillhop: fingerpicked jazz guitar over Rhodes, plucked finger bass, soft lazy drums, dark and clean |
 | garage  | future garage | 128-136 | two-step shuffle, reese bass, vowel pads, crackle |
 | house   | chill house   | 112-122 | soft four on the floor, stabs, rolling bass |

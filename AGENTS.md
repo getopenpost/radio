@@ -29,6 +29,10 @@ Project-specific rules. The shared global instructions still apply.
   at -42 to -62). Shakers are filtered noise: keep them out of dense
   sixteenth parts. Textures are not calibrated; their style level is the
   absolute gain.
+- Retired drum kits remain available for old saved scores and calibration, but
+  must stay excluded from new automatic selections. Repeated gain and filter
+  setters override earlier values in Strudel. A preset's quiet parallel layer
+  needs an independent relative level because the builder sets role gain.
 - Keep each orbit's reverb settings constant within a track (`builder.js`
   buses). Changing room size per event regenerates the impulse response.
 - Keep sections sparse: at most two harmonic layers (pad, keys, pad2) and one

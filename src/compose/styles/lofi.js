@@ -20,6 +20,7 @@ export const lofi = makeStyle({
     arp: ['organic', 'soft'],
     texture: ['lofi'],
   },
+  texture: false,
   kitTags: ['lofi'],
   levels: { sub: 0.8, bass: 0.8, kick: 1.05, snare: 0.55, hat: 0.24, openhat: 0.15, perc: 0.22, pad: 0.32, keys: 0.72, lead: 0.4, arp: 0.28, texture: 1 },
   groove: 'boombap',
@@ -54,17 +55,17 @@ export const lofi = makeStyle({
   sections: (name, bars, rng) => {
     switch (name) {
       case 'intro':
-        return [`keys(A).lpf(${rise(bars, 600, 2400)})`, 'air'];
+        return [`keys(A).lpf(${rise(bars, 600, 2400)})`];
       case 'A':
-        return ['keys(A)', `bass(lineA)`, 'sub(subA).postgain(.6)', 'drums', 'air'];
+        return ['keys(A)', `bass(lineA)`, 'sub(subA).postgain(.6)', 'drums'];
       case 'B':
-        return ['keys(A)', 'bass(lineA2)', 'sub(subA2).postgain(.6)', 'drums', `lead(motif)${enterAfter(4, bars)}`, 'air'];
+        return ['keys(A)', 'bass(lineA2)', 'sub(subA2).postgain(.6)', 'drums', `lead(motif)${enterAfter(4, bars)}`];
       case 'break':
-        return ['keys(B)', 'pad(B)', 'lead(motifB)', 'sub(subB).postgain(.5)', 'air'];
+        return ['keys(B)', 'pad(B)', 'lead(motifB)', 'sub(subB).postgain(.5)'];
       case 'C':
-        return ['keys(B)', 'bass(lineB)', 'sub(subB).postgain(.6)', 'drumsB', rng.chance(0.5) ? 'arp(B).postgain(.7)' : 'lead(motifB).postgain(.8)', 'air'];
+        return ['keys(B)', 'bass(lineB)', 'sub(subB).postgain(.6)', 'drumsB', rng.chance(0.5) ? 'arp(B).postgain(.7)' : 'lead(motifB).postgain(.8)'];
       case 'outro':
-        return [`keys(A).lpf(${fall(bars, 2400, 600)})`, 'air'];
+        return [`keys(A).lpf(${fall(bars, 2400, 600)})`];
       default:
         throw new Error(`unknown section ${name}`);
     }

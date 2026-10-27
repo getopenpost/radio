@@ -80,13 +80,14 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.def('lineB', `note("${line(chordsB, rh.bassB)}")`);
   b.notes('sub', pick.sub);
   // Spread the bass line a little; the sub stays mono.
-  const bassWidth = pick.bass.chain(rng).includes('.layer(') ? '' : '.layer(x => x.pan(.32), x => x.add(note(.07)).pan(.68))';
+  const bassWidth = pick.bass.chain(rng).includes('.layer(') ? '' : `.layer(x => x.pan(${config.bassPan?.[0] ?? 0.32}), x => x.add(note(.07)).pan(${config.bassPan?.[1] ?? 0.68}))`;
   b.notes('bass', pick.bass, { extra: `.hpf(55)${bassWidth}${feel(0.006, 0.85)}${config.bassExtra ?? ''}` });
 
   b.comment('Harmony.');
   const padTop = rng.pick(config.padAnchors ?? ['g4', 'a4', 'bb4', 'c5']);
   const padSweep = `.lpf(sine.slow(32).range(${rng.int(7, 9) * 100}, ${rng.int(11, 14) * 100}))`;
-  b.chords('pad', pick.pad, { anchor: padTop, extra: `.hpf(${rng.int(22, 30) * 10})${config.padSweep === false ? '' : padSweep}${config.padExtra ?? ''}` });
+  const padHighPass = rng.int(22, 30) * 10;
+  b.chords('pad', pick.pad, { anchor: padTop, extra: `.hpf(${config.padHighPass ?? padHighPass})${config.padSweep === false ? '' : padSweep}${config.padExtra ?? ''}` });
   b.chords('pad2', pick.pad2, { anchor: 'e4', extra: '.hpf(260).pan(sine.slow(16).range(.3, .7))', scale: config.pad2Scale ?? 0.6 });
   // Comping varies on the fourth bar of each phrase so loops do not sit still.
   const comps = rng.shuffle(config.comps ?? DEFAULT_COMPS);
@@ -104,7 +105,7 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.notes('lead', pick.lead, { extra: `.pan(perlin.slow(4).range(.3, .7))${feel(0.01, 0.7)}${config.leadExtra ?? ''}` });
   b.arp('arp', pick.arp, {
     shape: rng.pick(config.arps ?? DEFAULT_ARPS),
-    anchor: rng.pick(['c5', 'd5', 'e5']),
+    anchor: rng.pick(config.arpAnchors ?? ['c5', 'd5', 'e5']),
     extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8))${feel(0.005, 0.6)}${config.arpExtra ?? ''}`,
   });
 
@@ -115,9 +116,9 @@ function compose(config, { rng, key, bpm, progressions }) {
   b.drum('kickB', kits.kick, grooveB.kick, { role: 'kick', extra: kickDuck + drumExtra, humanize: 0 });
   b.drum('snare', kits.snare, grooveA.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
   b.drum('snareB', kits.snare, grooveB.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
-  const flourish = '.lastOf(4, x => x.ply("1 1 1 2"))'; // a small roll closing each 4-bar phrase
-  b.drum('hats', kits.hat, grooveA.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}` });
-  b.drum('hatsB', kits.hat, grooveB.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}` });
+  const flourish = config.hatFlourish === false ? '' : '.lastOf(4, x => x.ply("1 1 1 2"))'; // a small roll closing each 4-bar phrase
+  b.drum('hats', kits.hat, grooveA.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}${config.hatExtra ?? ''}` });
+  b.drum('hatsB', kits.hat, grooveB.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}${config.hatExtra ?? ''}` });
   b.drum('openhat', kits.openhat, config.openhat ?? '[~ x]*4', { role: 'openhat', extra: `.hpf(5000).decay(.12).pan(.66)${drumExtra}`, scale: 0.8 });
   b.drum('perc', kits.perc, grooveA.perc ?? '~', { role: 'perc', extra: `.pan(.38)${swing}${drumExtra}` });
   b.drum('fill', kits.perc, '[~ ~ ~ [x x x x]]', { role: 'perc', extra: `.pan(sine.range(.3, .7)).mask("<0!7 1>")${drumExtra}`, scale: 0.8 });

@@ -12,7 +12,7 @@ const p = (id, role, tags, chain, extra = {}) => ({ id, role, tags, chain, ...ex
 export const PRESETS = [
   // Sub: mono foundation below ~80 Hz.
   p('sub.sine', 'sub', ['clean'], () => '.s("sine").attack(.02).decay(.3).sustain(.95).release(.25)'),
-  p('sub.sine-harm', 'sub', ['warm'], () => '.s("sine").attack(.02).decay(.3).sustain(.95).release(.25).superimpose(x => x.add(note(12)).s("triangle").lpf(320).gain(.22))'),
+  p('sub.sine-harm', 'sub', ['warm'], () => '.s("sine").attack(.02).decay(.3).sustain(.95).release(.25).superimpose(x => x.add(note(12)).s("triangle").lpf(320).velocity(.12))'),
   p('sub.tri', 'sub', ['warm'], () => '.s("triangle").lpf(160).attack(.02).decay(.3).sustain(.95).release(.2)'),
   p('sub.shaped', 'sub', ['warm', 'gritty'], () => '.s("sine").attack(.015).decay(.3).sustain(.9).release(.2).shape(.3)'),
   p('sub.808', 'sub', ['punchy'], () => '.s("sine").attack(.005).decay(.6).sustain(.7).release(.3).penv(7).pdecay(.06).shape(.2)'),
@@ -28,6 +28,9 @@ export const PRESETS = [
   p('bass.pick', 'bass', ['funky', 'cafe'], () => '.s("gm_electric_bass_pick").lpf(800).release(.08)'),
   p('bass.synth2', 'bass', ['synth', 'wave'], () => '.s("gm_synth_bass_2").lpf(800).release(.1)'),
   p('bass.wave8', 'bass', ['synth', 'wave'], (r) => `.s("sawtooth").attack(.002).decay(.12).sustain(.2).release(.06).lpf(${r.int(5, 8) * 100}).lpenv(2).lpdecay(.1)`),
+
+  // Rounded focus bass: no resonant sweep or sharp saw buzz.
+  p('bass.rounded', 'bass', ['focus'], () => '.s("triangle").attack(.025).decay(.4).sustain(.7).release(.24).lpf(420).layer(x => x.pan(.1), x => x.add(note(.08)).pan(.9))'),
 
   // Pads: sustained harmony, wide, slow.
   p('pad.saw-stack', 'pad', ['synth', 'dark', 'wide'], (r) => `.s("sawtooth").attack(1.2).decay(1).sustain(.8).release(3).lpf(${r.int(7, 11) * 100}).lpq(1).layer(x => x.pan(.1), x => x.add(note(.12)).pan(.9))`),
@@ -136,8 +139,9 @@ export const KITS = {
     { id: 'hat.dmx', sound: 'hh', mods: '.bank("OberheimDMX")', tags: ['wave'] },
     { id: 'hat.sp12', sound: 'hh', mods: '.bank("EmuSP12")', tags: ['lofi', 'cafe'] },
     { id: 'hat.mpc60', sound: 'hh', mods: '.bank("AkaiMPC60")', tags: ['lofi', 'cafe'] },
-    { id: 'hat.shaker', sound: 'shaker_small', mods: '', tags: ['focus', 'organic'] },
-    { id: 'hat.808-shaker', sound: 'sh', mods: '.bank("RolandTR808")', tags: ['focus', 'garage'] },
+    { retired: true, id: 'hat.shaker', sound: 'shaker_small', mods: '', tags: ['focus', 'organic'] },
+    { retired: true, id: 'hat.808-shaker', sound: 'sh', mods: '.bank("RolandTR808")', tags: ['focus', 'garage'] },
+    { id: 'hat.soft', sound: 'hh', mods: '.bank("LinnDrum").decay(.035).sustain(0).release(.015).lpf(8000)', tags: ['focus', 'garage', 'organic'] },
     { id: 'hat.xr10', sound: 'hh', mods: '.bank("AkaiXR10")', tags: ['focus', 'lofi', 'cafe'] },
   ],
   openhat: [
@@ -153,7 +157,7 @@ export const KITS = {
     { id: 'perc.clave', sound: 'clave', mods: '.lpf(4000)', tags: ['house', 'organic'] },
     { id: 'perc.rim', sound: 'rim', mods: '.bank("RolandTR909").lpf(4000)', tags: ['focus', 'house', 'cafe'] },
     { id: 'perc.woodblock', sound: 'woodblock', mods: '.lpf(3500)', tags: ['lofi', 'organic'] },
-    { id: 'perc.cabasa', sound: 'cabasa', mods: '.hpf(3000)', tags: ['house', 'organic'] },
+    { retired: true, id: 'perc.cabasa', sound: 'cabasa', mods: '.hpf(3000)', tags: ['house', 'organic'] },
   ],
 };
 
@@ -171,7 +175,7 @@ export function pickPreset(rng, role, tags = [], exclude = []) {
 }
 
 export function pickKit(rng, part, tags = []) {
-  return pickTagged(rng, KITS[part], tags);
+  return pickTagged(rng, KITS[part].filter(kit => !kit.retired), tags);
 }
 
 // Only items sharing a tag with the style are eligible (if any do); more
