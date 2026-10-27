@@ -1,63 +1,68 @@
 // Printed leaves curl across the binding; the reading guide follows the words,
-// occasionally returning to an earlier sentence before continuing. The pages
-// hold a real book, opened at a page picked from the stream's seed.
+// occasionally returning to an earlier sentence before continuing. The leaves
+// hold public-domain books, opened at a page picked from the stream's seed.
 import { createCanvas } from './canvas.js';
 import { clamp01, smooth } from './dither.js';
 import { hashString } from '../../compose/rng.js';
 import { S } from './palette.js';
 import { MOTION } from './motion.js';
 import { LINE, measure, text, wrap } from './text.js';
-import { BOOK } from './content/book.js';
+import { BOOKS } from './content/book.js';
 
 const leaf = createCanvas();
 const PERIOD = 20;
 const TURN = MOTION.page;
 const paginated = new Map();
 
-/** Split the book into pages of `rows` lines, each chapter opening a page. */
+/** The whole shelf, paginated: each page carries the book it came from. */
 function paginate(width, rows) {
   const key = `${width}:${rows}`;
   if (paginated.has(key)) return paginated.get(key);
   const pages = [];
   let lines = [];
+  let book = BOOKS[0];
   const flush = () => {
     while (lines.length && !lines[lines.length - 1].text) lines.pop();
-    if (lines.length) pages.push(lines);
+    if (lines.length) pages.push({ title: book.title, author: book.author, lines });
     lines = [];
   };
   const put = (line) => {
     lines.push(line);
     if (lines.length >= rows) flush();
   };
-  for (const chapter of BOOK.chapters) {
-    put({ text: '', head: false });
-    put({ text: chapter.title, head: true });
-    put({ text: '', head: false });
-    for (const para of chapter.paragraphs) {
-      for (const row of wrap(para, width, true)) put({ text: row, head: false });
+  for (const b of BOOKS) {
+    book = b;
+    for (const chapter of b.chapters) {
       put({ text: '', head: false });
+      put({ text: chapter.title, head: true });
+      put({ text: '', head: false });
+      for (const para of chapter.paragraphs) {
+        for (const row of wrap(para, width, true)) put({ text: row, head: false });
+        put({ text: '', head: false });
+      }
     }
+    flush();
   }
-  flush();
   paginated.set(key, pages);
   return pages;
 }
 
 /**
  * One printed page. `read` is the guide position in lines on this page
- * (negative when the page has not been reached yet).
+ * (negative when the page has not been reached yet). Lines already read fade
+ * back so the current line and the guide carry the eye.
  */
 function page(c, x, y, w, h, sheet, number, read) {
-  c.rect(x, y, w, h, S.paper);
-  text(c, x + 8, y + 4, BOOK.title, S.metalDark, { tiny: true, clip: w - 30 });
-  c.rect(x + 8, y + 10, w - 16, 1, S.cloudShade);
-  c.rect(x + 8, y + 11, Math.round((w - 16) * 0.22), 1, S.metalDark);
+  c.rect(x, y, w, h, S.page);
+  text(c, x + 8, y + 4, sheet.title, S.pageFade, { tiny: true, clip: w - 16 });
+  c.rect(x + 8, y + 10, w - 16, 1, S.pageFade);
+  c.rect(x + 8, y + 11, Math.round((w - 16) * 0.22), 1, S.pageFade);
   let ly = y + 14;
-  for (let i = 0; i < sheet.length; i++) {
-    const line = sheet[i];
+  for (let i = 0; i < sheet.lines.length; i++) {
+    const line = sheet.lines[i];
     if (line.text) {
-      const seen = i <= Math.floor(read);
-      const color = line.head || seen ? S.ink : S.outline;
+      const seen = i < Math.floor(read);
+      const color = line.head || !seen ? S.ink : S.pageFade;
       text(c, x + 8, ly, line.text, color, { tiny: true, clip: w - 16 });
     }
     if (i === Math.floor(read) && read >= 0) {
@@ -68,7 +73,8 @@ function page(c, x, y, w, h, sheet, number, read) {
     ly += LINE.tiny;
   }
   const folio = String(number);
-  text(c, x + Math.round(w / 2 - measure(folio, true) / 2), y + h - 7, folio, S.metalDark, { tiny: true });
+  text(c, x + Math.round(w / 2 - measure(folio, true) / 2), y + h - 7, folio, S.pageFade, { tiny: true });
+  text(c, x + 8, y + h - 7, sheet.author, S.pageFade, { tiny: true, clip: w / 2 - 12 });
 }
 
 export function book(c, { x, y, w, h }, t, seed) {
@@ -76,12 +82,12 @@ export function book(c, { x, y, w, h }, t, seed) {
   const ph = h - 8;
   const rows = Math.floor((ph - 26) / LINE.tiny);
   const pages = paginate(pw - 15, rows);
-  // Open on a full spread, not on the last leaf of a chapter or the book.
+  // Open on a full spread, not on a chapter break or the end of the shelf.
   const full = [];
   for (let i = 0; i < pages.length; i++) {
-    const here = pages[i].filter((line) => line.text).length / rows;
-    const nextPage = pages[(i + 1) % pages.length].filter((line) => line.text).length / rows;
-    if (here > 0.75 && nextPage > 0.75) full.push(i);
+    const here = pages[i].lines.filter((line) => line.text).length / rows;
+    const next = pages[(i + 1) % pages.length].lines.filter((line) => line.text).length / rows;
+    if (here > 0.75 && next > 0.75) full.push(i);
   }
   const hash = hashString(`book:${seed}`);
   const start = full.length ? full[hash % full.length] : hash % pages.length;

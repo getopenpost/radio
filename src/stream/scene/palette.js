@@ -19,6 +19,7 @@ const NAMES = [
   'fire0', 'fire1', 'fire2', 'glow0', 'glow1', 'smoke', 'lampLight',
   'rain', 'snow', 'leafFall', 'light', 'banner', 'pill', 'hat', 'straw',
   'knit', 'knitDark', 'raincoat', 'raincoatDark', 'wallShade', 'roofShade', 'door', 'metal', 'metalDark', 'brass', 'interior', 'interiorShade', 'floor', 'roofSnow',
+  'page', 'pageFade',
   'uiBack', 'uiPaper', 'uiChrome', 'uiBorder', 'uiInk', 'uiMuted', 'uiAccent', 'uiCode', 'uiRail', 'uiToken', 'uiTeal', 'uiGold', 'uiSelected', 'uiImage', 'uiImageDark',
 ];
 export const S = Object.fromEntries(NAMES.map((n, i) => [n, i]));
@@ -65,6 +66,7 @@ const DAY = table({
   fire0: '#e0702a', fire1: '#f2a548', fire2: '#fbe3a0', glow0: '#d3cab9', glow1: '#d3cab9', smoke: '#b5ac9e', lampLight: '#efe9de',
   rain: '#a19788', snow: '#ffffff', leafFall: '#b45309', light: '#ffffff', banner: '#fbf9f4', pill: '#1c1917',
   hat: '#4a433d', straw: '#c9a25a',
+  page: '#fbf7ec', pageFade: '#bcae98',
   knit: 'oklch(0.52 0.07 200)', knitDark: 'oklch(0.42 0.06 200)', raincoat: 'oklch(0.84 0.14 92)', raincoatDark: 'oklch(0.7 0.13 85)',
   wallShade: '#d6cfc3', roofShade: 'oklch(0.36 0.09 40)', door: '#6b5242', metal: '#8f8a84', metalDark: '#5f5a55', brass: 'oklch(0.7 0.1 80)',
   interior: '#e2d9ca', interiorShade: '#cfc4b3', floor: '#a88f74', roofSnow: '#7c3a07',
@@ -84,6 +86,7 @@ const NIGHT = table({
   fire0: '#fd7d3a', fire1: '#ffb35c', fire2: '#fff0c4', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#3a332e', lampLight: '#ffd9a0',
   rain: '#4a433d', snow: '#d8d1c7', leafFall: '#4a2f1f', light: '#fff6e5', banner: '#c9c1b6', pill: '#0c0a09',
   hat: '#4a443f', straw: '#8a6f40',
+  page: '#8f7a5f', pageFade: '#6f5c47',
   knit: 'oklch(0.38 0.05 200)', knitDark: 'oklch(0.3 0.04 200)', raincoat: 'oklch(0.62 0.1 90)', raincoatDark: 'oklch(0.5 0.09 85)',
   wallShade: '#120f0d', roofShade: '#0b0908', door: '#2a201b', metal: '#4f4a45', metalDark: '#34302c', brass: 'oklch(0.5 0.07 80)',
   interior: '#4a3a2c', interiorShade: '#3a2d22', floor: '#33261c', roofSnow: '#0e0c0a',

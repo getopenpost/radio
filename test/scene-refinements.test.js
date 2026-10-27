@@ -14,7 +14,7 @@ test('a turning book leaf carries printed text instead of blanking the left page
     for (let y = box.y + 10; y < box.y + box.h - 18; y++) {
       let ink = 0;
       for (let x = box.x + 10; x < box.x + box.w / 2 - 8; x++) {
-        if ([S.ink, S.outline, S.cloudShade].includes(canvas.get(x, y))) ink++;
+        if ([S.ink, S.outline, S.cloudShade, S.pageFade].includes(canvas.get(x, y))) ink++;
       }
       if (ink >= 8) printedRows++;
     }
