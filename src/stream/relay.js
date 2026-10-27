@@ -8,8 +8,9 @@ import {
   rename,
   readdir,
   rm,
+  open,
 } from "node:fs/promises";
-import { createReadStream, createWriteStream } from "node:fs";
+import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 const run = promisify(execFile);
@@ -248,16 +249,7 @@ while (!stopping) {
   ff = spawn("ffmpeg", args, { stdio: ["pipe", "ignore", "pipe", "pipe"] });
   const sender = ff;
   sender.stdin.on("error", () => {}); // EPIPE is handled by the process exit.
-  const drain = () =>
-    new Promise((resolve) => {
-      const finish = () => {
-        sender.stdin.off("drain", finish);
-        sender.stdin.off("close", finish);
-        resolve();
-      };
-      sender.stdin.once("drain", finish);
-      sender.stdin.once("close", finish);
-    });
+  const packetBuffer = Buffer.allocUnsafe(128 * 1024);
   const feed = (async () => {
     let i = initial;
     while (alive && !stopping) {
@@ -268,9 +260,26 @@ while (!stopping) {
         await pause(5000);
         continue;
       }
-      for await (const bytes of createReadStream(join(folder, fileName(i)))) {
-        if (!alive || stopping || sender.stdin.destroyed) return;
-        if (!sender.stdin.write(bytes)) await drain();
+      const file = await open(join(folder, fileName(i)), "r");
+      try {
+        while (alive && !stopping && !sender.stdin.destroyed) {
+          const { bytesRead } = await file.read(
+            packetBuffer,
+            0,
+            packetBuffer.length,
+            null,
+          );
+          if (!bytesRead) break;
+          // Reuse the storage only after the pipe has consumed it. Allocating
+          // a fresh Buffer for every read grows the long-running V8 heap.
+          await new Promise((resolve, reject) =>
+            sender.stdin.write(packetBuffer.subarray(0, bytesRead), (error) =>
+              error ? reject(error) : resolve(),
+            ),
+          );
+        }
+      } finally {
+        await file.close();
       }
       i = (i + 1) % m.count;
     }
