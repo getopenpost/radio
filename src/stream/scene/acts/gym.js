@@ -12,7 +12,7 @@ import { BOTTLE, bench, lerp, seg, smooth } from './common.js';
 import { dressFor, visitor } from './visitor.js';
 
 const BAR = { from: 2, to: 34, y: 54 }; // pull-up bar: span and height above the ground
-const LOW = { from: 40, to: 58, y: 40 }; // the friend's lower bar
+const LOW = { from: 34, to: 64, y: 40 }; // the friend's lower bar, joined to the tall post
 const DIP = { from: 70, to: 92, y: 20 };
 const PUSH = 120; // where the fox stands to drop into push-ups
 const PARALLETTE = { x: 160, h: 8 };
