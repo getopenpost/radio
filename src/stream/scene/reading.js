@@ -74,7 +74,7 @@ function page(c, x, y, w, h, sheet, number, read) {
 export function book(c, { x, y, w, h }, t, seed) {
   const pw = Math.floor(w / 2 - 5);
   const ph = h - 8;
-  const rows = Math.floor((ph - 20) / LINE.tiny);
+  const rows = Math.floor((ph - 26) / LINE.tiny);
   const pages = paginate(pw - 15, rows);
   // Open on a full spread, not on the last leaf of a chapter or the book.
   const full = [];
