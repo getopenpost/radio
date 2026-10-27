@@ -223,7 +223,7 @@ The service and encrypted credentials are owned by
 `/opt/openpost-radio/app`, set `RGO_MUSIC_REVISION` in the module, and apply
 with the configuration repository's rebuild wizard (`rebuild --vps`). Never
 put stream keys in source, command arguments, or logs. The unit has a
-192 MiB memory limit and a 50% CPU quota. `status.json` in
+128 MiB memory limit and a 50% CPU quota. `status.json` in
 `/var/lib/openpost-radio` records output bytes, playback time and format;
 measure actual cgroup CPU and memory separately from these limits.
 

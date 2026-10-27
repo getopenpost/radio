@@ -105,6 +105,12 @@ while (!stopping) {
       ),
     ]);
   const inflight = new Map();
+  const available = new Set(
+    (await readdir(folder)).flatMap((name) => {
+      const match = /^chunk-(\d{5})\.ts\.ready$/.exec(name);
+      return match ? [Number(match[1])] : [];
+    }),
+  );
   async function download(i) {
     if (inflight.has(i)) return inflight.get(i);
     const job = (async () => {
@@ -138,6 +144,7 @@ while (!stopping) {
         ]);
         await rename(file + ".partial", file);
         await writeFile(file + ".ready", "ready");
+        available.add(i);
       } catch (e) {
         child.kill();
         await rm(file + ".partial", { force: true });
@@ -152,18 +159,26 @@ while (!stopping) {
     }
   }
   async function fill(i) {
-    const keep = wanted(i),
-      queue = [...keep];
+    const keep = wanted(i);
+    // Prune before downloading, including after a restart far ahead in the
+    // programme. Otherwise old and new complete windows double disk usage.
+    for (const f of await readdir(folder)) {
+      const match = /^chunk-(\d{5})\.ts(?:\.ready|\.partial)?$/.exec(f);
+      if (
+        match &&
+        !keep.has(Number(match[1])) &&
+        !inflight.has(Number(match[1]))
+      ) {
+        await rm(join(folder, f), { force: true });
+        available.delete(Number(match[1]));
+      }
+    }
+    const queue = [...keep];
     await Promise.all(
       Array.from({ length: 2 }, async () => {
         while (queue.length) await download(queue.shift());
       }),
     );
-    for (const f of await readdir(folder)) {
-      const match = /^chunk-(\d{5})\.ts(?:\.ready)?$/.exec(f);
-      if (match && !keep.has(Number(match[1])))
-        await rm(join(folder, f), { force: true });
-    }
     for (const d of await readdir(cache, { withFileTypes: true }))
       if (d.isDirectory() && d.name !== m.id && /^p-[a-z0-9-]+$/.test(d.name))
         await rm(join(cache, d.name), { recursive: true, force: true });
@@ -299,6 +314,11 @@ while (!stopping) {
           refill = null;
         });
     }
+    let ahead = 0;
+    for (let n = 1; n <= Math.min(10, m.count - 1); n++) {
+      if (!available.has((i + n) % m.count)) break;
+      ahead++;
+    }
     const status = {
       at: Date.now(),
       revision: process.env.RGO_MUSIC_REVISION,
@@ -307,8 +327,8 @@ while (!stopping) {
       width: m.width,
       height: m.height,
       programme: m.id,
-      bufferChunks: Math.min(10, m.count - 1),
-      bufferSeconds: Math.min(10, m.count - 1) * m.chunkSeconds,
+      bufferChunks: ahead,
+      bufferSeconds: ahead * m.chunkSeconds,
       encoderAlive: alive,
       encoded: { ...stats },
     };
