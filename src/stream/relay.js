@@ -9,7 +9,7 @@ import {
   readdir,
   rm,
 } from "node:fs/promises";
-import { createWriteStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 const run = promisify(execFile);
@@ -99,7 +99,6 @@ while (!stopping) {
   await mkdir(folder, { recursive: true });
   const wanted = (i) =>
     new Set([
-      0,
       ...Array.from(
         { length: Math.min(11, m.count) },
         (_, n) => (i + n) % m.count,
@@ -176,16 +175,6 @@ while (!stopping) {
     await pause(10000);
     continue;
   }
-  const list = [
-    "ffconcat version 1.0",
-    ...Array.from(
-      { length: m.count },
-      (_, i) =>
-        `file '${join(folder, fileName(i))}'\nduration ${m.chunkSeconds}`,
-    ),
-  ].join("\n");
-  const listPath = join(state, "broadcast.ffconcat");
-  await writeFile(listPath, list);
   let offset =
     ((((Date.now() - m.anchor) / 1000) % m.seconds) + m.seconds) % m.seconds;
   let initial = Math.floor(offset / m.chunkSeconds),
@@ -197,6 +186,10 @@ while (!stopping) {
       ((((Date.now() - m.anchor) / 1000) % m.seconds) + m.seconds) % m.seconds;
     initial = Math.floor(offset / m.chunkSeconds);
   }
+  // Align startup to a two-second keyframe. Feed continuous TS packets instead
+  // of seeking a looping concat input, whose first partial loop resets DTS.
+  offset = Math.floor(offset / 2) * 2;
+  const localOffset = offset % m.chunkSeconds;
   const stats = { seconds: 0, bytes: 0 };
   let pending = "",
     errors = "",
@@ -213,16 +206,18 @@ while (!stopping) {
     "-stats_period",
     "5",
     "-re",
-    "-stream_loop",
-    "-1",
     "-ss",
-    String(offset),
+    String(localOffset),
+    "-threads",
+    "1",
+    "-probesize",
+    "524288",
+    "-analyzeduration",
+    "1000000",
     "-f",
-    "concat",
-    "-safe",
-    "0",
+    "mpegts",
     "-i",
-    listPath,
+    "pipe:0",
     "-map",
     "0:v:0",
     "-map",
@@ -235,7 +230,39 @@ while (!stopping) {
     "no_duration_filesize",
     output,
   ];
-  ff = spawn("ffmpeg", args, { stdio: ["ignore", "ignore", "pipe", "pipe"] });
+  ff = spawn("ffmpeg", args, { stdio: ["pipe", "ignore", "pipe", "pipe"] });
+  const sender = ff;
+  sender.stdin.on("error", () => {}); // EPIPE is handled by the process exit.
+  const drain = () =>
+    new Promise((resolve) => {
+      const finish = () => {
+        sender.stdin.off("drain", finish);
+        sender.stdin.off("close", finish);
+        resolve();
+      };
+      sender.stdin.once("drain", finish);
+      sender.stdin.once("close", finish);
+    });
+  const feed = (async () => {
+    let i = initial;
+    while (alive && !stopping) {
+      try {
+        await download(i);
+      } catch (error) {
+        console.error(`buffer read: ${error.message}`);
+        await pause(5000);
+        continue;
+      }
+      for await (const bytes of createReadStream(join(folder, fileName(i)))) {
+        if (!alive || stopping || sender.stdin.destroyed) return;
+        if (!sender.stdin.write(bytes)) await drain();
+      }
+      i = (i + 1) % m.count;
+    }
+  })().catch((error) => {
+    if (alive && !stopping) console.error(`packet source: ${error.message}`);
+    sender.kill("SIGTERM");
+  });
   ff.stdio[3].on("data", (b) => {
     pending += b;
     const lines = pending.split("\n");
@@ -306,6 +333,7 @@ while (!stopping) {
     });
   });
   clearInterval(timer);
+  await feed;
   if (refill) await refill;
   if (!stopping) await pause(5000);
 }

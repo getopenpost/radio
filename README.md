@@ -210,9 +210,8 @@ short dither at the loop boundary. Fresh compositions and seasonal changes
 require preparing and publishing another programme, then restarting the relay.
 The live sender does not generate new music or weather indefinitely.
 
-The VPS keeps the current chunk, ten ahead, and chunk zero for FFmpeg's
-concat header probe, at most twelve chunks. That gives about 40 minutes of
-NAS-outage headroom after the buffer fills, using roughly 1.2 GB of bounded
+The VPS keeps the current chunk and ten ahead, at most eleven chunks. That gives about 40 minutes of
+NAS-outage headroom after the buffer fills, using roughly 1.1 GB of bounded
 cache instead of the entire library. A dedicated restricted SSH key can
 read only radio assets, with a pinned NAS host key. Only two downloads run
 at once. Startup waits until the lookahead has been published. A reconnect
