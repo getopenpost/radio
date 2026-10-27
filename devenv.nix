@@ -15,8 +15,11 @@
   };
 
   packages = [
+    pkgs.coreutils
     pkgs.ffmpeg
+    pkgs.openssh
     pkgs.rclone
+    pkgs.rsync
   ];
 
   # node-web-audio-api ships a prebuilt glibc binary that links libasound and libgcc_s.

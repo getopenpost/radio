@@ -202,7 +202,11 @@ node src/cli/program.js --hours 8 --fps 30
 ```
 
 This publishes closed four-minute MPEG-TS chunks and an atomic manifest to
-`/volume1/homes/kraktoos/openpost-radio-music/programmes/` on the NAS. The
+`/volume1/homes/kraktoos/openpost-radio-music/programmes/` on the NAS.
+Two FIFO readers stream video directly into temporary NAS files. Each file
+is renamed after its upload closes. The local work directory holds only
+small metadata files and pipes, so preparation needs little local disk space.
+Set `RGO_MUSIC_REVISION` to record the source revision in the manifest. The
 initial programme is 1280x720 at 30fps, 3 Mbps H.264 plus 160 kbps AAC, with
 two-second keyframes. Its music crossfades and visualizer are baked into the
 video. The eight-hour programme repeats, with a 12-second audio fade and a
