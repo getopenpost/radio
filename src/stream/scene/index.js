@@ -44,7 +44,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   const canvas = createCanvas();
   const rgb = Buffer.alloc(WIDTH * HEIGHT * 3);
   const palette = new Uint8Array(SLOTS * 3);
-  const sky = createSky(seed);
+  const sky = createSky(seed, timeZone);
   const chars = createCharacters();
   const weatherFx = createWeather(seed + 1);
   const visualizer = createVisualizer(seed);

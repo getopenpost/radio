@@ -7,23 +7,18 @@ import { WIDTH } from './canvas.js';
 import { band, bayer, clamp01, smooth } from './dither.js';
 import { textMask } from './font.js';
 import { CLEAR, S } from './palette.js';
+import { pickPhrase } from './phrases.js';
 
 export const SKY_HEIGHT = 300;
 export const HORIZON = 214;
-
-export const QUOTES = [
-  'KEEP GOING', 'ONE THING AT A TIME', 'YOU GOT THIS', 'SMALL STEPS DAILY', 'STAY CURIOUS', 'DEEP WORK MODE',
-  'DONE IS BETTER THAN PERFECT', 'DRINK SOME WATER', 'STRETCH YOUR LEGS', 'TAKE A DEEP BREATH', 'SHIP IT',
-  'PROGRESS, NOT PERFECTION', 'BUILD SOMETHING GOOD', 'FOCUS ON THE NEXT STEP', 'ALMOST THERE', 'BE KIND TO YOURSELF',
-  'THE WORK IS THE REWARD', 'KEEP IT SIMPLE', 'POST IT, THEN POLISH IT', 'ONE MORE PAGE',
-];
 
 /** Sun or moon screen position for a progress along its arc (0 rising right, 1 setting left). */
 export function arc(progress, height = 150) {
   return { x: Math.round(WIDTH - 40 - progress * (WIDTH - 80)), y: Math.round(HORIZON - Math.sin(Math.PI * progress) * height) };
 }
 
-export function createSky(seed = 1) {
+export function createSky(seed = 1, timeZone = 'Europe/Lisbon') {
+  let now = new Date(0); // the frame's date, for banners that know what day it is
   const rng = createRng(seed);
   const cache = new Uint8Array(WIDTH * SKY_HEIGHT);
   let cacheKey = '';
@@ -181,7 +176,7 @@ export function createSky(seed = 1) {
   function startEvent(e) {
     const r = createRng(hashString(`sky:${e.seed}`));
     if (e.kind === 'plane') {
-      const text = r.pick(QUOTES);
+      const text = pickPhrase(r, now, timeZone);
       const mask = textMask(text);
       return { ...e, x: WIDTH + 20, y: r.int(40, 90), speed: 34, mask, banner: mask[0].length + 18, dir: -1 };
     }
@@ -195,6 +190,7 @@ export function createSky(seed = 1) {
   }
 
   function drawEvents(canvas, { time, dt, date, light }) {
+    now = date;
     if (!event || event.done) {
       const next = skyEventAt(date);
       if (next && (!event || event.seed !== next.seed) && date.getTime() >= next.start && date.getTime() < next.start + 60000) {
