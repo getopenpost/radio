@@ -9,7 +9,7 @@ import { CLEAR, S } from './palette.js';
 
 const windowCanvas = createCanvas();
 
-function icon(c, x, y, app, color) {
+function icon(c, x, y, app, color, bg = S.uiInk) {
   if (app === 'code') {
     c.line(x + 2, y + 1, x, y + 3, color);
     c.line(x, y + 3, x + 2, y + 5, color);
@@ -17,18 +17,18 @@ function icon(c, x, y, app, color) {
     c.line(x + 7, y + 3, x + 5, y + 5, color);
   } else if (app === 'web' || app === 'globe') {
     c.disc(x + 3, y + 3, 3, color);
-    c.disc(x + 3, y + 3, 2, S.uiInk);
+    c.disc(x + 3, y + 3, 2, bg);
     c.line(x + 1, y + 3, x + 5, y + 3, color);
     c.line(x + 3, y + 1, x + 3, y + 5, color);
     if (app === 'web') c.rect(x + 1, y + 1, 2, 2, S.uiAccent);
   } else if (app === 'mail') {
     c.rect(x, y + 1, 8, 5, color);
-    c.line(x, y + 1, x + 3, y + 4, S.uiInk);
-    c.line(x + 3, y + 4, x + 7, y + 1, S.uiInk);
+    c.line(x, y + 1, x + 3, y + 4, bg);
+    c.line(x + 3, y + 4, x + 7, y + 1, bg);
   } else {
     c.rect(x, y, 8, 5, color);
     c.rect(x + 1, y + 4, 2, 3, color);
-    for (let i = 0; i < 3; i++) c.set(x + 1 + i * 2, y + 2, S.uiInk);
+    for (let i = 0; i < 3; i++) c.set(x + 1 + i * 2, y + 2, bg);
   }
 }
 
@@ -44,7 +44,7 @@ function drawWindow(c, desktop, state, seed) {
   sc.rect(1, 1, w - 2, h - 2, S.uiPaper);
   sc.rect(1, 1, w - 2, 10, S.uiChrome);
   for (let i = 0; i < 3; i++) sc.disc(5 + i * 5, 5, 1, state.active && i === 0 ? S.uiAccent : S.uiMuted);
-  icon(sc, 24, 2, state.app, state.active ? S.uiInk : S.uiMuted);
+  icon(sc, 24, 2, state.app, state.active ? S.uiInk : S.uiMuted, S.uiChrome);
   for (let k = 0; k < 3; k++) sc.set(w - 10 + k * 2, 5, S.uiMuted);
   sc.rect(1, 10, w - 2, 1, S.uiBorder);
   // A body viewport keeps scrolling pages, carets and toasts inside the app.

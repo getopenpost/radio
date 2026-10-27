@@ -49,8 +49,8 @@ function paragraph(c, x, y, str, width, color = INK, lead = LINE.tiny) {
 
 // ---- Code editor -----------------------------------------------------------
 
-const CODE_RATE = 46; // characters per second
-const CODE_LEAD = 9;
+const CODE_RATE = 55; // characters per second
+const CODE_LEAD = 6;
 const files = new Map();
 
 function fileTiming(file) {
@@ -112,27 +112,28 @@ function code(c, { x, y, w, h }, t, seed, document) {
   const complete = typed >= data.chars;
 
   // Keep the caret four lines from the bottom, as an editor does.
-  const codeX = x + rail + 18;
-  const visible = Math.floor((h - 20) / CODE_LEAD);
+  const codeX = x + rail + 16;
+  const visible = Math.floor((h - 18) / CODE_LEAD);
   const first = Math.max(0, row - (visible - 4));
   for (let i = first; i < Math.min(data.lines.length, first + visible); i++) {
     const ly = y + 11 + (i - first) * CODE_LEAD;
     const line = data.lines[i];
-    body(c, codeX - 15, ly + 1, String(i + 1).padStart(2, ' '), MUTED);
-    let lx = codeX;
+    body(c, codeX - 11, ly, String(i + 1).padStart(2, ' '), MUTED);
+    let at = 0;
     let left = i < row || complete ? Infinity : i === row ? inRow : 0;
     for (const [kind, token] of line.tokens) {
+      const lx = codeX + measure(line.text.slice(0, at), true);
       const shown = left === Infinity ? token : token.slice(0, Math.max(0, Math.floor(left)));
       if (shown) {
         const color = kind === 'kw' ? ACCENT : kind === 'fn' ? TOKEN : kind === 'str' || kind === 'num' ? GOLD : kind === 'com' ? MUTED : PAPER;
-        text(c, lx, ly, shown, color, { clip: x + w - 6 - lx });
+        body(c, lx, ly, shown, color, { clip: x + w - 6 - lx });
       }
-      lx += measure(token);
+      at += token.length;
       left -= token.length;
     }
     if (i === row && !complete && t % 1 < 0.6) {
-      const cx = Math.min(x + w - 6, codeX + measure(line.text.slice(0, Math.floor(inRow))));
-      c.rect(cx, ly, 1, 7, TOKEN);
+      const cx = Math.min(x + w - 6, codeX + measure(line.text.slice(0, Math.floor(inRow)), true));
+      c.rect(cx, ly, 1, 5, TOKEN);
     }
   }
 
@@ -252,7 +253,7 @@ function mail(c, { x, y, w, h }, t, seed) {
   c.rect(x + 4, y + 5, 12, 9, ACCENT);
   c.line(x + 7, y + 8, x + 12, y + 8, S.uiPaper);
   c.line(x + 7, y + 11, x + 12, y + 11, S.uiPaper);
-  for (let i = 0; i < 4; i++) body(c, x + 5, y + 22 + i * 9, ['IN', 'SENT', 'DRAFTS'][i] ?? '', i === 0 ? INK : MUTED);
+  for (let i = 0; i < 4; i++) body(c, x + 5, y + 22 + i * 9, ['IN', 'SENT', 'DRAFT'][i] ?? '', i === 0 ? INK : MUTED);
   const composing = t >= action.compose + 0.12 && t < action.sent;
   if (composing) {
     const letter = MAIL[0];

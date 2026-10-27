@@ -93,7 +93,7 @@ export function createSky(seed = 1, timeZone = 'Europe/Lisbon') {
       }
     }
 
-    if (moonProgress != null) drawMoon(canvas, arc(moonProgress, 135), moonAge, light, overcast);
+    if (moonProgress != null && light < 0.75) drawMoon(canvas, arc(moonProgress, 135), moonAge, light, overcast);
     if (sunPos && overcast < 0.95) canvas.disc(sunPos.x, sunPos.y, 9, S.sun, 1 - overcast * 0.6);
 
     // Clouds: how many are out follows the cover; a cloud only joins or

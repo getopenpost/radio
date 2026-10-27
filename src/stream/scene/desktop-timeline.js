@@ -17,7 +17,7 @@ const bodyPoint = (app, u, v) => {
   return [b.x + 0.018 + u * (b.w - 0.036), b.y + 0.078 + v * (b.h - 0.096)];
 };
 export const WORK = {
-  code: { focus: 1.05, typing: 1.4, file: 13.6, fileReady: 13.72, secondTyping: 14, stopTyping: 24, run: 24.6, done: 25.4 },
+  code: { focus: 1.05, typing: 1.4, file: 13.6, fileReady: 13.72, secondTyping: 13.72, stopTyping: 24, run: 24.6, done: 25.4 },
   web: { focus: 0.95, loaded: 1.3, scroll1: 5.2, scroll1End: 6.1, scroll2: 10.8, scroll2End: 11.8, link: 14.2, articleReady: 14.45, articleScroll: 18.2, articleScrollEnd: 19.2, back: 23.4 },
   mail: { compose: 0.95, fields: 1.8, body: 3.8, send: 17.6, sent: 17.76, toastEnd: 20 },
   globe: { focus: 0.95, note1: 5.5, note2: 13, save: 22 },
