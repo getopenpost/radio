@@ -175,12 +175,6 @@ now start in phase with each note.
   each behind its own fifo, so a platform that drops reconnects without
   stalling the others. If ffmpeg itself exits, the stream restarts it.
 
-The NAS deployment uses Intel hardware H.264 encoding at 720p24, keeping
-radio off the VPS entirely. The initial live run measured roughly 0.35–0.4
-NAS CPU cores and 165–220 MiB of working memory, including the renderer,
-decoder and encoder. Measure the active scene and sustained runtime when
-comparing changes, rather than extrapolating from another CPU.
-
 ## Library storage
 
 `library/` holds `tracks/<id>.flac`, its metadata `.json` and source
@@ -196,66 +190,58 @@ The stream reads either a local directory (`RGO_MUSIC_LIBRARY`) or a base URL
 prefetches ten compatible upcoming tracks in the background. Its cache
 protects current, fading, and queued audio while pruning older tracks.
 
-## VPS software fallback
+## VPS deployment
 
-The flake exports a NixOS module. The host needs only Node and ffmpeg; it does
-not synthesize music. The active deployment is on the NAS; for a software
-encoder fallback, in `~/.config/home`:
+The live sender runs on `rgo-vps`. The NAS is storage only. To minimize CPU
+and RAM, prepare the complete video and audio on a workstation, then let
+`src/stream/relay.js` forward H.264/AAC packets with FFmpeg `-c copy`.
+There is no scene renderer, decoder, synthesizer, or video encoder on the VPS.
 
-```nix
-# flake inputs
-rgo-music.url = "git+ssh://git@github.com/<owner>/rgo-music";
-
-# rgo-vps host module
-imports = [ inputs.rgo-music.nixosModules.default ];
-sops.secrets.rgo-music-youtube = { };  # rtmp://a.rtmp.youtube.com/live2/<stream key>
-sops.secrets.rgo-music-twitch = { };   # rtmp://live.twitch.tv/app/<stream key>
-services.rgo-music = {
-  enable = true;
-  rtmpUrlFiles = [
-    config.sops.secrets.rgo-music-youtube.path
-    config.sops.secrets.rgo-music-twitch.path
-  ];
-  libraryUrl = "https://<bucket host>/library";
-  # scale = 2;  # 720p if the VPS needs headroom
-};
+```bash
+node src/cli/program.js --hours 8 --fps 30
 ```
 
-Settings that suit both platforms: 1080p30, keyframes every 2 s, 4.5 Mbps
-video (under Twitch's 6 Mbps ceiling), 160 kbps AAC audio.
+This publishes closed four-minute MPEG-TS chunks and an atomic manifest to
+`/volume1/homes/kraktoos/openpost-radio-music/programmes/` on the NAS. The
+initial programme is 1280x720 at 30fps, 3 Mbps H.264 plus 160 kbps AAC, with
+two-second keyframes. Its music crossfades and visualizer are baked into the
+video. The eight-hour programme repeats, with a 12-second audio fade and a
+short dither at the loop boundary. Fresh compositions and seasonal changes
+require preparing and publishing another programme, then restarting the relay.
+The live sender does not generate new music or weather indefinitely.
 
-## NAS deployment
+The VPS keeps the current chunk, ten ahead, and chunk zero for FFmpeg's
+concat header probe, at most twelve chunks. That gives about 40 minutes of
+NAS-outage headroom after the buffer fills, using roughly 1.2 GB of bounded
+cache instead of the entire library. A dedicated restricted SSH key can
+read only radio assets, with a pinned NAS host key. Only two downloads run
+at once. Startup waits until the lookahead has been published. A reconnect
+seeks to the current wall-clock position in the programme.
 
-The normal programme now runs a complete dawn/day/dusk/night every **40 real
-minutes**, independent of a viewer's timezone. The real date still selects
+The service and encrypted credentials are owned by
+`~/.config/home/modules/services/openpost-radio/default.nix`. Copy reviewed
+`src/`, `assets/`, and `package.json` into root-owned
+`/opt/openpost-radio/app`, set `RGO_MUSIC_REVISION` in the module, and apply
+with the configuration repository's rebuild wizard (`rebuild --vps`). Never
+put stream keys in source, command arguments, or logs. The unit has a
+192 MiB memory limit and a 50% CPU quota. `status.json` in
+`/var/lib/openpost-radio` records output bytes, playback time and format;
+measure actual cgroup CPU and memory separately from these limits.
+
+The normal programme completes dawn/day/dusk/night every **40 real
+minutes**, independent of a viewer's timezone. The preparation date selects
 the season. Each world day chooses 1–4 activities, alternating stops with
 walking. The schedule reserves 50% for walking; reading, work and flying
 are the main stops. Fishing and telescope visits are rare. Rain can move
-an outdoor stop into the studio. `--day-minutes 0` retains real solar time;
-the scripted `--tour` continues to use its own dates.
+an outdoor stop into the studio. `--day-minutes 0` retains real solar time
+for direct rendering; the scripted `--tour` uses its own dates.
 
-The Synology NAS can encode H.264 on its Intel GPU. The owned manifest and
-pinned runtime Dockerfile live in
-`~/.config/home/modules/services/openpost-radio/nas/`, together with rollout
-and credential instructions. Production uses `--encoder h264_vaapi --fps 24
---scale 2 --bitrate 3000k`. This keeps the VPS out of the streaming workload.
-There is no browser, Strudel runtime, native audio engine, or music synthesis
-in the streaming container. Composition happens offline on a workstation.
-
-The NAS library is `/volume1/homes/kraktoos/openpost-radio-music`.
-`./scripts/publish-nas-library.sh` copies finished tracks before publishing
-the catalog. The player plans ten compatible songs ahead, preserving that
-queue through restarts. Direct NAS playback reads the originals. For an
-HTTP library (`--library-url`), those same ten upcoming tracks are downloaded
-in the background, two at a time, with atomic files and a bounded cache.
-The current and fading tracks stay protected during eviction. Playback
-continues from cached tracks when catalog refreshes fail.
-
-Useful environment settings include `RGO_MUSIC_ENCODER`,
-`RGO_MUSIC_DAY_MINUTES`, `RGO_MUSIC_AHEAD`, `RGO_MUSIC_FPS`,
-`RGO_MUSIC_SCALE`, and `RGO_MUSIC_VIDEO_BITRATE`. `status.json` in the state
-directory records the track, queue length, scene, and actual encoder output
-progress. RTMP URLs are redacted from encoder diagnostics.
+The original audio library remains on the NAS at
+`/volume1/homes/kraktoos/openpost-radio-music`. Generate compositions on a
+workstation and publish with `scripts/publish-nas-library.sh`, which copies
+finished audio before the catalog. Direct `npm run stream` playback still
+supports a local library or an HTTP source with ten compatible tracks ahead,
+atomic downloads, and protection for playing and fading tracks.
 
 The generated, badge-free livestream thumbnail is
 [`output/livestream-thumbnail.png`](output/livestream-thumbnail.png).

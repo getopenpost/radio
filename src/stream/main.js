@@ -40,6 +40,7 @@ const { values } = parseArgs({
     encoder: { type: 'string', default: process.env.RGO_MUSIC_ENCODER ?? 'libx264' },
     'day-minutes': { type: 'string', default: process.env.RGO_MUSIC_DAY_MINUTES ?? '40' },
     ahead: { type: 'string', default: process.env.RGO_MUSIC_AHEAD ?? '10' },
+    'loop-ready': { type: 'boolean', default: false },
     duration: { type: 'string' },
     tour: { type: 'boolean', default: false },
     clock: { type: 'string' },
@@ -140,6 +141,7 @@ let tourTime = 0;
 let tourScene = -1;
 const lastFrame = tour ? Buffer.alloc(WIDTH * HEIGHT * 3) : null;
 const cutFrom = tour ? Buffer.alloc(WIDTH * HEIGHT * 3) : null;
+const firstPicture = values['loop-ready'] ? Buffer.alloc(WIDTH * HEIGHT * 3) : null;
 
 for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   // Line up the next track about half a minute before the crossfade.
@@ -170,6 +172,13 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   mix.fill(0);
   current.deck.mixInto(mix, spf, gainA);
   if (next && t + spf > next.start) next.deck.mixInto(mix, spf, gainB, Math.max(0, next.start - t));
+  if (values['loop-ready']) {
+    for (let i = 0; i < spf; i++) {
+      const gain = Math.max(0, Math.min(1, (t + i) / (12 * SR), (stopAfter - t - i) / (12 * SR)));
+      mix[2 * i] *= gain;
+      mix[2 * i + 1] *= gain;
+    }
+  }
 
   // The picture follows whichever track is louder.
   const active = next && t >= next.start + overlap / 2 ? next : current;
@@ -206,6 +215,11 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
       pillWidth,
       trackId: active.track.id,
     });
+  }
+  if (firstPicture) {
+    if (frame === 0) firstPicture.set(rgb);
+    const into = 1 - (stopAfter - t) / (0.36 * SR);
+    if (into > 0) for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x, y) < revealCoverage(x, WIDTH, into, 24)) firstPicture.copy(rgb, o, o, o + 3);
   }
   await encoder.frame(rgb, mix);
   if (frame % (fps * 10) === 0) {

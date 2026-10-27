@@ -62,10 +62,13 @@ Project-specific rules. The shared global instructions still apply.
   (`clock.js`), so a restart shows the same world. Motion may keep state.
 - The normal programme reserves half each world day for walking and chooses
   1–4 stops. Weather may replace an outdoor stop with work under shelter.
-- The NAS deployment is owned by
-  `~/.config/home/modules/services/openpost-radio/nas/`. Its Intel VAAPI
-  encoder replaces VPS software encoding. Generate music on a workstation,
-  then publish audio before the catalog with `scripts/publish-nas-library.sh`.
+- The live sender runs on the VPS. The NAS is storage only. Prepare H.264/AAC
+  programmes on a workstation with `src/cli/program.js`; `src/stream/relay.js`
+  sends them with stream copy and a bounded current-plus-ten-chunk cache.
+  Deployment and encrypted credentials are owned by
+  `~/.config/home/modules/services/openpost-radio/default.nix`. A programme
+  repeats until replaced; do not describe this as fresh live generation.
+  Publish audio before the catalog with `scripts/publish-nas-library.sh`.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.
   Drain waits must remove their close handlers; racing a pending lifetime

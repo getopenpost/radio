@@ -36,6 +36,7 @@ export const isRtmp = (url) => /^rtmps?:\/\//.test(url);
 function outputArgs(outputs) {
   if (outputs.length === 1) {
     const [output] = outputs;
+    if (/%0?\d*d\.ts$/.test(output)) return ['-f', 'segment', '-segment_time', '240', '-reset_timestamps', '0', '-segment_format', 'mpegts', '-y', output];
     return isRtmp(output) ? ['-f', 'flv', '-flvflags', 'no_duration_filesize', output] : ['-y', output];
   }
   const slave = (output) => {
@@ -53,13 +54,14 @@ function outputArgs(outputs) {
  * @param {number} [o.scale=3] output = scene size x scale: 3 gives 1080p, 2 gives 720p (half the CPU)
  */
 export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitrate = '4500k', audioBitrate = '160k', preset = 'veryfast', threads = 1, codec = 'libx264', device = '/dev/dri/renderD128' }) {
-  if (!['libx264', 'h264_vaapi'].includes(codec)) throw new Error(`unsupported encoder ${codec}`);
-  const hardware = codec === 'h264_vaapi';
-  const filters = `${pictureFilters({ nowPlayingFile, scale })},${hardware ? 'format=nv12,hwupload' : 'format=yuv420p'}`;
+  if (!['libx264', 'h264_vaapi', 'h264_videotoolbox'].includes(codec)) throw new Error(`unsupported encoder ${codec}`);
+  const hardware = codec !== 'libx264';
+  const vaapi = codec === 'h264_vaapi';
+  const filters = `${pictureFilters({ nowPlayingFile, scale })},${vaapi ? 'format=nv12,hwupload' : hardware ? 'format=nv12' : 'format=yuv420p'}`;
   const gop = fps * 2; // YouTube and Twitch want a keyframe every 2 seconds
   return [
     '-hide_banner', '-loglevel', process.env.RGO_MUSIC_FFMPEG_LOG ?? 'warning', '-nostats', '-progress', 'pipe:4', '-stats_period', '10',
-    ...(hardware ? ['-vaapi_device', device] : []),
+    ...(vaapi ? ['-vaapi_device', device] : []),
     '-filter_complex_threads', '1',
     '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '4', '-i', 'pipe:0',
     // Both raw formats are known. Disable probing so the audio input never
@@ -67,7 +69,7 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
     '-f', 'f32le', '-ar', '48000', '-ac', '2', '-channel_layout', 'stereo', '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '128', '-i', 'pipe:3',
     '-filter_complex', `[0:v]${filters}[v]`, '-map', '[v]', '-map', '1:a',
     '-c:v', codec, '-threads', String(threads),
-    ...(hardware ? ['-profile:v', 'high', '-bf', '0', '-async_depth', '1', '-rc_mode', 'CBR'] : ['-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high']),
+    ...(vaapi ? ['-profile:v', 'high', '-bf', '0', '-async_depth', '1', '-rc_mode', 'CBR'] : hardware ? ['-profile:v', 'high', '-bf', '0', '-realtime', '0', '-allow_sw', '0'] : ['-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high']),
     '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', String(parseInt(videoBitrate) * 2) + 'k',
     '-g', String(gop), ...(hardware ? [] : ['-keyint_min', String(gop), '-sc_threshold', '0', '-pix_fmt', 'yuv420p']),
     // ffmpeg's AAC noise substitution and intensity stereo produce loud
