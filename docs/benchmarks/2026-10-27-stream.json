@@ -1,0 +1,107 @@
+{
+  "host": "rgo-vps",
+  "logicalCpus": 4,
+  "forwardingOnly": [
+    {
+      "format": "720p24",
+      "rounds": [
+        {
+          "cpuPctCore": 1.1566524326687067,
+          "rssMiB": 36.125,
+          "seconds": 59.482
+        },
+        {
+          "cpuPctCore": 1.2894873993376037,
+          "rssMiB": 36.1328125,
+          "seconds": 59.481
+        },
+        {
+          "cpuPctCore": 1.2441156691324815,
+          "rssMiB": 35.83984375,
+          "seconds": 59.48
+        }
+      ],
+      "cpuMedian": 1.2441156691324815,
+      "cpuMin": 1.1566524326687067,
+      "cpuMax": 1.2894873993376037,
+      "rssMiB": 36.125
+    },
+    {
+      "format": "720p30",
+      "rounds": [
+        {
+          "cpuPctCore": 0.9213180901143243,
+          "rssMiB": 36.65625,
+          "seconds": 59.48
+        },
+        {
+          "cpuPctCore": 1.0104236718224613,
+          "rssMiB": 36.4765625,
+          "seconds": 59.48
+        },
+        {
+          "cpuPctCore": 1.044048419636853,
+          "rssMiB": 36.48046875,
+          "seconds": 59.48
+        }
+      ],
+      "cpuMedian": 1.0104236718224613,
+      "cpuMin": 0.9213180901143243,
+      "cpuMax": 1.044048419636853,
+      "rssMiB": 36.48046875
+    },
+    {
+      "format": "1080p60",
+      "rounds": [
+        {
+          "cpuPctCore": 1.7792936590611241,
+          "rssMiB": 39.4140625,
+          "seconds": 59.518
+        },
+        {
+          "cpuPctCore": 1.6751234920528244,
+          "rssMiB": 39.31640625,
+          "seconds": 59.518
+        },
+        {
+          "cpuPctCore": 1.6331193924527034,
+          "rssMiB": 38.53515625,
+          "seconds": 59.518
+        }
+      ],
+      "cpuMedian": 1.6751234920528244,
+      "cpuMin": 1.6331193924527034,
+      "cpuMax": 1.7792936590611241,
+      "rssMiB": 39.31640625
+    }
+  ],
+  "live720p30": {
+    "samples": 72,
+    "wallSeconds": 355.653,
+    "cpuPctCore": 7.935032461416043,
+    "cpuPctMachine": 1.9837581153540107,
+    "windowMedian": 6.8751896207584835,
+    "windowMax": 42.89962060702876,
+    "rssMinMiB": 104.046875,
+    "rssMaxMiB": 124.73046875,
+    "memoryMeanMiB": 110.82931857638889,
+    "outputMbps": 3.15679160787211,
+    "lookaheadChunks": 10,
+    "lastStatus": {
+      "at": 1793132353164,
+      "revision": "d561a87",
+      "mode": "packet-copy",
+      "fps": 30,
+      "width": 1280,
+      "height": 720,
+      "programme": "p-1793128800000-30",
+      "bufferChunks": 10,
+      "bufferSeconds": 2400,
+      "encoderAlive": true,
+      "encoded": {
+        "seconds": 390.454667,
+        "bytes": 153952634
+      }
+    }
+  }
+}

@@ -66,7 +66,10 @@ Project-specific rules. The shared global instructions still apply.
   programmes on a workstation with `src/cli/program.js`; `src/stream/relay.js`
   sends them with stream copy and a bounded current-plus-ten-chunk cache.
   Deployment and encrypted credentials are owned by
-  `~/.config/home/modules/services/openpost-radio/default.nix`. A programme
+  `~/.config/home/modules/services/openpost-radio/default.nix`. The module
+  packages a reviewed copy of `src/stream/relay.js` as its sibling `relay.js`;
+  sync that artifact and its source revision when changing the live sender.
+  A programme
   repeats until replaced; do not describe this as fresh live generation.
   Publish audio before the catalog with `scripts/publish-nas-library.sh`.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
