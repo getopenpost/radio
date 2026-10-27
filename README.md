@@ -210,6 +210,17 @@ short dither at the loop boundary. Fresh compositions and seasonal changes
 require preparing and publishing another programme, then restarting the relay.
 The live sender does not generate new music or weather indefinitely.
 
+For a genuine 1080p60 programme on macOS, using hardware encoding:
+
+```bash
+node src/cli/program.js --hours 8 --fps 60 --scale 3 --bitrate 6000k --encoder h264_videotoolbox
+```
+
+Preparation draws every frame at 60fps. It does not duplicate a 30fps movie.
+The programme manifest becomes current only after all chunks are published.
+Restart `openpost-radio.service` to adopt it. At the 6 Mbps video budget,
+allow about 2.1 GB of VPS cache for the current chunk plus ten ahead.
+
 The VPS keeps the current chunk and ten ahead, at most eleven chunks. That gives about 40 minutes of
 NAS-outage headroom after the buffer fills, using roughly 1.1 GB of bounded
 cache instead of the entire library. A dedicated restricted SSH key can
@@ -218,10 +229,11 @@ at once. Startup waits until the lookahead has been published. A reconnect
 seeks to the current wall-clock position in the programme.
 
 The service and encrypted credentials are owned by
-`~/.config/home/modules/services/openpost-radio/default.nix`. Copy reviewed
-`src/`, `assets/`, and `package.json` into root-owned
-`/opt/openpost-radio/app`, set `RGO_MUSIC_REVISION` in the module, and apply
-with the configuration repository's rebuild wizard (`rebuild --vps`). Never
+`~/.config/home/modules/services/openpost-radio/default.nix`. The module packages a reviewed copy of `src/stream/relay.js` as
+`modules/services/openpost-radio/relay.js`. Sync that deployment artifact,
+set `RGO_MUSIC_REVISION` to its source commit, and apply with the configuration
+repository's rebuild wizard (`rebuild --vps`). The unit executes the immutable
+Nix-store copy, so a rollback restores both the sender and its configuration. Never
 put stream keys in source, command arguments, or logs. The unit has a
 128 MiB memory limit and a 50% CPU quota. `status.json` in
 `/var/lib/openpost-radio` records output bytes, playback time and format;

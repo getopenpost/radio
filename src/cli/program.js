@@ -7,6 +7,9 @@ const { values: v } = parseArgs({
   options: {
     hours: { type: "string", default: "8" },
     fps: { type: "string", default: "30" },
+    scale: { type: "string", default: "2" },
+    encoder: { type: "string", default: "libx264" },
+    bitrate: { type: "string", default: "3000k" },
     nas: { type: "string", default: "kraktoos@rgo-nas" },
     root: {
       type: "string",
@@ -20,11 +23,12 @@ const seconds = Number(v.hours) * 3600,
 if (
   !(seconds > 0) ||
   !Number.isInteger(seconds / chunkSeconds) ||
-  ![24, 30].includes(Number(v.fps))
+  ![24, 30, 60].includes(Number(v.fps)) ||
+  ![2, 3].includes(Number(v.scale))
 )
   throw Error("programme must contain whole four-minute chunks");
 const anchor = Math.floor(Date.now() / 2400000) * 2400000,
-  id = `p-${anchor}-${v.fps}`;
+  id = `p-${anchor}-${v.fps}-${Date.now()}`;
 const dir = join(v.work, id);
 await mkdir(dir, { recursive: true });
 const remote = `${v.root}/programmes`;
@@ -43,8 +47,8 @@ const manifest = {
   chunkSeconds,
   count: seconds / chunkSeconds,
   fps: Number(v.fps),
-  width: 1280,
-  height: 720,
+  width: 640 * Number(v.scale),
+  height: 360 * Number(v.scale),
   ready: 0,
   complete: false,
   season: [12, 1, 2].includes(new Date(anchor).getUTCMonth() + 1)
@@ -70,9 +74,11 @@ const child = spawn(
     "--fps",
     v.fps,
     "--scale",
-    "2",
+    v.scale,
+    "--encoder",
+    v.encoder,
     "--bitrate",
-    "3000k",
+    v.bitrate,
     "--preset",
     "veryfast",
     "--loop-ready",
@@ -107,13 +113,24 @@ async function publish() {
     manifest.ready = Math.max(manifest.ready, Number(f.slice(6, 11)) + 1);
   }
   manifest.complete = done && code === 0 && manifest.ready === manifest.count;
-  await writeFile(join(dir, "current.json"), JSON.stringify(manifest));
+  await writeFile(join(dir, "manifest.json"), JSON.stringify(manifest));
   command("rsync", [
     "-a",
     "--delay-updates",
-    join(dir, "current.json"),
-    `${v.nas}:${remote}/`,
+    join(dir, "manifest.json"),
+    `${v.nas}:${remote}/${id}/`,
   ]);
+  // A replacement becomes current only when complete. Concurrent preparations
+  // must not keep changing the manifest a restarting live sender will read.
+  if (manifest.complete) {
+    await writeFile(join(dir, "current.json"), JSON.stringify(manifest));
+    command("rsync", [
+      "-a",
+      "--delay-updates",
+      join(dir, "current.json"),
+      `${v.nas}:${remote}/`,
+    ]);
+  }
   console.log(`published ${manifest.ready}/${manifest.count} broadcast chunks`);
 }
 try {
