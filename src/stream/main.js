@@ -37,6 +37,9 @@ const { values } = parseArgs({
     preset: { type: 'string', default: process.env.RGO_MUSIC_X264_PRESET ?? 'veryfast' },
     bitrate: { type: 'string', default: process.env.RGO_MUSIC_VIDEO_BITRATE ?? '4500k' },
     scale: { type: 'string', default: process.env.RGO_MUSIC_SCALE ?? '3' },
+    encoder: { type: 'string', default: process.env.RGO_MUSIC_ENCODER ?? 'libx264' },
+    'day-minutes': { type: 'string', default: process.env.RGO_MUSIC_DAY_MINUTES ?? '40' },
+    ahead: { type: 'string', default: process.env.RGO_MUSIC_AHEAD ?? '10' },
     duration: { type: 'string' },
     tour: { type: 'boolean', default: false },
     clock: { type: 'string' },
@@ -49,6 +52,10 @@ if (!values.output.length) {
   process.exit(2);
 }
 const fps = Number(values.fps);
+const ahead = Number(values.ahead);
+const dayMinutes = Number(values['day-minutes']);
+if (!Number.isInteger(ahead) || ahead < 1 || ahead > 100) throw new Error('ahead must be 1–100 tracks');
+if (!Number.isFinite(dayMinutes) || dayMinutes < 0 || (dayMinutes > 0 && dayMinutes < 20)) throw new Error('day-minutes must be 0 (real sun) or at least 20');
 const spf = SR / fps;
 if (!Number.isInteger(spf)) throw new Error(`fps must divide 48000 (got ${fps})`);
 const realtime = values.output.some(isRtmp);
@@ -57,12 +64,13 @@ const stopAfter = values.duration ? Number(values.duration) * SR : values.tour ?
 await mkdir(values.state, { recursive: true });
 const nowPlayingFile = join(values.state, 'nowplaying.txt');
 const historyFile = join(values.state, 'history.json');
+const queueFile = join(values.state, 'queue.json');
 const history = await readFile(historyFile, 'utf8').then(JSON.parse, () => []);
 
 const source = createSource({ dir: values.library, url: values['library-url'], cacheDir: join(values.state, 'cache') });
 let catalog = await source.refresh();
 const director = createDirector({ rng: createRng(Date.now() >>> 0), history });
-const scene = createScene({ seed: 7, timeZone: values.timezone });
+const scene = createScene({ seed: 7, timeZone: values.timezone, dayMinutes: values.tour ? 0 : dayMinutes });
 const spectrum = createSpectrum();
 
 const overlapOf = (a, b) => Math.round(Math.min(24, Math.max(6, Math.min(a.outroSeconds ?? 8, b.introSeconds ?? 8))) * SR);
@@ -80,9 +88,34 @@ async function writeNowPlaying(track) {
   return text;
 }
 
-let current = await load(director.next(catalog, null), 0);
+const savedQueue = await readFile(queueFile, 'utf8').then(JSON.parse, () => []);
+const queue = savedQueue.map((t) => catalog.find((c) => c.id === t.id)).filter(Boolean).slice(0, ahead);
+let current = await load(queue.shift() ?? director.next(catalog, null), 0);
 let next = null;
 let nextLoading = null;
+let queueLoading = null;
+async function saveQueue() {
+  await writeFile(`${queueFile}.tmp`, JSON.stringify(queue));
+  await rename(`${queueFile}.tmp`, queueFile);
+  await writeFile(`${historyFile}.tmp`, JSON.stringify(director.history().slice(-2000)));
+  await rename(`${historyFile}.tmp`, historyFile);
+}
+function fillQueue() {
+  if (queueLoading) return queueLoading;
+  queueLoading = (async () => {
+    catalog = await source.refresh();
+    let previous = queue.at(-1) ?? next?.track ?? current.track;
+    while (queue.length < ahead) {
+      previous = director.next(catalog, previous);
+      queue.push(previous);
+    }
+    await saveQueue();
+    await source.prefetch([current.track, next?.track, ...queue]);
+    console.log(`buffer ready: ${queue.length} tracks ahead`);
+  })().finally(() => { queueLoading = null; });
+  return queueLoading;
+}
+await fillQueue();
 let shown = null;
 let pillWidth = 0;
 await writeNowPlaying(current.track).then((text) => {
@@ -91,7 +124,8 @@ await writeNowPlaying(current.track).then((text) => {
 });
 console.log(`playing ${current.track.id} "${current.track.title}"`);
 
-let encoder = startEncoder({ outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
+const encoderOptions = { outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate, codec: values.encoder };
+let encoder = startEncoder(encoderOptions);
 const mix = new Float32Array(spf * 2);
 const gainA = new Float32Array(spf);
 const gainB = new Float32Array(spf);
@@ -111,14 +145,12 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   // Line up the next track about half a minute before the crossfade.
   const fadeStart = next ? next.start : current.start + current.frames - (current.frames >> 3);
   if (!next && !nextLoading && t >= current.start + current.frames - 40 * SR) {
-    catalog = await source.refresh();
-    const track = director.next(catalog, current.track);
+    const track = queue.shift() ?? director.next(catalog, current.track);
     const overlap = overlapOf(current.track, track);
     nextLoading = load(track, current.start + current.frames - overlap)
-      .then((deck) => (next = deck))
+      .then((deck) => { next = deck; fillQueue().catch((err) => console.error(`buffer refill: ${err.message}`)); return deck; })
       .catch((err) => console.error(`could not load ${track.id}: ${err.message}`))
       .finally(() => (nextLoading = null));
-    await writeFile(historyFile, JSON.stringify(director.history().slice(-2000)));
   }
   if (!next && nextLoading && t + spf >= fadeStart) await nextLoading; // never start a fade without the next deck
 
@@ -176,12 +208,17 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     });
   }
   await encoder.frame(rgb, mix);
+  if (frame % (fps * 10) === 0) {
+    const status = { at: Date.now(), revision: process.env.RGO_MUSIC_REVISION ?? null, track: active.track.id, ahead: queue.length, encoderAlive: encoder.alive, encoded: { ...encoder.stats }, scene: scene.state() };
+    await writeFile(join(values.state, 'status.json.tmp'), JSON.stringify(status));
+    await rename(join(values.state, 'status.json.tmp'), join(values.state, 'status.json'));
+  }
   if (!encoder.alive) {
     if (!realtime) throw new Error('ffmpeg exited early');
     // RTMP dropped: reconnect and carry on where the music is.
     console.error('encoder exited, reconnecting in 5s');
     await new Promise((r) => setTimeout(r, 5000));
-    encoder = startEncoder({ outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate });
+    encoder = startEncoder(encoderOptions);
   }
 
   // The old deck is done once the crossfade completes.

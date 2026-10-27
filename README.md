@@ -230,3 +230,40 @@ Mono under the SIL Open Font License (`assets/fonts`).
 Sounds come from Strudel's default libraries, fetched at render time: Tidal
 drum machines, VCSL (CC0), the Salamander piano (CC-BY 3.0) and General MIDI
 soundfonts. Check the sample licences before monetising the channel.
+
+### Low-resource NAS deployment
+
+The normal programme now runs a complete dawn/day/dusk/night every **40 real
+minutes**, independent of a viewer's timezone. The real date still selects
+the season. Each world day chooses 1–4 activities, alternating stops with
+walking. The schedule reserves 50% for walking; reading, work and flying
+are the main stops. Fishing and telescope visits are rare. Rain can move
+an outdoor stop into the studio. `--day-minutes 0` retains real solar time;
+the scripted `--tour` continues to use its own dates.
+
+The Synology NAS can encode H.264 on its Intel GPU. The owned manifest and
+pinned runtime Dockerfile live in
+`~/.config/home/modules/services/openpost-radio/nas/`, together with rollout
+and credential instructions. Production uses `--encoder h264_vaapi --fps 24
+--scale 2 --bitrate 3000k`. This keeps the VPS out of the streaming workload.
+There is no browser, Strudel runtime, native audio engine, or music synthesis
+in the streaming container. Composition happens offline on a workstation.
+
+The NAS library is `/volume1/homes/kraktoos/openpost-radio-music`.
+`./scripts/publish-nas-library.sh` copies finished tracks before publishing
+the catalog. The player plans ten compatible songs ahead, preserving that
+queue through restarts. Direct NAS playback reads the originals. For an
+HTTP library (`--library-url`), those same ten upcoming tracks are downloaded
+in the background, two at a time, with atomic files and a bounded cache.
+The current and fading tracks stay protected during eviction. Playback
+continues from cached tracks when catalog refreshes fail.
+
+Useful environment settings include `RGO_MUSIC_ENCODER`,
+`RGO_MUSIC_DAY_MINUTES`, `RGO_MUSIC_AHEAD`, `RGO_MUSIC_FPS`,
+`RGO_MUSIC_SCALE`, and `RGO_MUSIC_VIDEO_BITRATE`. `status.json` in the state
+directory records the track, queue length, scene, and actual encoder output
+progress. RTMP URLs are redacted from encoder diagnostics.
+
+The generated, badge-free livestream thumbnail is
+[`output/livestream-thumbnail.png`](output/livestream-thumbnail.png).
+Its full-resolution original and generation prompt are in `assets/marketing/`.

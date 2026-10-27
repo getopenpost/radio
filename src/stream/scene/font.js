@@ -135,6 +135,14 @@ const TINY = {
 };
 const TINY_PARSED = Object.fromEntries(Object.entries(TINY).map(([k, rows]) => [k, rows.map((r) => [...r].map((c) => c === '#'))]));
 
+/** Width without allocating a raster mask for every candidate line during wrapping. */
+export function textWidth(text, tiny = false) {
+  const face = tiny ? TINY_PARSED : PARSED;
+  let width = -1;
+  for (const ch of text.toUpperCase()) width += (face[ch] ?? face[' '])[0].length + 1;
+  return Math.max(0, width);
+}
+
 /** Text as a boolean mask, one pixel between letters. Unknown characters become spaces. */
 export function textMask(text) {
   const glyphs = [...text.toUpperCase()].map((ch) => PARSED[ch] ?? PARSED[' ']);

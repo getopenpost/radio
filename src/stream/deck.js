@@ -3,10 +3,10 @@
 import { spawn } from 'node:child_process';
 
 const SAMPLE_RATE = 48000;
-const AHEAD = SAMPLE_RATE * 2 * 8; // floats buffered before the decoder is paused
+const AHEAD = SAMPLE_RATE * 2 * 4; // floats buffered before the decoder is paused
 
 export function openDeck(path) {
-  const ff = spawn('ffmpeg', ['-v', 'error', '-i', path, '-f', 'f32le', '-ac', '2', '-ar', String(SAMPLE_RATE), 'pipe:1'], {
+  const ff = spawn('ffmpeg', ['-v', 'error', '-threads', '1', '-i', path, '-f', 'f32le', '-ac', '2', '-ar', String(SAMPLE_RATE), 'pipe:1'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   const chunks = [];

@@ -41,7 +41,7 @@ for (const name of ['sky0', 'sky1', 'sky2', 'far0', 'far1', 'hill0', 'hill1', 'p
 
 const mod = (a, n) => ((a % n) + n) % n;
 
-export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
+export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes = 0 } = {}) {
   const canvas = createCanvas();
   const rgb = Buffer.alloc(WIDTH * HEIGHT * 3);
   const palette = new Uint8Array(SLOTS * 3);
@@ -76,11 +76,20 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   function blit(strip, offset, prev, mix) {
     const shift = mod(Math.floor(offset), STRIP);
     const { index } = canvas;
+    // Most landscape rows are completely opaque. Copy them in native bulk
+    // operations instead of interpreting every pixel on every video frame.
+    if (!prev && !strip.solidRows) strip.solidRows = Uint8Array.from({ length: strip.height }, (_, y) => !strip.data.subarray(y * STRIP, (y + 1) * STRIP).includes(255));
     for (let y = 0; y < strip.height; y++) {
       const sy = strip.top + y;
       if (sy >= HEIGHT) break;
       const row = y * STRIP;
       const out = sy * WIDTH;
+      if (!prev && strip.solidRows[y]) {
+        const first = Math.min(WIDTH, STRIP - shift);
+        index.set(strip.data.subarray(row + shift, row + shift + first), out);
+        if (first < WIDTH) index.set(strip.data.subarray(row, row + WIDTH - first), out + first);
+        continue;
+      }
       let sx = shift;
       for (let x = 0; x < WIDTH; x++) {
         let v = strip.data[row + sx];
@@ -152,7 +161,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
 
   /** Pick what the fox should be doing, given the plan and the conditions. */
   function planned(date, light, rain, snow, overcast, season) {
-    const plan = activity(date, light);
+    const plan = activity(date, light, dayMinutes);
     const spec = ACTS[plan.kind];
     let kind = plan.kind;
     if (spec) {
@@ -165,6 +174,9 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       // Home by the fire only when it is cold out.
       if (kind === 'home' && !(season === 'winter' || snow > 0.2 || (season === 'autumn' && light < 0.5))) kind = 'walk';
     }
+    // Keep the stop under shelter when the planned outdoor activity is unsafe.
+    // Its slot remains a stop rather than turning rainy days into all walking.
+    if (dayMinutes && kind === 'walk' && plan.kind !== 'walk') kind = light < 0.4 && season === 'winter' ? 'home' : 'work';
     return { ...plan, kind };
   }
 
@@ -196,8 +208,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
    * @returns {Buffer} RGB24 frame
    */
   function render({ time, dt, date, beat, bpm = 90, bands, pillWidth, trackId, steer }) {
-    const st = skyAt(date, timeZone);
-    const w = steer?.weather ?? weatherAt(date, st.season);
+    const st = skyAt(date, timeZone, dayMinutes);
+    const w = steer?.weather ?? weatherAt(date, st.season, dayMinutes);
     const rain = weatherAmount(w, 'rain');
     const snow = weatherAmount(w, 'snow');
     const fog = weatherAmount(w, 'fog');
@@ -210,7 +222,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
 
     // The region changes every couple of hours, and with the season; the new
     // country dissolves in through the dither.
-    const region = steer?.region ?? Math.floor(date.getTime() / REGION_MS);
+    const region = steer?.region ?? Math.floor(date.getTime() / (dayMinutes ? dayMinutes * 60000 : REGION_MS));
     if (!world || world.region !== region || world.season !== st.season) {
       const next = buildWorld(region, st.season);
       previous = world ? world : null;

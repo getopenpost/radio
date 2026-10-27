@@ -52,19 +52,24 @@ function outputArgs(outputs) {
  * @param {string[]} o.outputs RTMP URLs and/or file paths
  * @param {number} [o.scale=3] output = scene size x scale: 3 gives 1080p, 2 gives 720p (half the CPU)
  */
-export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitrate = '4500k', audioBitrate = '160k', preset = 'veryfast', threads = 4 }) {
-  const filters = `${pictureFilters({ nowPlayingFile, scale })},format=yuv420p`;
+export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitrate = '4500k', audioBitrate = '160k', preset = 'veryfast', threads = 1, codec = 'libx264', device = '/dev/dri/renderD128' }) {
+  if (!['libx264', 'h264_vaapi'].includes(codec)) throw new Error(`unsupported encoder ${codec}`);
+  const hardware = codec === 'h264_vaapi';
+  const filters = `${pictureFilters({ nowPlayingFile, scale })},${hardware ? 'format=nv12,hwupload' : 'format=yuv420p'}`;
   const gop = fps * 2; // YouTube and Twitch want a keyframe every 2 seconds
   return [
-    '-hide_banner', '-loglevel', 'warning', '-nostats',
-    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-thread_queue_size', '64', '-i', 'pipe:0',
-    // x264 holds back dozens of frames while the muxer waits to interleave, so
-    // the audio input needs a deep queue or ffmpeg stops reading it (deadlock).
-    '-f', 'f32le', '-ar', '48000', '-ac', '2', '-thread_queue_size', '4096', '-i', 'pipe:3',
+    '-hide_banner', '-loglevel', process.env.RGO_MUSIC_FFMPEG_LOG ?? 'warning', '-nostats', '-progress', 'pipe:4', '-stats_period', '10',
+    ...(hardware ? ['-vaapi_device', device] : []),
+    '-filter_complex_threads', '1',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '4', '-i', 'pipe:0',
+    // Both raw formats are known. Disable probing so the audio input never
+    // waits for seconds of samples while the small video queue is full.
+    '-f', 'f32le', '-ar', '48000', '-ac', '2', '-channel_layout', 'stereo', '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '128', '-i', 'pipe:3',
     '-filter_complex', `[0:v]${filters}[v]`, '-map', '[v]', '-map', '1:a',
-    '-c:v', 'libx264', '-preset', preset, '-tune', 'animation', '-profile:v', 'high', '-threads', String(threads),
+    '-c:v', codec, '-threads', String(threads),
+    ...(hardware ? ['-profile:v', 'high', '-bf', '0', '-async_depth', '1', '-rc_mode', 'CBR'] : ['-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high']),
     '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', String(parseInt(videoBitrate) * 2) + 'k',
-    '-g', String(gop), '-keyint_min', String(gop), '-sc_threshold', '0', '-pix_fmt', 'yuv420p',
+    '-g', String(gop), ...(hardware ? [] : ['-keyint_min', String(gop), '-sc_threshold', '0', '-pix_fmt', 'yuv420p']),
     // ffmpeg's AAC noise substitution and intensity stereo produce loud
     // one-channel bursts on this material; at these bitrates they gain nothing.
     // 160 kbps is Twitch's ceiling for audio.
@@ -74,14 +79,51 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
 }
 
 export function startEncoder(options) {
-  const ff = spawn('ffmpeg', encoderArgs(options), { stdio: ['pipe', 'inherit', 'inherit', 'pipe'] });
+  const ff = spawn('ffmpeg', encoderArgs(options), { stdio: ['pipe', 'ignore', 'pipe', 'pipe', 'pipe'] });
+  const stats = { seconds: 0, bytes: 0 };
+  let progress = '';
+  ff.stdio[4].on('data', (chunk) => {
+    progress += chunk;
+    const lines = progress.split('\n');
+    progress = lines.pop();
+    for (const line of lines) {
+      const [key, value] = line.split('=');
+      if (key === 'out_time_us' && Number.isFinite(Number(value))) stats.seconds = Number(value) / 1000000;
+      if (key === 'total_size' && Number.isFinite(Number(value))) stats.bytes = Number(value);
+    }
+  });
+  let errors = '';
+  const log = (line) => process.stderr.write(line.replace(/rtmps?:\/\/[^\s'"\]]+/g, '<stream-output>'));
+  ff.stderr.on('data', (chunk) => {
+    errors += chunk;
+    const end = errors.lastIndexOf('\n');
+    if (end >= 0) { log(errors.slice(0, end + 1)); errors = errors.slice(end + 1); }
+  });
+  ff.stderr.on('end', () => { if (errors) log(errors); });
   const video = ff.stdin;
   const audio = ff.stdio[3];
   let alive = true;
   const exited = new Promise((resolve) => ff.on('close', (code) => resolve((alive = false), code)));
   video.on('error', () => {});
   audio.on('error', () => {});
-  const write = (stream, data) => (stream.write(data) ? null : new Promise((r) => stream.once('drain', r)));
+  const waitForDrain = (stream) => new Promise((resolve) => {
+    const done = () => {
+      stream.off('drain', done);
+      ff.off('close', done);
+      resolve();
+    };
+    stream.once('drain', done);
+    ff.once('close', done);
+  });
+  const write = (stream, data) => {
+    if (!alive || stream.destroyed) return null;
+    return stream.write(data) || !alive || stream.destroyed ? null : waitForDrain(stream);
+  };
+  // FFmpeg 7's PCM demuxer still reads a block during stream discovery.
+  // Prime that input before waiting on Linux's smaller video socket buffer.
+  const primeFrames = Math.ceil(65536 / (48000 / options.fps * 8)) + 1;
+  const startup = [];
+  let primed = false;
   return {
     /**
      * Write one frame of video and its audio. Backpressure comes from the video
@@ -90,19 +132,30 @@ export function startEncoder(options) {
      * (bounded, as a safety net).
      */
     async frame(rgb, pcm) {
-      const copy = Buffer.from(pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength));
+      const copy = Buffer.from(new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength));
       audio.write(copy);
+      if (!primed) {
+        startup.push(Buffer.from(rgb));
+        if (startup.length < primeFrames) return;
+        primed = true;
+        for (const frame of startup) await write(video, frame);
+        startup.length = 0;
+        return;
+      }
       const waits = [write(video, rgb)];
-      if (audio.writableLength > 32 * 1024 * 1024) waits.push(new Promise((r) => audio.once('drain', r)));
+      if (audio.writableLength > 32 * 1024 * 1024) waits.push(waitForDrain(audio));
       const pending = waits.filter(Boolean);
-      if (pending.length) await Promise.race([Promise.all(pending), exited]);
+      if (pending.length) await Promise.all(pending);
     },
     async close() {
-      video.end();
       audio.end();
+      for (const frame of startup) await write(video, frame);
+      startup.length = 0;
+      video.end();
       return exited;
     },
     exited,
+    stats,
     get alive() {
       return alive;
     },

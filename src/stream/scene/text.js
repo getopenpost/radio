@@ -1,6 +1,6 @@
 // Painted text. Two faces: the 5x7 banner font and the 3x5 body font.
 // Masks and wrapped paragraphs are cached because a page repaints every frame.
-import { textMask, textMaskTiny } from './font.js';
+import { textMask, textMaskTiny, textWidth } from './font.js';
 
 const cache = { big: new Map(), tiny: new Map() };
 const wraps = new Map();
@@ -21,7 +21,7 @@ function maskOf(str, tiny) {
 
 /** Rendered width of `str` in pixels. */
 export function measure(str, tiny = false) {
-  return maskOf(str, tiny)[0]?.length ?? 0;
+  return textWidth(str, tiny);
 }
 
 /**

@@ -5,11 +5,13 @@
 import { createRng, hashString } from '../../compose/rng.js';
 
 const DAY_MS = 86400000;
+const formatters = new Map();
 
 /** Local calendar parts for a time zone. */
 export function localTime(date, timeZone) {
+  if (!formatters.has(timeZone)) formatters.set(timeZone, new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false }));
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-GB', { timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false })
+    formatters.get(timeZone)
       .formatToParts(date)
       .map((p) => [p.type, Number(p.value)]),
   );
@@ -48,10 +50,10 @@ export function seasonOf(month) {
  * Sky state at a moment: light level, sun and moon positions along their arcs
  * (both travel right to left, with the world), and twilight warmth.
  */
-export function sky(date, timeZone) {
+export function sky(date, timeZone, dayMinutes = 0) {
   const t = localTime(date, timeZone);
-  const { sunrise, sunset } = sunTimes(t.dayOfYear, t.offset);
-  const h = t.hours;
+  const { sunrise, sunset } = dayMinutes ? { sunrise: 6, sunset: 18 } : sunTimes(t.dayOfYear, t.offset);
+  const h = dayMinutes ? (6 + ((date.getTime() % (dayMinutes * 60000)) / (dayMinutes * 60000)) * 24) % 24 : t.hours;
   const twilight = 0.8; // hours of fade either side of sunrise and sunset
   let light;
   if (h < sunrise - twilight || h > sunset + twilight) light = 0;
@@ -87,10 +89,11 @@ const WEATHER = {
 };
 const WEATHER_BLOCK = 90 * 60000;
 
-export function weather(date, season) {
-  const block = Math.floor(date.getTime() / WEATHER_BLOCK);
+export function weather(date, season, dayMinutes = 0) {
+  const blockMs = dayMinutes ? dayMinutes * 60000 * 0.3 : WEATHER_BLOCK;
+  const block = Math.floor(date.getTime() / blockMs);
   const pick = (b) => createRng(hashString(`weather:${b}`)).weighted(WEATHER[season]);
-  const into = (date.getTime() % WEATHER_BLOCK) / 600000; // minutes/10 into the block
+  const into = (date.getTime() % blockMs) / (dayMinutes ? 90000 : 600000);
   const previous = pick(block - 1);
   const current = pick(block);
   const mix = Math.min(1, into);
@@ -110,7 +113,42 @@ const ACTIVITIES = {
   night: [[5, 'walk'], [2, 'campfire'], [2, 'work'], [1, 'stargaze'], [1, 'fish'], [1, 'fly'], [1, 'river'], [2, 'home']],
 };
 
-export function activity(date, light) {
+const programmes = new Map();
+
+/** A restart-stable day: 1–4 stops, with half its time reserved for walking. */
+export function dayProgramme(cycle, dayMinutes = 40) {
+  const key = `${cycle}:${dayMinutes}`;
+  if (programmes.has(key)) return programmes.get(key);
+  const rng = createRng(hashString(`programme:${key}`));
+  const count = rng.weighted([[1, 1], [5, 2], [9, 3], [9, 4]]);
+  const length = dayMinutes * 60000;
+  const parts = [];
+  let last = null;
+  for (let i = 0; i < count; i++) {
+    const start = cycle * length + i * length / count;
+    const middle = start + length / count / 2;
+    const end = start + length / count;
+    parts.push({ kind: 'walk', start, end: middle });
+    const day = (i + 0.75) / count < 0.5;
+    const choices = day
+      ? [[20, 'read'], [10, 'gym'], [2, 'work'], [2, 'fly'], [3, 'river'], [0.5, 'fish']]
+      : [[10, 'work'], [10, 'fly'], [5, 'campfire'], [2, 'home'], [0.5, 'stargaze'], [0.25, 'fish']];
+    const kind = rng.weighted(choices.filter(([, k]) => k !== last));
+    parts.push({ kind, start: middle, end });
+    last = kind;
+  }
+  if (programmes.size > 4) programmes.clear();
+  programmes.set(key, parts);
+  return parts;
+}
+
+export function activity(date, light, dayMinutes = 0) {
+  if (dayMinutes) {
+    const now = date.getTime();
+    const parts = dayProgramme(Math.floor(now / (dayMinutes * 60000)), dayMinutes);
+    const part = parts.find((p) => now < p.end) ?? parts.at(-1);
+    return { ...part, elapsed: now - part.start, length: part.end - part.start };
+  }
   const slot = Math.floor(date.getTime() / SLOT);
   const pickFor = (s, l) => {
     const rng = createRng(hashString(`activity:${s}`));

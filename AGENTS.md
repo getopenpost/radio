@@ -50,14 +50,26 @@ Project-specific rules. The shared global instructions still apply.
   audio pipe deadlocks while x264 fills its lookahead.
 - The scene (`src/stream/scene`) draws palette slots at 640x360; colours are
   set per frame in `palette.js` for light, season and weather, so new art
-  should use slots rather than fixed colours. Light follows the real sun:
-  OpenPost's light scheme by day, its dark scheme by night. New art must read
+  should use slots rather than fixed colours. The live programme uses a
+  40-minute world day, with the real calendar supplying the season. Use
+  `--day-minutes 0` for the real sun. Both use OpenPost's light scheme by day
+  and its dark scheme by night. New art must read
   on both, and day and night palettes must keep the same depth order (sky
   lightest, foreground darkest) or dusk washes the landscape out. Dither as OpenPost does: two
   neighbouring slots with a 4x4 Bayer band between solid ends, anchored to the
   layer that moves.
 - Sky, season, weather, region and activity derive from the wall clock
   (`clock.js`), so a restart shows the same world. Motion may keep state.
+- The normal programme reserves half each world day for walking and chooses
+  1–4 stops. Weather may replace an outdoor stop with work under shelter.
+- The NAS deployment is owned by
+  `~/.config/home/modules/services/openpost-radio/nas/`. Its Intel VAAPI
+  encoder replaces VPS software encoding. Generate music on a workstation,
+  then publish audio before the catalog with `scripts/publish-nas-library.sh`.
+- Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
+  can otherwise deadlock on Linux socket buffers during stream discovery.
+  Drain waits must remove their close handlers; racing a pending lifetime
+  promise per video frame retains handlers for the entire broadcast.
 - The Converge mark appears only as the logo in the brand chip; keep its
   geometry exact (`convergeMask`). The host character is the fox in
   `character.js`.
