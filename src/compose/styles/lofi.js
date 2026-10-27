@@ -21,7 +21,7 @@ export const lofi = makeStyle({
     texture: ['lofi'],
   },
   kitTags: ['lofi'],
-  levels: { sub: 0.8, bass: 0.8, kick: 1.05, snare: 0.55, hat: 0.3, openhat: 0.15, perc: 0.22, pad: 0.32, keys: 0.72, lead: 0.4, arp: 0.28, texture: 1 },
+  levels: { sub: 0.8, bass: 0.8, kick: 1.05, snare: 0.55, hat: 0.24, openhat: 0.15, perc: 0.22, pad: 0.32, keys: 0.72, lead: 0.4, arp: 0.28, texture: 1 },
   groove: 'boombap',
   swing: ['.swingBy(1/6, 8)', '.swingBy(1/5, 8)', '.swingBy(1/4, 8)'],
   duckDepth: [0.15, 0.3],

@@ -23,10 +23,12 @@ Project-specific rules. The shared global instructions still apply.
 - Every style's intro and outro must stay beatless (pads, sub, texture): the
   stream crossfades between any two tempos.
 - No steady noise beds (hiss, air, loud crackle): over hours they read as
-  noise. Keep `hf floor dB` from `npm run analyze` below -30 on the main
-  body (clean renders measure -33 to -39, the old hiss textures about -19,
-  the cafe reference -42 to -62). Textures are not calibrated; their style
-  level is the absolute gain.
+  noise. Keep `hf floor dB` from `npm run analyze` around -30 or lower on the
+  main body (a clean library measures -29 to -47, bright organ or saw leads
+  at the top of that; the old hiss textures sat near -19, the cafe reference
+  at -42 to -62). Shakers are filtered noise: keep them out of dense
+  sixteenth parts. Textures are not calibrated; their style level is the
+  absolute gain.
 - Keep each orbit's reverb settings constant within a track (`builder.js`
   buses). Changing room size per event regenerates the impulse response.
 - Keep sections sparse: at most two harmonic layers (pad, keys, pad2) and one

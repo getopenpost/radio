@@ -74,7 +74,7 @@ What keeps 8 hours from getting boring:
   plucked bass with air between the notes; cafe renders measure 272-330 Hz.
   Its guitar picks broken chords, because the soundfont guitars struck as
   block chords read as an electric piano. No style carries a steady noise
-  bed: `analyze` reports the high-frequency floor, which stays below -30 dB.
+  bed: `analyze` reports the high-frequency floor, which stays near -30 dB or lower.
 - **Listening**: `npm run audition` renders the opening of a few seeds per
   style and scores them with [earshot](https://github.com/Leonxlnx/earshot):
   how well each matches its style's description against "cheap synth demo",
