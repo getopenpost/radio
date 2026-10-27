@@ -63,6 +63,13 @@ Project-specific rules. The shared global instructions still apply.
   `acts/index.js`. They return the fox's pose and may walk it through their
   set by asking for ground speed (indoors, the gym, the river); keep every
   stop's set reading clearly at 640x360 and check it with the tour.
+- The fox stands at the horizontal centre (`FOX_X`). Poses that plant hands
+  on a bar or the floor leave the default arms off (`arms: false`) and draw
+  them with `chars.arm` (two-bone IK); rotate bodies with `angle`/`pivot`.
+  The head is half the fox: in near-horizontal poses keep it up with `nod`,
+  or the figure reads as a blob.
+- What the fox sees (screen, book, water, telescope) opens in a `pov.js`
+  panel in the sky above it, dissolving in and out, never cut abruptly.
 - Several outputs share one encode through tee with a fifo per output; keep
   `-flags +global_header` or flv outputs lose their codec headers.
 

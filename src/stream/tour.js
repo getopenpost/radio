@@ -34,7 +34,7 @@ const SCENES = [
   ['Fishing at golden hour', 60, { day: '2026-10-15', from: sunset('2026-10-15') - 1.2, to: sunset('2026-10-15') - 0.7, act: 'fish', weather: weather('windy', 'windy'), biome: 'alpine', look: 'bars', stay: 2.4, cut: true }],
   ['Campfire with friends', 75, { day: '2026-10-15', from: 22.3, to: 22.5, act: 'campfire', weather: weather('clear', 'clear'), biome: 'forest', look: 'grass', stay: 2.4, cut: true }],
   ['Stargazing by the sea', 60, { day: '2026-10-26', from: 22.8, to: 23, act: 'stargaze', weather: weather('clear', 'clear'), biome: 'coast', look: 'bars', stay: 2.2, cut: true }],
-  ['Winter: a friend on the bench', 65, { day: '2027-01-15', from: 12.5, to: 12.7, act: 'read', weather: weather('snow', 'snow'), biome: 'village', look: 'dots', stay: 2.4, cut: true }],
+  ['Winter: reading on the bench, then a friend', 65, { day: '2027-01-15', from: 12.5, to: 12.7, act: 'read', weather: weather('snow', 'snow'), biome: 'village', look: 'dots', stay: 2.4, cut: true }],
   ['Winter evening by the fire', 65, { day: '2027-01-15', from: 18.2, to: 18.4, act: 'home', weather: weather('snow', 'snow'), biome: 'village', look: 'ridge', stay: 2.2, cut: true }],
   ['Spring: a paper plane over the highlands', 50, { day: '2027-04-20', from: 9.5, to: 9.8, act: 'fly', weather: weather('clear', 'clear'), biome: 'highlands', look: 'ridge', stay: 1.4, cut: true, events: { 24: 'birds' } }],
   ['Halloween: a broom into the night', 45, { day: '2026-10-30', from: sunset('2026-10-30') - 0.2, to: sunset('2026-10-30') + 0.8, act: 'fly', weather: weather('clear', 'clear'), biome: 'alpine', look: 'grass', stay: 1.4, cut: true, events: { 20: 'plane' } }],

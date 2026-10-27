@@ -128,24 +128,30 @@ now start in phase with each note.
   scheme (warm charcoal) by night, blended through dawn and dusk. It is drawn
   in palette slots and dithered the way OpenPost's Dither material is: two
   neighbouring colours with a 4x4 Bayer band between solid ends. A fox with a
-  postbag walks it one step per beat. Everything follows the wall clock in Porto: the sun
+  postbag walks it one step per beat, in the middle of the frame. Everything follows the wall clock in Porto: the sun
   rises on the right and sets on the left, the moon follows its real phase and
   hours, seasons recolour and rebuild the land (snow, autumn trees, blossom,
   fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
   two hours the walk crosses into new country (hills, alpine, forest, village,
   coast, highlands). Every 15 minutes the fox may stop:
-  - fishing from a footbridge, sometimes landing a fish and letting it go;
+  - fishing from a pier over a lake that mirrors the bank, with a look under
+    the water at the hook as a fish comes to it, sometimes landing it and
+    letting it go;
   - working in its studio: it walks in, the front wall dissolves through the
     dither, and it sits at the desk with headphones and laptop, then leaves
-    by the far door;
+    by the far door. Now and then we see its screen: code being typed, an
+    email written and sent, a team chat, or a study app with a rotating
+    dithered globe (land from Natural Earth, public domain);
   - on cold days, curling up at home in an armchair by the fire with a book
     and cocoa, the cat asleep on the rug;
-  - a workout in a calisthenics park: pull-ups, dips, push-ups, handstand
-    push-ups and muscle-ups, counting reps, resting with water, sometimes
-    with a friend training alongside;
+  - a workout in a calisthenics park, with the camera moved in: pull-ups,
+    dips, push-ups, handstand push-ups (a tucked kick-up to the wall, the
+    head down to the floor) and muscle-ups. Hands stay planted on bars and
+    floor while the arms bend at the elbow; it counts reps, rests with
+    water, and sometimes a friend trains alongside;
   - rowing across a wide river past ducks, leaving the boat at the far jetty;
-  - a campfire where friends join, reading on a bench where friends sit down
-    for a chat, or stargazing, where a round view opens in the sky on what the
+  - a campfire where friends join, reading on a bench (we read over its
+    shoulder until a friend sits down for a chat), or stargazing, where a round view opens in the sky on what the
     telescope sees (the moon at its real phase, Saturn, Jupiter, a galaxy);
   - flying: it unfolds a letter from its bag into a paper plane and flies
     over the hills in an aviator cap (on a broom around Halloween).
@@ -153,8 +159,9 @@ now start in phase with each note.
   On the way, friends pass by and wave, or stop for a short chat in speech
   bubbles about their projects; in the rain everyone has an umbrella or a
   raincoat, and in winter a knitted beanie and scarf. Creeks cross the path
-  under little footbridges, light aircraft tow encouraging banners, birds and
-  shooting stars go by, and four visualizer looks (grass, dithered bars, dot
+  under little footbridges, light aircraft tow encouraging banners (some about
+  the hour, the weekday, the month or the season), the sea glitters along a
+  path under a low sun or the moon, birds and shooting stars go by, and four visualizer looks (grass, dithered bars, dot
   matrix, ridge) change with the track. A frame takes about 2 ms to draw.
 - **Encoder**: one ffmpeg process upscales 3x with nearest neighbour (crisp
   1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
