@@ -5,7 +5,7 @@ import { S } from './palette.js';
 const colors = { o: S.outline, b: S.bag, m: S.metal, l: S.paper, k: S.knit, d: S.knitDark };
 const OBJECTS = [
   sprite(['.oooo....', '.obbo....', '.obbo....', '.obboooo.', '.obbbbbo.', '.ooooooo.'], colors),
-  sprite(['..mm..', '..dd..', '.okko.', '.okko.', '.oklo.', '.okko.', '.oooo.'], colors),
+  sprite(['..mm..', '..mm..', '.oooo.', '.ollo.', '.ollo.', '.okko.', '.ollo.', '.oooo.'], colors),
   sprite(['.mmmm.', '.ommo.', '.omlo.', '.ommo.', '.ommo.', '.oooo.'], colors),
 ];
 
