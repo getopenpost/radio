@@ -6,6 +6,9 @@ import { bubble } from './bubbles.js';
 
 const STRIDE = 12;
 const MEET = 46; // how far apart they stand to talk
+const GREET = 34; // close enough to raise a paw in passing
+const GREET_FOR = 1.3; // a wave is a gesture, not a held-up hand
+const BYE_FOR = 1.3;
 
 // Lines alternate between the fox (a) and the friend (b), starting with `first`.
 const CHATS = [
@@ -26,6 +29,21 @@ const MORNING = { first: 'a', lines: ['GOOD MORNING!', 'MORNING! COFFEE?', 'ALRE
 
 const lineTime = (text) => 1.4 + text.length * 0.09;
 
+/**
+ * A paw raised to say hello: up quickly, a couple of waggles, then back down.
+ * Returns the paw position relative to the shoulder, or null once the gesture
+ * is over (so the arm never stays up while they walk away).
+ */
+function wavePose(t, span, phase = 0) {
+  if (t < 0 || t >= span) return null;
+  const rise = Math.min(1, t / 0.16);
+  const fall = Math.min(1, (span - t) / 0.3);
+  const lift = Math.min(rise, fall);
+  if (lift <= 0) return null;
+  const waggle = Math.round(Math.sin(t * 13 + phase) * 2.2);
+  return [2 + Math.round(lift) + Math.round(waggle * lift), Math.round(5 - 15 * lift)];
+}
+
 export function createEncounters(rng) {
   let npc = null;
   let next = 90;
@@ -37,7 +55,7 @@ export function createEncounters(rng) {
    */
   function update(canvas, chars, { time, dt, speed, walking, foxX, y, rain, winter, hour, force, forceChat }) {
     if (!npc && walking && (time > next || force || forceChat)) {
-      const chatty = forceChat || rng.chance(0.45);
+      const chatty = forceChat ?? rng.chance(0.45);
       const script = rain > 0.3 && rng.chance(0.5) ? RAIN : hour < 4 || hour > 22.5 ? LATE : hour > 6 && hour < 10.5 && rng.chance(0.4) ? MORNING : rng.pick(CHATS);
       npc = {
         species: rng.chance(0.5) ? 'bunny' : 'bear',
@@ -63,14 +81,22 @@ export function createEncounters(rng) {
       if (npc.phase === 'approach' && npc.chat && gap <= MEET) {
         npc.phase = 'talk';
         npc.since = time;
-      } else if (npc.phase === 'approach' && !npc.chat && gap < 70 && gap > -10) {
-        // Passing by: a wave and a quick hello each.
-        const wave = [3 + Math.round(Math.sin(time * 9)), -10];
-        pose.front = wave;
-        pose.eyes = 'happy';
-        out.fox = { front: [3 + Math.round(Math.sin(time * 9 + 1)), -10], eyes: 'happy', mouth: gap > 25 ? 'open' : 'smile' };
-        if (gap > 22) out.bubbles.push((foxHead) => bubble(canvas, foxHead[0], foxHead[1], 'HEY!', (70 - gap) / 12, 'left'));
-        if (gap < 48) out.bubbles.push(() => bubble(canvas, npc.x - 2, y - 33, 'HI!', (48 - gap) / 10, 'right'));
+      } else if (npc.phase === 'approach' && !npc.chat) {
+        // Passing by: a short wave once they are close, dropped before they
+        // walk on rather than held out the whole time they are in view.
+        if (npc.greetAt == null && gap <= GREET) npc.greetAt = time;
+        const g = npc.greetAt == null ? -1 : time - npc.greetAt;
+        const mine = wavePose(g, GREET_FOR);
+        const theirs = wavePose(g - 0.08, GREET_FOR, 1);
+        if (mine) {
+          pose.front = mine;
+          pose.eyes = 'happy';
+        }
+        if (theirs) {
+          out.fox = { front: theirs, eyes: 'happy', mouth: g > 0.3 ? 'smile' : 'open' };
+        }
+        if (g >= 0.05 && g < 0.75) out.bubbles.push((foxHead) => bubble(canvas, foxHead[0], foxHead[1], 'HEY!', (g - 0.05) / 0.35, 'left'));
+        if (g >= 0.15 && g < 0.9) out.bubbles.push(() => bubble(canvas, npc.x - 2, y - 33, 'HI!', (g - 0.15) / 0.35, 'right'));
       }
       if (npc.x < -40) npc = null;
     }
@@ -115,13 +141,16 @@ export function createEncounters(rng) {
         }
       } else {
         // Goodbye: both wave, then the friend walks on and the fox sets off.
-        const wave = (k) => [3 + Math.round(Math.sin(time * 9 + k)), -10];
-        pose.front = wave(0);
-        pose.eyes = 'happy';
-        out.fox = { front: wave(1), eyes: 'happy', mouth: 'open' };
-        out.bubbles.push((foxHead) => bubble(canvas, foxHead[0], foxHead[1], 'SEE YOU!', t / 0.5, 'left'));
-        if (t > 0.6) out.bubbles.push(() => bubble(canvas, npc.x - 2, y - 33, 'BYE!', (t - 0.6) / 0.3, 'right'));
-        if (t > 2.4) {
+        const mine = wavePose(t, BYE_FOR);
+        const theirs = wavePose(t - 0.08, BYE_FOR, 1);
+        if (mine) {
+          pose.front = mine;
+          pose.eyes = 'happy';
+        }
+        if (theirs) out.fox = { front: theirs, eyes: 'happy', mouth: 'open' };
+        if (t < 0.95) out.bubbles.push((foxHead) => bubble(canvas, foxHead[0], foxHead[1], 'SEE YOU!', t / 0.5, 'left'));
+        if (t >= 0.35 && t < 1.25) out.bubbles.push(() => bubble(canvas, npc.x - 2, y - 33, 'BYE!', (t - 0.35) / 0.3, 'right'));
+        if (t > 1.8) {
           npc.phase = 'go';
           out.pause = false;
         }
