@@ -7,6 +7,7 @@ import { createRng } from '../../../compose/rng.js';
 import { bubble, dialogue } from '../bubbles.js';
 import { createCanvas } from '../canvas.js';
 import { panel } from '../pov.js';
+import { viewAmount } from '../motion.js';
 import { bayer } from '../dither.js';
 import { CLEAR, S } from '../palette.js';
 import { bench, seg } from './common.js';
@@ -139,7 +140,7 @@ export default {
       speed = fox < -0.5 ? Math.min(8, 2 + -fox * 2) : 0;
       if (speed === 0) {
         Object.assign(pose, { headX: 2, headY: 1, eyes: 'closed', front: [6, -4], back: [5, -3] });
-        looking = Math.min(seg(u, 1.5, 3), 1 - seg(u, 17, 19));
+        looking = u > 1 && u < 18.8 ? 1 : 0;
       }
     } else if (u < 22) {
       Object.assign(pose, { front: [4, -12], eyes: 'happy', mouth: 'open' });
@@ -183,7 +184,7 @@ export default {
 
     const box = { x: Math.round(320 - 70), y: 30, w: 140, h: 140, round: true };
     c.state.view ??= 0;
-    c.state.view += (looking - c.state.view) * Math.min(1, c.dt * 5);
+    c.state.view = viewAmount(c.state.view, looking, c.dt);
     return {
       pose,
       speed,

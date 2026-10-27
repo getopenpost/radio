@@ -4,10 +4,11 @@
 // cold days, it curls up in an armchair by the fire. When it is time to go,
 // it walks out through the right door as the wall dissolves back.
 import { maskSprite } from '../canvas.js';
-import { band, bayer } from '../dither.js';
+import { bayer } from '../dither.js';
 import { S } from '../palette.js';
 import { convergeMask } from '../props.js';
 import { above, book, laptop, panel } from '../pov.js';
+import { revealCoverage, viewAmount } from '../motion.js';
 import { BOOK, drawFire, MUG, seg, steam, walkTo } from './common.js';
 
 const LEFT = -14; // outer walls, in set coordinates
@@ -40,17 +41,13 @@ function interiorShell(canvas, X, Y) {
 }
 
 /** A window in the back wall: the outside shows through (sky, rain or snow). */
-function backWindow(canvas, x0, y0, w, h, { rain, snow, time }) {
+function backWindow(canvas, x0, y0, w, h, outside) {
   canvas.rect(x0 - 2, y0 - 2, w + 4, h + 4, S.trunk);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const px = x0 + x;
       const py = y0 + y;
-      let c = band(y / h, 0.3, 1) > bayer(px, py) ? S.sky2 : S.sky1;
-      if (y > h - 4) c = (x + y) % 2 ? S.hill0 : S.hill1;
-      if (rain > 0.2 && (x * 3 + Math.floor(time * 30) + y * 7) % 23 === 0) c = S.rain;
-      if (snow > 0.2 && (x * 5 + y * 3 + Math.floor(time * 4)) % 31 === 0) c = S.snow;
-      canvas.set(px, py, c);
+      canvas.set(px, py, outside.data[(py - outside.top) * outside.width + px - outside.left]);
     }
   }
   canvas.rect(x0 + Math.floor(w / 2), y0, 1, h, S.trunk);
@@ -88,7 +85,7 @@ function facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, g
     for (let x = X + LEFT; x < X + RIGHT; x++) {
       const lx = x - X;
       const post = lx < LEFT + 4 || lx >= RIGHT - 4;
-      if (!post && cut > 0 && bayer(lx, y - Y) < cut) continue;
+      if (!post && cut > 0 && bayer(lx, y - Y) < revealCoverage(lx - LEFT, RIGHT - LEFT, cut, 8)) continue;
       const doorIn = lx >= DOOR_IN && lx < DOOR_IN + 12 && y >= Y - 24;
       const doorOut = lx >= DOOR_OUT && lx < DOOR_OUT + 12 && y >= Y - 24;
       if ((doorIn && leftOpen) || (doorOut && rightOpen)) continue;
@@ -117,7 +114,7 @@ function facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, g
       const y0 = Y - 44;
       for (let y = 0; y < 14; y++) {
         for (let x = 0; x < 16; x++) {
-          if (cut > 0 && bayer(wx + x, y0 - Y + y) < cut) continue;
+          if (cut > 0 && bayer(wx + x, y0 - Y + y) < revealCoverage(wx + x - LEFT, RIGHT - LEFT, cut, 8)) continue;
           const frame = x === 0 || x === 15 || y === 0 || y === 13 || x === 7 || y === 6;
           const glint = light > 0.5 && (x + y === 5 || x + y === 6) && x < 7;
           canvas.set(x0 + x, y0 + y, frame ? S.trunk : glint ? S.paper : S.window);
@@ -176,12 +173,11 @@ function roof(canvas, X, Y, { kind, winter, light, time }) {
 function makeHouse(kind) {
   const seatX = kind === 'work' ? 44 : 40;
   return {
-    spec: { anchored: true, extent: [LEFT - 10, EXIT + 10], intro: 6, outro: 14, light: 'any', indoors: true },
+    spec: { anchored: true, extent: [LEFT - 10, EXIT + 10], intro: 6, outro: 14, light: 'any', indoors: true, frameAt: kind === 'home' ? 88 : undefined },
     draw(c) {
-      const { canvas, X, Y, t, out, time, beat, light, season, rain, glows, state, hours } = c;
+      const { canvas, X, Y, t, out, time, beat, light, season, glows, state, hours } = c;
       const fox = c.foxX - X; // where the fox is in the set
       const cut = t < 0 ? 0 : cutaway(fox);
-      const snow = season === 'winter' ? 1 : 0;
       const leftOpen = fox > -6 && fox < 18;
       const rightOpen = fox > 86 && fox < EXIT - 4;
       const inFront = fox >= 6 && fox <= DOOR_OUT + 8;
@@ -189,12 +185,17 @@ function makeHouse(kind) {
       // Inside, drawn when the wall has started to go.
       const lamp = light < 0.7;
       if (cut > 0) {
+        // The panes are holes through to this same frame, including the real
+        // stars, hills and precipitation behind the house. No second sky.
+        state.backdrop ??= new Uint8Array((RIGHT - LEFT) * TOP);
+        const outside = { data: state.backdrop, left: X + LEFT, top: Y - TOP, width: RIGHT - LEFT };
+        for (let yy = 0; yy < TOP; yy++) for (let xx = 0; xx < outside.width; xx++) outside.data[yy * outside.width + xx] = canvas.get(outside.left + xx, outside.top + yy);
         interiorShell(canvas, X, Y);
         if (kind === 'work') {
           bookshelf(canvas, X + 8, Y - 1, 16, 38);
           canvas.rect(X + 28, Y - 50, 12, 12, S.paper);
           canvas.draw(POSTER, X + 30, Y - 48);
-          backWindow(canvas, X + 58, Y - 50, 22, 16, { rain, snow, time });
+          backWindow(canvas, X + 58, Y - 50, 22, 16, outside);
           clock(canvas, X + 96, Y - 44, hours);
           // Desk under the window, a chair, a plant and a lamp.
           canvas.rect(X + 52, Y - 16, 40, 2, S.trunk);
@@ -220,7 +221,7 @@ function makeHouse(kind) {
           canvas.rect(X + seatX - 7, Y - 24, 2, 16, S.trunk);
         } else {
           bookshelf(canvas, X + 4, Y - 1, 14, 30);
-          backWindow(canvas, X + 24, Y - 48, 16, 14, { rain, snow, time });
+          backWindow(canvas, X + 24, Y - 48, 16, 14, outside);
           canvas.rect(X + 46, Y - 46, 12, 9, S.trunk);
           canvas.rect(X + 47, Y - 45, 10, 7, S.knit);
           canvas.rect(X + 49, Y - 42, 6, 3, S.leaf0);
@@ -267,8 +268,8 @@ function makeHouse(kind) {
           const s = t - state.seated;
           Object.assign(pose, { legs: 'sit', seat: kind === 'work' ? 8 : 9, eyes: 'open' });
           if (kind === 'work') {
-            pose.headphones = s > 2;
-            const typing = s > 2 && s % 42 < 40;
+            pose.headphones = s > 0.35;
+            const typing = s > 1.3 && s % 42 < 40;
             pose.front = [10, 1 + (typing && Math.floor(beat * 2) % 2 ? -1 : 0)];
             pose.back = [9, 2 + (typing && Math.floor(beat * 2 + 1) % 2 ? -1 : 0)];
             pose.eyes = 'focus';
@@ -281,7 +282,7 @@ function makeHouse(kind) {
             }
             // Keep working, with a short sip rather than long idle intervals.
             // The desktop stays visible as focus passes between overlapping apps.
-            view = { kind: 'laptop', t: s, amount: seg(s, 2, 3.2) * (1 - seg(out, 0, 1.2)) };
+            view = { kind: 'laptop', t: Math.max(0, s - 0.85), amount: s >= 0.85 ? 1 : 0 };
           } else {
             // Read by the fire, pausing just long enough for a sip of cocoa.
             const u = s % 70;
@@ -291,7 +292,7 @@ function makeHouse(kind) {
               pose.eyes = 'focus';
               pose.headY = 1;
               item = 'book';
-              view = { kind: 'book', t: s, amount: seg(u, 1, 2.2) * (1 - seg(u, 63.5, 65)) };
+              view = { kind: 'book', t: s, amount: u > 0.3 && u < 64.8 ? 1 : 0 };
             } else {
               pose.back = [5, -6];
               pose.eyes = 'closed';
@@ -307,16 +308,14 @@ function makeHouse(kind) {
       // Keep the last view while it dissolves during a sip or departure.
       if (view) state.lastView = view;
       state.viewAmount ??= 0;
-      state.viewAmount += ((view?.amount ?? 0) - state.viewAmount) * Math.min(1, c.dt * 5);
+      state.viewAmount = viewAmount(state.viewAmount, view?.amount ?? 0, c.dt);
       const thought = view ?? state.lastView;
 
       // Things on the desk: the laptop (screen lit while open) and a mug.
-      const laptopOpen = kind === 'work' && fox >= seatX - 1 && (out === 0 ? t - (state.seated ?? t) > 3 : out < 1);
+      const laptopOpen = kind === 'work' && fox >= seatX - 1 && (out === 0 ? t - (state.seated ?? t) > 0.55 : out < 0.4);
       return {
         pose,
         speed,
-        zoom: kind === 'home' && out === 0 && state.seated != null ? 1.25 : 1,
-        focusX: kind === 'home' && out === 0 && state.seated != null ? X + 88 : undefined,
         done: out > 0 && fox >= EXIT - 1,
         after(paws) {
           if (cut > 0 && kind === 'work') {
@@ -341,8 +340,8 @@ function makeHouse(kind) {
           if (inFront) facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, glows, time });
           if (thought && state.viewAmount > 0.02) {
             const paint = thought.kind === 'laptop' ? (sc, b) => laptop(sc, b, thought.t, c.seed) : (sc, b) => book(sc, b, thought.t, c.seed);
-            // Leave room for the camera's modest zoom by the fireplace.
-            const box = thought.kind === 'laptop' ? above(280, 158) : { ...above(), x: Math.round(X + 88 - 108), y: 88 };
+            // Keep the book above the natively framed fireplace and chairs.
+            const box = thought.kind === 'laptop' ? { ...above(312, 158), y: 42 } : { ...above(), x: Math.round(X + 88 - 108), y: 46 };
             c.overlays.push(() => panel(canvas, box, state.viewAmount, paint, paws.top));
           }
         },

@@ -19,6 +19,7 @@ const NAMES = [
   'fire0', 'fire1', 'fire2', 'glow0', 'glow1', 'smoke', 'lampLight',
   'rain', 'snow', 'leafFall', 'light', 'banner', 'pill', 'hat', 'straw',
   'knit', 'knitDark', 'raincoat', 'raincoatDark', 'wallShade', 'roofShade', 'door', 'metal', 'metalDark', 'brass', 'interior', 'interiorShade', 'floor', 'roofSnow',
+  'uiBack', 'uiPaper', 'uiChrome', 'uiBorder', 'uiInk', 'uiMuted', 'uiAccent', 'uiCode', 'uiRail', 'uiToken', 'uiTeal', 'uiGold', 'uiSelected', 'uiImage', 'uiImageDark',
 ];
 export const S = Object.fromEntries(NAMES.map((n, i) => [n, i]));
 export const SLOTS = NAMES.length;
@@ -40,6 +41,15 @@ function rgb(value) {
   });
 }
 const table = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, rgb(v)]));
+
+// Emissive screen colours. The landscape follows the sun; a lit display
+// keeps its contrast instead of inheriting rain, moonlight or golden hour.
+const SCREEN = table({
+  uiBack: '#26312f', uiPaper: '#f1f1ec', uiChrome: '#e1e4dd', uiBorder: '#87948e',
+  uiInk: '#303b38', uiMuted: '#74827d', uiAccent: '#c16a36', uiCode: '#222b2b',
+  uiRail: '#192221', uiToken: '#d1d9cd', uiTeal: '#8abeb3', uiGold: '#d6b982',
+  uiSelected: '#d8e5df', uiImage: '#bcd1c3', uiImageDark: '#647e74',
+});
 
 const DAY = table({
   sky0: '#e8e2d6', sky1: '#f1ede4', sky2: '#f6f1e6', sunGlow: '#f7ead4', sun: '#f2b36b', moon: '#f1ede4', moonDark: '#e3ddd1', star: '#f6f1e6',
@@ -145,6 +155,10 @@ export function computePalette(out, { light, warmth, season, overcast, rain, fog
   mixInto(fogColor, NIGHT.sky1, DAY.sky1, light);
   for (let i = 0; i < SLOTS; i++) {
     const name = NAMES[i];
+    if (SCREEN[name]) {
+      out.set(SCREEN[name], i * 3);
+      continue;
+    }
     const day = seasonDay[name] ?? DAY[name];
     const night = seasonNight[name] ?? NIGHT[name];
     mixInto(c, night, day, light);

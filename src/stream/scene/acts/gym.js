@@ -1,6 +1,6 @@
 // A calisthenics park: a pull-up bar, dip bars, a mat for push-ups,
-// parallettes by a wall for handstand push-ups, and a bench. The camera moves
-// in while the fox trains. Each movement is built from its mechanics: hands
+// freestanding parallettes for handstand push-ups, and a bench. Each
+// movement is built from its mechanics: hands
 // stay planted on the bar or the floor and the arms bend at the elbow to
 // carry the body (drawn with `arm`), push-ups pivot on the toes, the handstand
 // starts with a kick-up over the hands and ends by coming back down. Reps are
@@ -15,28 +15,41 @@ const BAR = { from: 2, to: 34, y: 54 }; // pull-up bar: span and height above th
 const LOW = { from: 40, to: 58, y: 40 }; // the friend's lower bar
 const DIP = { from: 70, to: 92, y: 20 };
 const PUSH = 120; // where the fox stands to drop into push-ups
-const WALL = 168; // the wall face, with parallettes in front
 const PARALLETTE = { x: 160, h: 8 };
 const BENCH = 182;
-// Arm lengths per movement (upper arm, forearm): long for hanging under the
-// bar so the head clears it, short for push-ups so the plank stays low.
-const ARMS = { pullup: [10, 10], muscleup: [10, 10], dip: [7, 7], pushup: [6, 6], hspu: [9, 9] };
+const BOTTLE_AT = BENCH + 21;
+// Keep hanging/support arms close to the fox's usual proportions. Push-up
+// arms stay compact so the plank remains low to the mat.
+const ARMS = { pullup: [7, 7], muscleup: [6, 6], dip: [7, 7], pushup: [6, 6], hspu: [9, 9] };
 
 // The session: where each set happens, how many reps and how long each takes.
 const ROUTINE = [
   { kind: 'pullup', at: 18, reps: 5, rep: 2.6 },
-  { kind: 'shake', at: 18, time: 4 },
+  { kind: 'shake', at: 18, time: 2.5 },
   { kind: 'dip', at: 81, reps: 6, rep: 2.2 },
   { kind: 'pushup', at: PUSH, reps: 8, rep: 1.8 },
-  { kind: 'shake', at: PUSH, time: 3 },
-  { kind: 'hspu', at: PARALLETTE.x - 9, reps: 4, rep: 2.8, mount: 3 },
-  { kind: 'rest', at: BENCH + 10, time: 18 },
+  { kind: 'shake', at: PUSH, time: 2 },
+  { kind: 'hspu', at: PARALLETTE.x - 9, reps: 4, rep: 2.8, mount: 2.2 },
+  { kind: 'rest', at: BENCH + 10, time: 10 },
   { kind: 'muscleup', at: 18, reps: 2, rep: 4.2 },
   { kind: 'pullup', at: 18, reps: 3, rep: 2.6 },
-  { kind: 'rest', at: BENCH + 10, time: 22 },
+  { kind: 'rest', at: BENCH + 10, time: 12 },
 ];
 const MOUNT = 1.4; // seconds to get on (and off) the equipment, unless the set says
 const setLength = (s) => (s.reps ? 2 * (s.mount ?? MOUNT) + s.reps * s.rep : s.time);
+
+/** Rotate the little bottle about its cap, which stays at the mouth while sipping. */
+function bottle(canvas, capX, capY, angle = 0) {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  for (let y = -6; y <= 6; y++) for (let x = -6; x <= 6; x++) {
+    const sx = Math.round(x * cos + y * sin) + 1;
+    const sy = Math.round(-x * sin + y * cos);
+    if (sx < 0 || sx >= BOTTLE.w || sy < 0 || sy >= BOTTLE.h) continue;
+    const color = BOTTLE.data[sy * BOTTLE.w + sx];
+    if (color !== 255) canvas.set(Math.round(capX) + x, Math.round(capY) + y, color);
+  }
+}
 
 function equipment(canvas, X, Y) {
   const post = (x, h) => {
@@ -53,9 +66,7 @@ function equipment(canvas, X, Y) {
   canvas.rect(X + DIP.from, Y - DIP.y, DIP.to - DIP.from + 2, 2, S.metal);
   // A mat for push-ups.
   for (let x = PUSH - 22; x < PUSH + 10; x++) canvas.set(X + x, Y - 1, (x - PUSH) % 4 < 2 ? S.knit : S.knitDark);
-  // A padded wall, and low parallettes in front of it.
-  canvas.rect(X + WALL, Y - 46, 6, 46, S.trunk);
-  for (let y = Y - 44; y < Y; y += 6) canvas.rect(X + WALL, y, 6, 1, S.bag);
+  // Low parallettes with open space for the freestanding kick-up.
   canvas.rect(X + PARALLETTE.x - 4, Y - PARALLETTE.h, 9, 2, S.metal);
   canvas.rect(X + PARALLETTE.x - 4, Y - PARALLETTE.h + 2, 1, PARALLETTE.h - 2, S.metalDark);
   canvas.rect(X + PARALLETTE.x + 4, Y - PARALLETTE.h + 2, 1, PARALLETTE.h - 2, S.metalDark);
@@ -184,8 +195,8 @@ function perform(c, s, into, fx, Y, extra) {
     return { paws, count };
   }
   if (s.kind === 'hspu') {
-    // Facing the wall: crouch and plant the hands on the parallettes, kick up
-    // tucked over them, then stretch the legs to the wall (ears laid back).
+    // Plant the hands on the parallettes, kick up tucked over them, then
+    // balance with the legs stacked above the wrists (ears laid back).
     // Each rep lowers until the head nearly touches the floor between the
     // handles, then presses back up. Coming down runs the same in reverse.
     const hy = Y - PARALLETTE.h;
@@ -215,7 +226,7 @@ function perform(c, s, into, fx, Y, extra) {
     } else {
       sx = handX + 1;
       sy = up;
-      angle = Math.PI;
+      angle = Math.PI + Math.sin(time * 1.7) * 0.025;
       legs = 'hang';
     }
     if (k >= 1) sy = lerp(up, bottom, curve);
@@ -226,22 +237,27 @@ function perform(c, s, into, fx, Y, extra) {
   if (s.kind === 'shake') {
     return { paws: stand({ eyes: 'closed', mouth: 'smile', front: [2 + Math.round(Math.sin(time * 12) * 2), 6], back: [-2 - Math.round(Math.sin(time * 12) * 2), 6], sweat: true, ...extra }), count: null };
   }
-  // Rest on the bench: catch breath, drink, wipe the brow, smile.
+  // Reach to the same bottle that was already on the bench. Lift its cap to
+  // the lips, tilt the body, lower it, release it, then bring the hand back.
   const u = into;
-  const pose = { legs: 'sit', seat: 7, eyes: 'closed', sweat: u < 8, bob: Math.floor(time * 1.2) % 2, ...extra };
-  let bottle = false;
-  if (u > 3 && u < 7) {
-    Object.assign(pose, { back: [5, -6], eyes: 'closed' });
-    bottle = true;
-  } else if (u > 9 && u < 11) Object.assign(pose, { front: [4, -13], eyes: 'closed', mouth: 'o' });
-  else if (u > 11) Object.assign(pose, { eyes: 'open', mouth: 'smile' });
+  const lift = seg(u, 1.6, 2.4) * (1 - seg(u, 4.4, 5.25));
+  const capX = lerp(X + BOTTLE_AT, fx + 8, lift);
+  const capY = lerp(Y - 12, Y - 20, lift);
+  const angle = -1.8 * lift + (lift > 0.99 ? Math.sin(time * 3) * 0.025 : 0);
+  const reach = seg(u, 1, 1.6) * (1 - seg(u, 5.25, 5.7));
+  const front = u >= 1.6 && u < 5.25
+    ? [capX - Math.sin(angle) * 2.5 - fx - 3, capY + Math.cos(angle) * 2.5 - Y + 15]
+    : [lerp(2, 8, reach), lerp(5, 5.5, reach)];
+  const pose = { legs: 'sit', seat: 7, arms: false, front, back: [-2, 5], eyes: lift > 0.8 ? 'closed' : 'open', mouth: lift > 0.95 ? 'o' : 'smile', sweat: u < 2.5, nod: -0.05 * lift, ...extra };
+  chars.arm(canvas, 'fox', [fx - 2, Y - 15], [fx - 4, Y - 10], 1, { back: true, upper: 5, fore: 5 });
   const paws = stand(pose);
-  if (bottle) canvas.draw(BOTTLE, paws.backPaw[0] - 1, paws.backPaw[1] - 3);
+  chars.arm(canvas, 'fox', [fx + 3, Y - 15], paws.frontPaw, 1, { upper: 6, fore: 6 });
+  bottle(canvas, capX, capY, angle);
   return { paws, count: null };
 }
 
 export default {
-  spec: { anchored: true, extent: [-20, BENCH + 50], intro: 2, outro: 4, light: 'day' },
+  spec: { anchored: true, extent: [-20, BENCH + 50], intro: 2, outro: 4, light: 'day', frameAt: 108 },
   draw(c) {
     const { canvas, X, Y, t, out, time, state } = c;
     equipment(canvas, X, Y);
@@ -305,13 +321,12 @@ export default {
       // While training the activity draws the fox itself (arms and all).
       pose: set ? { hidden: true } : walkPose ?? {},
       speed,
-      zoom: out === 0 ? 1.6 : 1,
       after() {
         if (set) {
           const { paws, count } = perform(c, set.s, set.into, c.foxX, Y, c.winter ? { winter: true } : {});
           if (count) bubbles.push(() => bubble(canvas, paws.top[0], Math.min(paws.top[1], paws.head[1] - 10), count));
         }
-        if (!(set?.s.kind === 'rest' && set.into > 3 && set.into < 7)) canvas.draw(BOTTLE, X + BENCH + 32, Y - 12);
+        if (set?.s.kind !== 'rest') bottle(canvas, X + BOTTLE_AT, Y - 12);
         for (const b of bubbles) b();
       },
     };

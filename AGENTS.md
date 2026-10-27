@@ -65,13 +65,18 @@ Project-specific rules. The shared global instructions still apply.
   `acts/index.js`. They return the fox's pose and may walk it through their
   set by asking for ground speed (indoors, the gym, the river); keep every
   stop's set reading clearly at 640x360 and check it with the tour.
-- The fox stands at the horizontal centre (`FOX_X`). Poses that plant hands
+- The fox stays horizontally centred during travel. Frame a stationary set
+  with `spec.frameAt`, a point in that set's coordinates. Camera framing uses
+  native-grid translation at 640x360; integer upscaling belongs in the encoder.
+  Do not resize the finished frame, which makes pixel widths uneven.
+- Poses that plant hands
   on a bar or the floor leave the default arms off (`arms: false`) and draw
   them with `chars.arm` (two-bone IK); rotate bodies with `angle`/`pivot`.
   The head is half the fox: in near-horizontal poses keep it up with `nod`,
   or the figure reads as a blob.
 - What the fox sees (screen, book, water, telescope) opens in a `pov.js`
-  panel in the sky above it, dissolving in and out, never cut abruptly.
+  panel in the sky above it. Queue views in `overlays`, above world weather;
+  use `motion.js` for their short dithered reveals and exits.
 - Several outputs share one encode through tee with a fifo per output; keep
   `-flags +global_header` or flv outputs lose their codec headers.
 
@@ -82,5 +87,5 @@ and a stream preview (`npm run stream -- --output tmp/p.mp4 --duration 60`) for
 changes in those areas. For scene changes, look at stills across the day and
 year (`npm run scene -- --at <iso> --at <iso>`); `--clock` and
 `--clock-speed` on the stream preview start it at a chosen time, and
-`npm run stream -- --tour` renders the scripted twelve-minute tour in
+`npm run stream -- --tour` renders the scripted tour in
 `src/stream/tour.js` (extend it when adding scene features).

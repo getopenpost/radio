@@ -4,10 +4,11 @@ import { createRng } from '../../compose/rng.js';
 import { createCanvas } from './canvas.js';
 import { clamp01, smooth } from './dither.js';
 import { S } from './palette.js';
+import { MOTION } from './motion.js';
 
 const leaf = createCanvas();
 const PERIOD = 20;
-const TURN = 1.3;
+const TURN = MOTION.page;
 
 function page(c, x, y, w, h, number, seed, reading = -1) {
   const r = createRng(seed + number * 97);

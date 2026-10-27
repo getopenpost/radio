@@ -15,6 +15,7 @@ import { createEncounters } from './encounter.js';
 import { activity, sky as skyAt, weather as weatherAt, weatherAmount } from './clock.js';
 import { bayer, clamp01 } from './dither.js';
 import { computePalette, S, SLOTS } from './palette.js';
+import { MOTION, revealCoverage } from './motion.js';
 import { convergeMask, CREEK_SPAN, creekLift, creekRail, drawCreek, drawProp, PROP_KINDS } from './props.js';
 import { arc, createSky } from './sky.js';
 import { createVisualizer, MODES } from './visualizer.js';
@@ -65,10 +66,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   let lastStep = 0;
   let actSpeed = 0; // what the current stop asks the ground to do (flying keeps it moving)
   let actDone = false; // the current stop says it is finished (the river is crossed)
-  let actZoom = 1; // how close the current stop wants the camera
-  let zoom = 1;
-  let focusX = FOX_X;
-  const zoomed = new Uint8Array(WIDTH * HEIGHT);
+  let cameraBlend = 0;
+  let cameraAnchor = 0; // world coordinate kept at screen centre by a framed activity
   const finished = new Set(); // stops already done in their time slot
   let lift = 0; // how high the fox is off the path
   const footprints = [];
@@ -85,7 +84,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       let sx = shift;
       for (let x = 0; x < WIDTH; x++) {
         let v = strip.data[row + sx];
-        if (prev && bayer(sx, sy) >= mix) v = prev.data[row + sx];
+        if (prev && bayer(sx, sy) >= revealCoverage(x, WIDTH, mix, 20)) v = prev.data[row + sx];
         if (v !== 255) index[out + x] = v;
         if (++sx === STRIP) sx = 0;
       }
@@ -218,7 +217,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       world = next;
       dissolve = previous ? 0 : 1;
     }
-    if (dissolve < 1) dissolve = Math.min(1, dissolve + dt / 45);
+    if (dissolve < 1) dissolve = Math.min(1, dissolve + dt / MOTION.world);
     const prev = dissolve < 1 ? previous : null;
 
     // Walking pace follows the tempo, one step per beat, nudged to land on the beat.
@@ -271,10 +270,19 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     }
     ground += speed * dt;
 
+    // Move the camera through the world, never resize the finished pixel
+    // frame. A framed set stays still while the fox walks between stations.
+    const frameAt = mode === 'stay' && act && act.outStart == null ? ACTS[act.kind].frameAt : null;
+    const framing = Number.isFinite(frameAt);
+    if (framing) cameraAnchor = act.wx + frameAt;
+    cameraBlend = framing ? Math.min(1, cameraBlend + dt / 0.65) : Math.max(0, cameraBlend - dt / 0.4);
+    const viewGround = ground + (cameraAnchor - FOX_X - ground) * (cameraBlend * cameraBlend * (3 - 2 * cameraBlend));
+    const foxX = FOX_X + ground - viewGround;
+
     // Sky, then the three landscape layers in parallax.
     sky.draw(canvas, { time, dt, light: st.light, sunProgress: st.sun, moonProgress: st.moon, moonAge: st.moonAge, overcast, wind, date });
-    const farOffset = ground * 0.08;
-    const hillOffset = ground * 0.3;
+    const farOffset = viewGround * 0.08;
+    const hillOffset = viewGround * 0.3;
     blit(world.far, farOffset, prev?.far, dissolve);
     if (world.biome === 'coast') {
       // The sea glints: short streaks drifting along each swell line, all
@@ -296,10 +304,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     blit(world.hills, hillOffset, prev?.hills, dissolve);
     const glows = [];
     drawHillLife(time, hillOffset, st.light);
-    blit(world.ground, ground, prev?.ground, dissolve);
+    blit(world.ground, viewGround, prev?.ground, dissolve);
 
     // Props along the path while walking.
-    while (nextProp < ground + WIDTH + 40) {
+    while (nextProp < Math.max(ground, viewGround) + WIDTH + 40) {
       const blocked = act && nextProp > act.wx + ACTS[act.kind].extent[0] - 40 && nextProp < act.wx + ACTS[act.kind].extent[1] + 40;
       if (!blocked && mode !== 'arrive') {
         // Now and then the path crosses a creek on a little footbridge.
@@ -310,16 +318,16 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       }
       nextProp += rng.int(110, 340);
     }
-    props = props.filter((p) => p.wx - ground > -40);
+    props = props.filter((p) => p.wx - Math.min(ground, viewGround) > -40);
     let bridge = 0; // how high a footbridge lifts the fox
     for (const p of props) {
       if (p.kind === 'creek') {
-        const x = Math.round(p.wx - ground);
+        const x = Math.round(p.wx - viewGround);
         drawCreek(canvas, x, PATH_Y, time);
-        bridge = Math.max(bridge, creekLift(FOX_X - x));
+        bridge = Math.max(bridge, creekLift(foxX - x));
         continue;
       }
-      const lamp = drawProp(canvas, p.kind, Math.round(p.wx - ground), PATH_Y - 3, p.seed);
+      const lamp = drawProp(canvas, p.kind, Math.round(p.wx - viewGround), PATH_Y - 3, p.seed);
       if (lamp && st.light < 0.55) glows.push({ x: lamp.x, y: lamp.y + 2, r: 22, strength: 0.9 * (1 - st.light * 1.6), squash: 0.8 });
     }
 
@@ -332,10 +340,16 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       }
       lastStep = stepIndex;
       for (const f of footprints) {
-        const x = Math.round(f - ground);
-        if (x > -4 && x < FOX_X - 2) canvas.rect(x, PATH_Y, 2, 1, S.pathEdge);
+        const x = Math.round(f - viewGround);
+        if (x > -4 && x < foxX - 2) canvas.rect(x, PATH_Y, 2, 1, S.pathEdge);
       }
     }
+
+    weatherFx.draw(canvas, {
+      dt, time, rain, snow, wind, scroll: speed,
+      leaves: st.season === 'autumn' ? 0.25 + windy * 0.75 : 0,
+      fireflies: st.season === 'summer' && st.light < 0.3 ? 1 - st.light * 3 : 0,
+    });
 
     // The set for the current stop, behind the fox.
     const spec = act && ACTS[act.kind];
@@ -343,14 +357,12 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     let actPose = null;
     let after = null;
     let actLift = 0;
-    actZoom = 1;
-    let actFocusX = FOX_X;
     if (act) {
-      const X = spec.anchored ? Math.round(act.wx - ground) : FOX_X; // unanchored sets travel with the fox
+      const X = spec.anchored ? Math.round(act.wx - viewGround) : foxX; // unanchored sets travel with the fox
       const t = act.start == null ? -1 : time - act.start;
       const out = act.outStart == null ? 0 : Math.min(spec.outro, time - act.outStart);
       const res = drawAct(act.kind, {
-        canvas, chars, X, Y: PATH_Y, foxX: FOX_X, t, out, time, dt, beat, light: st.light, season: st.season, rain, glows, overlays, seed: act.seed, state: act.state,
+        canvas, chars, X, Y: PATH_Y, foxX, t, out, time, dt, beat, light: st.light, season: st.season, rain, glows, overlays, seed: act.seed, state: act.state,
         hours: st.hours, moonUp: st.moon != null && st.light < 0.5, moonAge: st.moonAge, winter: st.season === 'winter',
         festive: (st.month === 10 && st.day >= 24) || (st.month === 11 && st.day <= 1),
         trigger: (kind, key) => sky.trigger(kind, key),
@@ -362,14 +374,12 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       after = res?.after ?? null; // sets still draw over the fox while it walks away
       actSpeed = res?.speed ?? 0;
       actDone = Boolean(res?.done);
-      actZoom = (mode === 'stay' && res?.zoom) || 1;
-      if (mode === 'stay') actFocusX = res?.focusX ?? FOX_X;
     }
     lift = actLift || bridge;
 
     // A friend passing the other way now and then: a wave, or a stop for a chat.
     const meeting = encounters.update(canvas, chars, {
-      time, dt, speed, walking: mode === 'walk' && !act, foxX: FOX_X, y: PATH_Y - 3, rain, winter: st.season === 'winter', hour: st.hours, force: steer?.npc, forceChat: steer?.chat,
+      time, dt, speed, walking: mode === 'walk' && !act, foxX, y: PATH_Y - 3, rain, winter: st.season === 'winter', hour: st.hours, force: steer?.npc, forceChat: steer?.chat,
     });
     paused = meeting.pause;
 
@@ -408,17 +418,11 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     }
     // Some stops draw the fox themselves (the gym plants its hands with drawn arms).
     const paws = actPose?.hidden
-      ? { top: [FOX_X, PATH_Y - 30], head: [FOX_X, PATH_Y - 18], frontPaw: [FOX_X + 5, PATH_Y - 6], backPaw: [FOX_X - 4, PATH_Y - 6] }
-      : chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, facing, pose);
+      ? { top: [foxX, PATH_Y - 30], head: [foxX, PATH_Y - 18], frontPaw: [foxX + 5, PATH_Y - 6], backPaw: [foxX - 4, PATH_Y - 6] }
+      : chars.draw(canvas, 'fox', foxX, PATH_Y - lift, facing, pose);
     if (after) after(paws);
-    for (const p of props) if (p.kind === 'creek') creekRail(canvas, Math.round(p.wx - ground), PATH_Y);
+    for (const p of props) if (p.kind === 'creek') creekRail(canvas, Math.round(p.wx - viewGround), PATH_Y);
     for (const b of meeting.bubbles) b(paws.top);
-
-    weatherFx.draw(canvas, {
-      dt, time, rain, snow, wind, scroll: speed,
-      leaves: st.season === 'autumn' ? 0.25 + windy * 0.75 : 0,
-      fireflies: st.season === 'summer' && st.light < 0.3 ? 1 - st.light * 3 : 0,
-    });
 
     // Light pools after dark.
     if (st.light < 0.75) for (const g of glows) canvas.glow(g.x, g.y, g.r, g.strength, [S.glow0, S.glow1], LIT, g.squash ?? 1);
@@ -427,30 +431,9 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     // the fox's screen or between the printed lines of the book.
     for (const o of overlays) o(paws);
 
-    // The camera moves in on some stops (the gym), easing in and out; the
-    // ground line sits lower in the frame as it closes in.
-    zoom += (actZoom - zoom) * Math.min(1, dt * 1.2);
-    focusX += (actFocusX - focusX) * Math.min(1, dt * 0.7);
-    if (zoom > 1.01 || Math.abs(focusX - FOX_X) > 0.5) {
-      const { index } = canvas;
-      zoomed.set(index);
-      // Panning needs the margin provided by the zoom. Keep every sample
-      // inside the picture, including while the two eases settle at different
-      // rates, or a star/tree on the edge stretches into a horizontal streak.
-      const halfView = WIDTH / (2 * zoom);
-      const cx = Math.max(halfView, Math.min(WIDTH - halfView, focusX));
-      const cy = HEIGHT / 2 + (PATH_Y - 54 - HEIGHT / 2) * (zoom - 1);
-      for (let y = 0; y < HEIGHT; y++) {
-        const sy = Math.max(0, Math.min(HEIGHT - 1, Math.floor(cy + (y - HEIGHT / 2) / zoom)));
-        const row = sy * WIDTH;
-        const out = y * WIDTH;
-        for (let x = 0; x < WIDTH; x++) index[out + x] = zoomed[row + Math.max(0, Math.min(WIDTH - 1, Math.floor(cx + (x - WIDTH / 2) / zoom)))];
-      }
-    }
-
     if (steer?.look) visualizer.choose(steer.look);
     else if (trackId) visualizer.choose(MODES[hashString(trackId) % MODES.length]);
-    visualizer.draw(canvas, { dt, bands, scroll: ground });
+    visualizer.draw(canvas, { dt, bands, scroll: viewGround });
 
     // Brand chip (top left) and now-playing pill (top right); ffmpeg draws the text.
     roundedRect(BRAND.x, BRAND.y, BRAND.w, BRAND.h, 7, S.pill);

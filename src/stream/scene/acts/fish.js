@@ -89,7 +89,7 @@ export default {
       pose,
       after(paws) {
         // Follow the hook down to the litter, then watch the retrieval.
-        if (u >= 16 && u < 34) c.overlays.push(() => panel(canvas, above(), seg(u, 16, 17.2) * (1 - seg(u, 32.8, 34)), (sc, b) => underwater(sc, b, u - 17, { strike: 14, caught: catches, item: c.seed + cycle }), paws.top));
+        if (u >= 16 && u < 34) c.overlays.push(() => panel(canvas, above(), seg(u, 16, 16.22) * (1 - seg(u, 33.86, 34)), (sc, b) => underwater(sc, b, u - 17, { strike: 14, caught: catches, item: c.seed + cycle }), paws.top));
         if (angle == null) return;
         const [px, py] = paws.frontPaw;
         const rad = (angle * Math.PI) / 180;

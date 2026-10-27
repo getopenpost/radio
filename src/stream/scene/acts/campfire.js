@@ -5,7 +5,7 @@ import { clamp01 } from '../dither.js';
 import { drawFire, seg, steam } from './common.js';
 
 export default {
-  spec: { anchored: true, extent: [-16, 90], intro: 10, outro: 30, light: 'night' },
+  spec: { anchored: true, extent: [-16, 90], intro: 10, outro: 30, light: 'night', frameAt: 37 },
   draw(c) {
     const { canvas, chars, X, Y, t, out, time, beat, light, glows } = c;
     // Logs to sit on, a ring of stones and the fire.
@@ -85,8 +85,6 @@ export default {
     if (u < 0 || u >= 26) pose.headY = Math.floor(beat) % 2 ? 1 : 0;
     return {
       pose,
-      zoom: out === 0 ? 1.2 : 1,
-      focusX: out === 0 ? fx + 7 : undefined,
       after(paws) {
         if (!stick) return;
         const [px, py] = paws.frontPaw;

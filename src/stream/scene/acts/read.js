@@ -4,6 +4,7 @@
 import { bubble, dialogue, dialogueLength } from '../bubbles.js';
 import { S } from '../palette.js';
 import { above, book, panel } from '../pov.js';
+import { viewAmount } from '../motion.js';
 import { BIRD, BOOK, bench, lerp, seg } from './common.js';
 import { dressFor, visitor } from './visitor.js';
 
@@ -87,9 +88,9 @@ export default {
     else state.alone ??= t;
     const nextVisit = FIRST + (k + 1) * PERIOD;
     const u = state.alone == null ? 0 : t - state.alone;
-    const targetView = state.alone == null ? 0 : seg(u, 1, 2.2) * (1 - seg(out, 0, 1.2));
+    const targetView = state.alone != null && u > 0.35 && out === 0 ? 1 : 0;
     state.view ??= 0;
-    state.view += (targetView - state.view) * Math.min(1, c.dt * 5);
+    state.view = viewAmount(state.view, targetView, c.dt);
 
     // A small bird lands on the free end of the backrest now and then.
     // It comes while the fox is alone and leaves before anyone arrives.

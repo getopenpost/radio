@@ -17,8 +17,8 @@ function frame(t) {
 function pointers(c) {
   const found = [];
   for (let y = box.y; y < box.y + box.h - 5; y++) for (let x = box.x + 1; x < box.x + box.w - 1; x++) {
-    if (c.get(x, y - 1) !== S.ink || c.get(x, y + 4) !== S.ink) continue;
-    if ([0, 1, 2, 3].every((dy) => c.get(x, y + dy) === S.paper && c.get(x - 1, y + dy) === S.ink)) found.push([x, y]);
+    if (c.get(x, y - 1) !== S.uiInk || c.get(x, y + 4) !== S.uiInk) continue;
+    if ([0, 1, 2, 3].every((dy) => c.get(x, y + dy) === S.uiPaper && c.get(x - 1, y + dy) === S.uiInk)) found.push([x, y]);
   }
   return found;
 }
@@ -35,7 +35,7 @@ test('the rendered pointer does not teleport when its old six-second loop ends',
 
 test('the editor renders varied syntax tokens rather than one repeated solid bar per line', () => {
   const c = frame(12);
-  const syntax = new Set([S.paper, S.logo, S.knit, S.brass]);
+  const syntax = new Set([S.uiToken, S.uiAccent, S.uiTeal, S.uiGold]);
   let detailedRows = 0;
   for (let y = box.y + 44; y < box.y + box.h - 30; y++) {
     let tokens = 0;

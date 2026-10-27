@@ -6,6 +6,7 @@
 // the dither.
 import { localTime, sunTimes } from './scene/clock.js';
 import { biomeOf } from './scene/world.js';
+import { MOTION } from './scene/motion.js';
 
 const firstRegion = (biome) => {
   for (let r = 249000; ; r++) if (biomeOf(r) === biome) return r;
@@ -27,15 +28,15 @@ const weather = (previous, current, ramp = 0) => (s) => ({ previous, current, mi
 // [title, seconds, { day, from/to: local hours (the clock runs between), act, weather, biome, look, stay, cut, events }]
 const SCENES = [
   ['Dawn walk through fog', 45, { day: '2026-10-14', from: 6.8, to: 9.1, act: 'walk', weather: weather('fog', 'clear', 45), biome: 'hills', look: 'grass', events: { 10: 'birds', 26: 'plane' } }],
-  ['Into the studio to work', 140, { day: '2026-10-14', from: 9.6, to: 9.8, act: 'work', weather: weather('clear', 'clear'), biome: 'village', look: 'bars', stay: 2, cut: true }],
+  ['Into the studio to work', 105, { day: '2026-10-14', from: 9.6, to: 9.8, act: 'work', weather: weather('clear', 'clear'), biome: 'village', look: 'bars', stay: 2, cut: true }],
   ['Rain, and a chat with a friend', 50, { day: '2026-10-14', from: 12.5, to: 12.7, act: 'walk', weather: weather('cloudy', 'rain', 15), biome: 'village', look: 'dots', cut: true, events: { 16: 'chat' } }],
-  ['The calisthenics park', 95, { day: '2026-10-15', from: 10.5, to: 10.7, act: 'gym', weather: weather('clear', 'clear'), biome: 'highlands', look: 'ridge', stay: 2.6, cut: true }],
-  ['Rowing across the river', 60, { day: '2026-10-15', from: 14.5, to: 14.7, act: 'river', weather: weather('clear', 'clear'), biome: 'hills', look: 'grass', stay: 2.8, cut: true }],
-  ['Cleaning the lake at golden hour', 60, { day: '2026-10-15', from: sunset('2026-10-15') - 1.2, to: sunset('2026-10-15') - 0.7, act: 'fish', weather: weather('windy', 'windy'), biome: 'alpine', look: 'bars', stay: 2.4, cut: true }],
-  ['Campfire with friends', 75, { day: '2026-10-15', from: 22.3, to: 22.5, act: 'campfire', weather: weather('clear', 'clear'), biome: 'forest', look: 'grass', stay: 2.4, cut: true }],
-  ['Stargazing by the sea', 55, { day: '2026-10-26', from: 22.8, to: 23, act: 'stargaze', weather: weather('clear', 'clear'), biome: 'coast', look: 'bars', stay: 2.2, cut: true }],
-  ['Winter: reading on the bench, then a friend', 65, { day: '2027-01-15', from: 12.5, to: 12.7, act: 'read', weather: weather('snow', 'snow'), biome: 'village', look: 'dots', stay: 2.4, cut: true }],
-  ['Winter evening by the fire', 65, { day: '2027-01-15', from: 18.2, to: 18.4, act: 'home', weather: weather('snow', 'snow'), biome: 'village', look: 'ridge', stay: 2.2, cut: true }],
+  ['The calisthenics park', 130, { day: '2026-10-15', from: 10.5, to: 10.7, act: 'gym', weather: weather('clear', 'clear'), biome: 'highlands', look: 'ridge', stay: 1.5, cut: true }],
+  ['Rowing across the river', 60, { day: '2026-10-15', from: 14.5, to: 14.7, act: 'river', weather: weather('clear', 'clear'), biome: 'hills', look: 'grass', stay: 1.6, cut: true }],
+  ['Cleaning the lake at golden hour', 60, { day: '2026-10-15', from: sunset('2026-10-15') - 1.2, to: sunset('2026-10-15') - 0.7, act: 'fish', weather: weather('windy', 'windy'), biome: 'alpine', look: 'bars', stay: 1.5, cut: true }],
+  ['Campfire with friends', 75, { day: '2026-10-15', from: 22.3, to: 22.5, act: 'campfire', weather: weather('clear', 'clear'), biome: 'forest', look: 'grass', stay: 1.3, cut: true }],
+  ['Stargazing by the sea', 55, { day: '2026-10-26', from: 22.8, to: 23, act: 'stargaze', weather: weather('clear', 'clear'), biome: 'coast', look: 'bars', stay: 1.4, cut: true }],
+  ['Winter: reading on the bench, then a friend', 65, { day: '2027-01-15', from: 12.5, to: 12.7, act: 'read', weather: weather('snow', 'snow'), biome: 'village', look: 'dots', stay: 1.8, cut: true }],
+  ['Winter evening by the fire', 65, { day: '2027-01-15', from: 18.2, to: 18.4, act: 'home', weather: weather('snow', 'snow'), biome: 'village', look: 'ridge', stay: 1.5, cut: true }],
   ['Spring: a paper plane over the highlands', 50, { day: '2027-04-20', from: 9.5, to: 9.8, act: 'fly', weather: weather('clear', 'clear'), biome: 'highlands', look: 'ridge', stay: 1.4, cut: true, events: { 24: 'birds' } }],
   ['Halloween: a broom into the night', 45, { day: '2026-10-30', from: sunset('2026-10-30') - 0.2, to: sunset('2026-10-30') + 0.8, act: 'fly', weather: weather('clear', 'clear'), biome: 'alpine', look: 'grass', stay: 1.4, cut: true, events: { 20: 'plane' } }],
 ];
@@ -56,7 +57,7 @@ export function createTour() {
     const into = seconds - start;
     const p = Math.min(1, into / length);
     const date = new Date(local(s.day, s.from + (s.to - s.from) * p));
-    const steer = { activity: s.act, key: index, weather: s.weather(into), region: firstRegion(s.biome), look: s.look, fresh: s.cut && into < 1.2 };
+    const steer = { activity: s.act, key: index, weather: s.weather(into), region: firstRegion(s.biome), look: s.look, fresh: s.cut && into < MOTION.tour };
     for (const [at, what] of Object.entries(s.events ?? {})) {
       const key = `${index}:${at}`;
       // A meeting waits (up to 15 s) until the fox is walking; sky events fire once.
@@ -68,6 +69,6 @@ export function createTour() {
       }
     }
     const rate = state.mode === 'stay' && state.act === s.act ? s.stay ?? 1.5 : 3;
-    return { title, date, steer, rate, cut: s.cut && into < 1.2 ? into / 1.2 : null, scene: index };
+    return { title, date, steer, rate, cut: s.cut && into < MOTION.tour ? into / MOTION.tour : null, scene: index };
   };
 }

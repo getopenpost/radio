@@ -21,6 +21,7 @@ import { createDirector } from './director.js';
 import { CHAR_WIDTH, isRtmp, startEncoder } from './encoder.js';
 import { createScene, HEIGHT, WIDTH } from './scene/index.js';
 import { bayer } from './scene/dither.js';
+import { revealCoverage } from './scene/motion.js';
 import { createSource } from './source.js';
 import { createTour, TOUR_SECONDS } from './tour.js';
 import { createSpectrum } from './spectrum.js';
@@ -159,7 +160,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     rgb = scene.render({ time: tourTime, dt, date: step.date, beat: (tourTime * active.track.bpm) / 60, bpm: active.track.bpm, bands: spectrum.update(mix), pillWidth, steer: step.steer });
     // A jump in time dissolves through the Bayer pattern from the last picture.
     if (step.cut != null) {
-      for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x >> 1, y >> 1) >= step.cut) cutFrom.copy(rgb, o, o, o + 3);
+      for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x, y) >= revealCoverage(x, WIDTH, step.cut, 24)) cutFrom.copy(rgb, o, o, o + 3);
     }
     lastFrame.set(rgb);
   } else {

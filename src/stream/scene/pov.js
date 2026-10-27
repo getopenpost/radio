@@ -7,6 +7,7 @@ import { createCanvas, HEIGHT, WIDTH } from './canvas.js';
 import { band, bayer, clamp01, smooth } from './dither.js';
 import { CLEAR, S } from './palette.js';
 import { trash } from './trash.js';
+import { revealCoverage } from './motion.js';
 
 const scratch = createCanvas();
 
@@ -27,8 +28,12 @@ export function panel(canvas, box, amount, paint, from) {
   for (let yy = y - 2; yy < y + h + 2; yy++) {
     for (let xx = x - 2; xx < x + w + 2; xx++) {
       if (xx < 0 || yy < 0 || xx >= WIDTH || yy >= HEIGHT) continue;
-      const th = bayer(xx >> 1, yy >> 1);
-      if (th >= amount) continue;
+      // Intact content behind a small moving edge, not a screen full of
+      // sparse checkerboard pixels. The Bayer grid travels with the view.
+      const coverage = round
+        ? revealCoverage(Math.hypot(xx - cx + 0.5, yy - cy + 0.5), r + 2, amount, 5)
+        : revealCoverage(xx - x, w + 2, amount);
+      if (bayer(xx - x, yy - y) >= coverage) continue;
       let edge;
       if (round) {
         const d = Math.hypot(xx - cx + 0.5, yy - cy + 0.5);
@@ -48,7 +53,7 @@ export function panel(canvas, box, amount, paint, from) {
     }
   }
   // Thought dots, growing from the fox's head towards the panel.
-  if (from && amount > 0.5) {
+  if (from && amount > 0.1) {
     const [fx, fy] = from;
     const tx = Math.max(x + 8, Math.min(x + w - 8, fx));
     const ty = y + h + 6;
@@ -59,7 +64,7 @@ export function panel(canvas, box, amount, paint, from) {
       const rr = 1 + k * 0.7;
       for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
         const d = Math.hypot(dx, dy);
-        if (d <= rr + 0.5) canvas.set(px + dx, py + dy, d > rr - 0.5 ? S.ink : S.banner);
+        if (d <= rr + 0.5 && bayer(dx, dy) < amount) canvas.set(px + dx, py + dy, d > rr - 0.5 ? S.ink : S.banner);
       }
     }
   }

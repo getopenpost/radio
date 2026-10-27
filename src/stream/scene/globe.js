@@ -9,7 +9,7 @@ const CITIES = [[38.7, -9.1], [35.7, 139.7], [40.7, -74], [-33.9, 151.2], [51.5,
  * grid past the terminator, the sea a faint dither thickening towards the rim,
  * a thin atmosphere, pulsing cities and an arc between two of them.
  */
-export function globe(c, cx, cy, r, spin) {
+export function globe(c, cx, cy, r, spin, colors = S) {
   const tilt = (18 * Math.PI) / 180;
   const lx = -0.55;
   const ly = -0.45;
@@ -24,7 +24,7 @@ export function globe(c, cx, cy, r, spin) {
       if (d2 > 1) {
         // Atmosphere: a thin glow on the lit rim.
         const out = Math.sqrt(d2) - 1;
-        if (out < 0.08 && (nx * lx + ny * ly) > 0 && band(1 - out / 0.08, 0, 1) * 0.6 > th) c.set(px, py, S.knit);
+        if (out < 0.08 && (nx * lx + ny * ly) > 0 && band(1 - out / 0.08, 0, 1) * 0.6 > th) c.set(px, py, colors.knit);
         continue;
       }
       const nz = Math.sqrt(1 - d2);
@@ -38,7 +38,7 @@ export function globe(c, cx, cy, r, spin) {
       let tone;
       if (land) tone = light > 0.15 ? 0.35 + light * 0.75 : (Math.round(lat) % 4 === 0 || Math.round(lon) % 4 === 0) ? 0.5 : 0.08;
       else tone = 0.06 + (1 - nz) * 0.35 + light * 0.08;
-      if (tone > th) c.set(px, py, land ? (light > 0.15 ? S.paper : S.cloudShade) : S.knitDark);
+      if (tone > th) c.set(px, py, land ? (light > 0.15 ? colors.paper : colors.cloudShade) : colors.knitDark);
     }
   }
   // Cities facing us pulse; an arc lifts between the first two.
@@ -56,15 +56,15 @@ export function globe(c, cx, cy, r, spin) {
     const [px, py, z] = project(lat, lon);
     if (z < 0.1) continue;
     const pulse = (spin / 40 + i * 0.3) % 1;
-    c.rect(Math.round(px) - 1, Math.round(py) - 1, 2, 2, S.logo);
+    c.rect(Math.round(px) - 1, Math.round(py) - 1, 2, 2, colors.logo);
     const pr = 1 + pulse * 4;
-    for (let a = 0; a < 12; a++) if (pulse < 0.8) c.set(Math.round(px + Math.cos(a) * pr), Math.round(py + Math.sin(a) * pr), S.logo);
+    for (let a = 0; a < 12; a++) if (pulse < 0.8) c.set(Math.round(px + Math.cos(a) * pr), Math.round(py + Math.sin(a) * pr), colors.logo);
   }
   const [a, b] = [CITIES[0], CITIES[4]];
   for (let k = 0; k <= 30; k++) {
     const f = k / 30;
     const [px, py, z] = project(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, 1 + Math.sin(Math.PI * f) * 0.25);
-    if (z > 0 && k % 2 === 0) c.set(Math.round(px), Math.round(py), S.logo);
+    if (z > 0 && k % 2 === 0) c.set(Math.round(px), Math.round(py), colors.logo);
   }
 }
 

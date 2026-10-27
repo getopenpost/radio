@@ -148,11 +148,12 @@ now start in phase with each note.
     and reading; miniature code uses varied syntax and indentation;
   - on cold days, curling up at home in an armchair by the fire with a book
     and cocoa, the cat asleep on the rug and the fireplace centred in view;
-  - a workout in a calisthenics park, with the camera moved in: pull-ups,
-    dips, push-ups, handstand push-ups (a tucked kick-up to the wall, the
-    head down to the floor) and muscle-ups. Hands stay planted on bars and
+  - a workout in a calisthenics park, with the park centred at native pixel
+    scale: pull-ups, dips, push-ups, freestanding handstand push-ups on
+    parallettes, and muscle-ups. Hands stay planted on bars and
     floor, with straight arms in a full hang and muscle-up support;
-    it counts reps, rests with water, and sometimes a friend trains alongside;
+    it counts reps, picks up and tilts its bottle for a sip, and sometimes
+    a friend trains alongside;
   - rowing across a wide river past ducks, leaving the boat at the far jetty;
   - a campfire where friends join, reading on a bench (we read over its
     shoulder, following a quiet reading guide and printed page turns,
