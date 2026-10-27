@@ -20,7 +20,7 @@ npm run compose -- --style focus --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
 npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
-npm run stream -- --tour --output tour.mp4                  # 12-minute fast-forward through every scene
+npm run stream -- --tour --output tour.mp4                  # 13-minute fast-forward through every scene
 npm run audition -- --styles focus --seeds 1,2              # score excerpts with earshot (needs uv)
 npm test
 ```
@@ -143,7 +143,9 @@ now start in phase with each note.
     by the far door. Its screen shows a desktop with overlapping windows:
     code, mail, chat, scrolling websites, and a study app with notes beside
     a rotating dithered globe (land from Natural Earth, public domain).
-    A pointer clicks through the work; miniature text stays as ink strokes;
+    A connected work session ties the pointer to file changes, browser
+    navigation, sending messages and taking notes. It rests during typing
+    and reading; miniature code uses varied syntax and indentation;
   - on cold days, curling up at home in an armchair by the fire with a book
     and cocoa, the cat asleep on the rug and the fireplace centred in view;
   - a workout in a calisthenics park, with the camera moved in: pull-ups,

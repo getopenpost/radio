@@ -68,7 +68,7 @@ export function panel(canvas, box, amount, paint, from) {
 /** The usual place for a panel: centred above the fox, in the sky. */
 export const above = (w = 216, h = 128) => ({ x: Math.round(WIDTH / 2 - w / 2), y: 46, w, h });
 
-export { APPS, laptop } from './desktop.js';
+export { laptop } from './desktop.js';
 
 // ---- The book, the water, the telescope --------------------------------------
 

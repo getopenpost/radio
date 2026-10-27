@@ -1,173 +1,94 @@
-// A quiet desktop, viewed through the fox's laptop. Windows overlap, focus
-// changes, and the pointer follows the work. Text stays as small ink strokes.
-import { createRng } from '../../compose/rng.js';
-import { clamp01, smooth } from './dither.js';
-import { globe } from './globe.js';
-import { S } from './palette.js';
+// A small desktop with persistent, overlapping app windows. The work session
+// owns both content and input, so typing holds the mouse still and clicks
+// actually precede navigation, sending mail and changing files.
+import { createCanvas } from './canvas.js';
+import { bayer } from './dither.js';
+import { paintApp } from './desktop-apps.js';
+import { APPS, WINDOWS, desktopAt, dockPoint } from './desktop-timeline.js';
+import { CLEAR, S } from './palette.js';
 
-export const APPS = ['code', 'mail', 'chat', 'globe', 'web'];
+const windowCanvas = createCanvas();
 
-function lines(c, x, y, w, rows, seed, progress = Infinity, color = S.metalDark) {
-  const r = createRng(seed);
-  for (let i = 0; i < rows; i++) {
-    let used = 0;
-    const width = w * r.pick([0.6, 0.8, 0.95, 1]);
-    while (used < width - 4) {
-      const len = Math.min(r.int(4, 13), width - used);
-      const visible = Math.min(len, Math.max(0, progress - i * w - used));
-      if (visible > 0) c.rect(x + used, y + i * 6, Math.round(visible), 2, color);
-      used += len + 3;
-    }
+function icon(c, x, y, app, color) {
+  if (app === 'code') {
+    c.line(x + 2, y + 1, x, y + 3, color);
+    c.line(x, y + 3, x + 2, y + 5, color);
+    c.line(x + 5, y + 1, x + 7, y + 3, color);
+    c.line(x + 7, y + 3, x + 5, y + 5, color);
+  } else if (app === 'web' || app === 'globe') {
+    c.disc(x + 3, y + 3, 3, color);
+    c.disc(x + 3, y + 3, 2, S.ink);
+    c.line(x + 1, y + 3, x + 5, y + 3, color);
+    c.line(x + 3, y + 1, x + 3, y + 5, color);
+    if (app === 'web') c.rect(x + 1, y + 1, 2, 2, S.logo);
+  } else if (app === 'mail') {
+    c.rect(x, y + 1, 8, 5, color);
+    c.line(x, y + 1, x + 3, y + 4, S.ink);
+    c.line(x + 3, y + 4, x + 7, y + 1, S.ink);
+  } else {
+    c.rect(x, y, 8, 5, color);
+    c.rect(x + 1, y + 4, 2, 3, color);
+    for (let i = 0; i < 3; i++) c.set(x + 1 + i * 2, y + 2, S.ink);
   }
 }
 
-function window(c, b, app, t, seed, active) {
-  const { x, y, w, h } = b;
-  c.rect(x - 1, y - 1, w + 2, h + 2, S.metalDark);
-  c.rect(x, y, w, h, S.paper);
-  c.rect(x, y, w, 8, active ? S.metal : S.cloudShade);
-  for (let i = 0; i < 3; i++) c.rect(x + 4 + i * 5, y + 3, 2, 2, i === 0 && active ? S.logo : S.paper);
-  // No oversized titles or legible messages in these miniature windows.
-  const body = { x: x + 3, y: y + 10, w: w - 6, h: h - 13 };
-  ({ code, mail, chat, globe: study, web })[app](c, body, t, seed);
+function drawWindow(c, desktop, state, opening, seed) {
+  const layout = WINDOWS[state.app];
+  const w = Math.round(layout.w * desktop.w);
+  const h = Math.round(layout.h * desktop.h);
+  const slide = state.active ? (1 - opening) * 5 : 0;
+  const x = Math.round(desktop.x + layout.x * desktop.w);
+  const y = Math.round(desktop.y + layout.y * desktop.h + slide);
+  const sc = windowCanvas;
+  sc.index.fill(CLEAR);
+  sc.rect(0, 0, w, h, S.metalDark);
+  sc.rect(1, 1, w - 2, h - 2, S.paper);
+  sc.rect(1, 1, w - 2, 10, state.active ? S.paper : S.cloudShade);
+  for (let i = 0; i < 3; i++) sc.disc(5 + i * 5, 5, 1, state.active && i === 0 ? S.logo : S.metal);
+  icon(sc, 24, 2, state.app, state.active ? S.metalDark : S.metal);
+  sc.rect(36, 4, state.app === 'code' ? 27 : 19, 1, S.metal);
+  // A body viewport keeps scrolling pages, carets and toasts inside the app.
+  paintApp(sc, { x: 2, y: 12, w: w - 4, h: h - 14 }, state, seed);
+  const alpha = state.active ? opening : 1;
+  for (let yy = 0; yy < h + 4; yy++) for (let xx = 0; xx < w + 4; xx++) {
+    if (bayer(xx, yy) >= alpha) continue;
+    if (xx >= w || yy >= h) {
+      const distance = Math.max(xx - w + 1, yy - h + 1);
+      if (xx > 1 && yy > 1 && bayer(xx, yy) < (4 - distance) * 0.08) c.set(x + xx, y + yy, S.ink);
+      continue;
+    }
+    if ((xx < 2 || xx >= w - 2) && (yy < 2 || yy >= h - 2)) continue;
+    const color = sc.get(xx, yy);
+    if (color !== CLEAR) c.set(x + xx, y + yy, color);
+  }
 }
 
-export function laptop(c, { x, y, w, h }, app, t, seed) {
+export function laptop(c, box, t, seed) {
+  const { x, y, w, h } = box;
+  const state = desktopAt(t);
   c.rect(x, y, w, h, S.metalDark);
-  c.rect(x + 2, y + 2, w - 4, h - 4, S.knitDark);
-  // Subtle desktop wallpaper, menu and a small dock.
-  for (let i = 0; i < 4; i++) c.line(x + 3, y + h - 25 - i * 9, x + w - 4, y + h - 51 - i * 4, S.knit);
-  c.rect(x + 2, y + 2, w - 4, 5, S.ink);
-  for (let i = 0; i < 4; i++) c.rect(x + 6 + i * 9, y + 4, 5, 1, S.metal);
-  c.rect(x + w / 2 - 25, y + h - 11, 50, 8, S.ink);
-  for (let i = 0; i < 5; i++) c.rect(x + w / 2 - 21 + i * 9, y + h - 9, 5, 4, i === APPS.indexOf(app) ? S.logo : S.metal);
-  const epoch = Math.floor(t / 24);
-  const u = t % 24;
-  const next = APPS[(APPS.indexOf(app) + 1) % APPS.length];
-  const back = { x: x + 8, y: y + 13, w: w - 48, h: h - 35 };
-  const front = { x: x + 31, y: y + 24, w: w - 43, h: h - 41 };
-  window(c, back, next, t + 5, seed + 17, false);
-  // A new window rises from the dock, then settles over the previous one.
-  const rise = smooth(clamp01(u / 0.7));
-  const moving = { ...front, y: Math.round(front.y + (1 - rise) * 14) };
-  window(c, moving, app, t, seed + epoch, true);
-  // An occasional compact utility floats above the working window.
-  if (u > 15 && u < 20) {
-    const nx = x + w - 64;
-    const ny = y + 10 + Math.round((1 - smooth(clamp01(u - 15))) * 5);
-    c.rect(nx, ny, 53, 23, S.cloudShade);
-    c.rect(nx + 4, ny + 5, 4, 4, S.logo);
-    lines(c, nx + 12, ny + 5, 35, 2, seed + 41);
+  c.rect(x + 1, y + 1, w - 2, h - 2, S.pill);
+  c.rect(x + 1, y + 1, w - 2, 7, S.ink);
+  for (let i = 0; i < 3; i++) c.rect(x + 7 + i * 10, y + 4, i ? 5 : 3, 1, S.metal);
+  c.line(x + w - 28, y + 4, x + w - 26, y + 2, S.metal);
+  c.line(x + w - 26, y + 2, x + w - 24, y + 4, S.metal);
+  c.rect(x + w - 19, y + 3, 10, 2, S.metal);
+  for (const window of state.windows) drawWindow(c, box, window, state.opening, seed);
+  const dockY = Math.round(y + h * 0.915);
+  const dockX = Math.round(x + w * 0.5 - w * 0.175);
+  c.rect(dockX, dockY, Math.round(w * 0.35), Math.round(h * 0.075), S.ink);
+  for (const app of APPS) {
+    const [dx] = dockPoint(app);
+    const ix = Math.round(x + dx * w - 4);
+    icon(c, ix, dockY + 2, app, state.app === app ? S.paper : S.metal);
+    if (state.app === app) c.rect(ix + 2, dockY + 10, 3, 1, S.logo);
   }
-  const target = app === 'web' ? [moving.x + moving.w * 0.68, moving.y + 34] : app === 'globe' ? [moving.x + moving.w * 0.78, moving.y + 45] : [moving.x + moving.w * 0.72, moving.y + moving.h - 12];
-  const phase = t % 6;
-  const go = smooth(clamp01(phase / 1.8));
-  const px = Math.round(x + w / 2 + (target[0] - x - w / 2) * go);
-  const py = Math.round(y + h - 7 + (target[1] - y - h + 7) * go);
-  if (phase > 1.8 && phase < 2.2) c.disc(px, py, 4, S.logo, (2.2 - phase) * 2);
-  c.line(px, py, px, py + 5, S.ink, 2);
-  c.line(px, py, px + 4, py + 4, S.ink, 2);
-  c.line(px + 1, py + 1, px + 1, py + 4, S.paper);
-}
-
-function code(c, { x, y, w, h }, t, seed) {
-  c.rect(x, y, w, h, S.ink);
-  c.rect(x, y, 15, h, S.outline);
-  for (let i = 0; i < 4; i++) c.rect(x + 3, y + 4 + i * 8, 8, 2, i === 1 ? S.logo : S.metal);
-  const row = Math.floor(t * 1.4);
-  const rows = Math.floor((h - 4) / 6);
-  const first = Math.max(0, row - rows + 1);
-  for (let i = 0; i < rows; i++) {
-    const line = first + i;
-    if (line > row) break;
-    const indent = ((line + seed) % 4) * 4;
-    const len = Math.min(w - 24 - indent, 17 + (line * 13 + seed) % 58);
-    const typed = line === row ? Math.round(len * (t * 1.4 % 1)) : len;
-    c.rect(x + 20 + indent, y + 4 + i * 6, typed, 2, [S.paper, S.logo, S.knit, S.brass][line % 4]);
-    if (line === row) c.rect(x + 21 + indent + typed, y + 3 + i * 6, 1, 4, S.paper);
+  const px = Math.round(x + state.pointer.x * w);
+  const py = Math.round(y + state.pointer.y * h);
+  // A filled arrow stays legible over light pages and the dark code editor.
+  const arrow = ['XX', 'XoX', 'XooX', 'XoooX', 'XooooX', 'XXXoXX', '..XoX', '..XXX'];
+  for (let yy = 0; yy < arrow.length; yy++) for (let xx = 0; xx < arrow[yy].length; xx++) {
+    const pixel = arrow[yy][xx];
+    if (pixel !== '.') c.set(px + xx, py + yy + (state.pointer.pressed ? 1 : 0), pixel === 'X' ? S.ink : S.paper);
   }
-}
-
-function mail(c, { x, y, w, h }, t, seed) {
-  c.rect(x, y, 17, h, S.cloudShade);
-  for (let i = 0; i < 4; i++) c.rect(x + 3, y + 5 + i * 9, 10, 2, S.metalDark);
-  const u = t % 15;
-  for (let i = 0; i < 2; i++) {
-    c.rect(x + 22, y + 3 + i * 8, 6, 2, S.metal);
-    c.rect(x + 32, y + 3 + i * 8, 38 + i * 7, 2, S.metalDark);
-  }
-  const rows = Math.max(1, Math.floor((h - 36) / 6));
-  lines(c, x + 22, y + 23, w - 27, rows, seed, u * (w - 27) * 0.7);
-  c.rect(x + w - 23, y + h - 8, 18, 6, u > 12 ? S.knit : S.logo);
-  if (u > 12) {
-    c.line(x + w - 17, y + h - 5, x + w - 15, y + h - 3, S.paper);
-    c.line(x + w - 15, y + h - 3, x + w - 11, y + h - 7, S.paper);
-  }
-}
-
-function chat(c, { x, y, w, h }, t, seed) {
-  c.rect(x, y, 19, h, S.cloudShade);
-  for (let i = 0; i < 4; i++) c.rect(x + 3, y + 5 + i * 8, 12, 2, S.metalDark);
-  const first = Math.floor(t / 3);
-  for (let i = 0; i < Math.floor((h - 10) / 14); i++) {
-    const right = (first + i) % 2;
-    const bw = Math.min(w - 30, 42 + ((first + i) * 11) % 29);
-    const bx = right ? x + w - bw - 4 : x + 23;
-    const by = y + 3 + i * 14;
-    c.rect(bx, by, bw, 10, right ? S.cloudShade : S.banner);
-    lines(c, bx + 3, by + 4, bw - 6, 1, seed + first + i);
-  }
-  c.rect(x + 23, y + h - 6, w - 27, 5, S.cloudShade);
-  c.rect(x + 26 + Math.round(t * 9 % Math.max(1, w - 40)), y + h - 5, 1, 3, S.metalDark);
-}
-
-function study(c, { x, y, w, h }, t, seed) {
-  c.rect(x, y, w, h, S.ink);
-  const r = Math.min(w * 0.25, h / 2 - 5);
-  const cx = x + r + 5;
-  globe(c, cx, y + h / 2, r, t * 8);
-  const nx = Math.round(x + w * 0.55);
-  const nw = x + w - nx - 5;
-  c.rect(nx - 3, y + 5, 1, h - 10, S.outline);
-  const rows = Math.floor((h - 15) / 7);
-  const page = Math.floor(t / 18);
-  for (let i = 0; i < rows; i++) {
-    const active = Math.floor(t % 18 / 18 * rows) === i;
-    const ly = y + 8 + i * 7;
-    c.rect(nx + 1, ly, 2, 2, active ? S.logo : S.knit);
-    lines(c, nx + 6, ly, nw - 6, 1, seed + page * 7 + i, Infinity, active ? S.paper : S.metal);
-    if (active) c.rect(nx + 6, ly + 3, Math.round((nw - 10) * (t * 0.6 % 1)), 1, S.logo);
-  }
-}
-
-function web(c, { x, y, w, h }, t, seed) {
-  // Address field, navigation, a landscape article with linked cards. The
-  // content scrolls smoothly inside the viewport after each navigation.
-  c.rect(x, y, w, 9, S.cloudShade);
-  c.line(x + 3, y + 4, x + 6, y + 2, S.metalDark);
-  c.line(x + 3, y + 4, x + 6, y + 6, S.metalDark);
-  c.rect(x + 13, y + 2, w - 24, 5, S.paper);
-  c.rect(x + 17, y + 4, w * 0.4, 1, S.metal);
-  const u = t % 18;
-  const scroll = Math.round(smooth(clamp01((u - 4) / 10)) * 65);
-  const content = (yy, hh, paint) => {
-    const top = Math.max(y + 11, yy);
-    const bottom = Math.min(y + h - 1, yy + hh);
-    if (bottom > top) paint(top, bottom);
-  };
-  const hero = y + 15 - scroll;
-  content(hero, 23, (top, bottom) => {
-    c.rect(x + 7, top, w - 17, bottom - top, S.knit);
-    for (let xx = 0; xx < w - 17; xx++) {
-      const hill = hero + 15 + Math.round(Math.sin(xx * 0.1) * 4);
-      if (hill < bottom) c.rect(x + 7 + xx, Math.max(top, hill), 1, bottom - Math.max(top, hill), S.knitDark);
-    }
-  });
-  for (let i = 0; i < 17; i++) {
-    const ly = hero + 30 + i * 6;
-    content(ly, 2, (top) => lines(c, x + 7, top, w - 19, 1, seed + Math.floor(t / 18) * 13 + i));
-    if (i === 2 || i === 10) content(ly + 3, 1, (top) => c.rect(x + 7, top, w * 0.42, 1, S.logo));
-  }
-  c.rect(x + w - 3, y + 12, 1, h - 14, S.cloudShade);
-  c.rect(x + w - 3, y + 13 + Math.round(scroll / 65 * (h - 28)), 1, 10, S.metalDark);
 }

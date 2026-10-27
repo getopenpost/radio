@@ -182,11 +182,13 @@ export default {
     }
 
     const box = { x: Math.round(320 - 70), y: 30, w: 140, h: 140, round: true };
+    c.state.view ??= 0;
+    c.state.view += (looking - c.state.view) * Math.min(1, c.dt * 5);
     return {
       pose,
       speed,
       after(paws) {
-        if (looking > 0) view(canvas, box, looking, kind, moonAge, c.seed + k, paws.top);
+        if (c.state.view > 0.02) c.overlays.push(() => view(canvas, box, c.state.view, kind, moonAge, c.seed + k, paws.top));
         for (const b of bubbles) b(paws);
       },
     };

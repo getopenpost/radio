@@ -4,7 +4,7 @@
 // Usage:
 //   RGO_MUSIC_OUTPUTS="rtmp://a.rtmp.youtube.com/live2/<key> rtmp://live.twitch.tv/app/<key>" npm run stream
 //   npm run stream -- --output tmp/preview.mp4 --duration 120   (renders a file as fast as possible)
-//   npm run stream -- --output tmp/tour.mp4 --tour   (a twelve-minute fast-forward through every scene)
+//   npm run stream -- --output tmp/tour.mp4 --tour   (a thirteen-minute fast-forward through every scene)
 // --output can repeat; RGO_MUSIC_OUTPUTS takes several separated by whitespace.
 // Options: --library <dir> | --library-url <url>, --fps 30, --preset veryfast,
 //          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,

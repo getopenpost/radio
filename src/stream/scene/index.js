@@ -411,7 +411,6 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       ? { top: [FOX_X, PATH_Y - 30], head: [FOX_X, PATH_Y - 18], frontPaw: [FOX_X + 5, PATH_Y - 6], backPaw: [FOX_X - 4, PATH_Y - 6] }
       : chars.draw(canvas, 'fox', FOX_X, PATH_Y - lift, facing, pose);
     if (after) after(paws);
-    for (const o of overlays) o(paws);
     for (const p of props) if (p.kind === 'creek') creekRail(canvas, Math.round(p.wx - ground), PATH_Y);
     for (const b of meeting.bubbles) b(paws.top);
 
@@ -423,6 +422,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
 
     // Light pools after dark.
     if (st.light < 0.75) for (const g of glows) canvas.glow(g.x, g.y, g.r, g.strength, [S.glow0, S.glow1], LIT, g.squash ?? 1);
+
+    // Thought views sit above the weather. Snow belongs in the world, not on
+    // the fox's screen or between the printed lines of the book.
+    for (const o of overlays) o(paws);
 
     // The camera moves in on some stops (the gym), easing in and out; the
     // ground line sits lower in the frame as it closes in.

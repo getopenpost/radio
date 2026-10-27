@@ -87,7 +87,9 @@ export default {
     else state.alone ??= t;
     const nextVisit = FIRST + (k + 1) * PERIOD;
     const u = state.alone == null ? 0 : t - state.alone;
-    const view = state.alone == null ? 0 : seg(u, 1, 2.2) * (1 - seg(out, 0, 1.2));
+    const targetView = state.alone == null ? 0 : seg(u, 1, 2.2) * (1 - seg(out, 0, 1.2));
+    state.view ??= 0;
+    state.view += (targetView - state.view) * Math.min(1, c.dt * 5);
 
     // A small bird lands on the free end of the backrest now and then.
     // It comes while the fox is alone and leaves before anyone arrives.
@@ -106,7 +108,7 @@ export default {
       pose,
       after(paws) {
         if (bird) canvas.draw(BIRD, bird.x, bird.y, { flip: true });
-        panel(canvas, above(), view, (sc, b) => book(sc, b, t, c.seed), paws.top);
+        c.overlays.push(() => panel(canvas, above(), state.view, (sc, b) => book(sc, b, t, c.seed), paws.top));
         if (reading) {
           const [px, py] = paws.frontPaw;
           canvas.draw(BOOK, px - 3, py - 4);

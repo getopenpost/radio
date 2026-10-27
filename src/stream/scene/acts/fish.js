@@ -83,12 +83,13 @@ export default {
     // A collection sack and previously recovered litter stay on the bridge.
     canvas.rect(X - 18, Y - 7, 9, 7, S.knitDark);
     canvas.line(X - 18, Y - 7, X - 9, Y - 7, S.metal);
-    if (cycle > 0 || u >= 39) trash(canvas, X - 14, Y - 10, c.seed + Math.max(0, cycle - 1));
+    const stored = cycle - (u < 39 ? 1 : 0);
+    if (stored >= 0) trash(canvas, X - 14, Y - 10, c.seed + stored);
     return {
       pose,
       after(paws) {
         // Follow the hook down to the litter, then watch the retrieval.
-        if (u >= 16 && u < 34) panel(canvas, above(), seg(u, 16, 17.2) * (1 - seg(u, 32.8, 34)), (sc, b) => underwater(sc, b, u - 17, { strike: 14, caught: catches, item: c.seed + cycle }), paws.top);
+        if (u >= 16 && u < 34) c.overlays.push(() => panel(canvas, above(), seg(u, 16, 17.2) * (1 - seg(u, 32.8, 34)), (sc, b) => underwater(sc, b, u - 17, { strike: 14, caught: catches, item: c.seed + cycle }), paws.top));
         if (angle == null) return;
         const [px, py] = paws.frontPaw;
         const rad = (angle * Math.PI) / 180;
@@ -99,6 +100,18 @@ export default {
         else if (bob === 'nibble') b = { x: bobber.x, y: bobber.y + (Math.sin(time * 18) > 0 ? 2 : 0) };
         else if (bob === 'flying') b = { x: lerp(tip.x, bobber.x, flyP), y: lerp(tip.y, bobber.y, flyP) - Math.sin(Math.PI * flyP) * 16 };
         else if (bob === 'tip') b = { x: tip.x, y: tip.y + 6 };
+        const caught = catches && u >= 32 && u < 39;
+        let recovered = null;
+        if (caught) {
+          const pull = seg(u, 32, 34);
+          const deposit = seg(u, 36, 39);
+          const fx = lerp(bobber.x, px + 2, pull);
+          const fy = lerp(bobber.y, py + 2, pull) - Math.sin(Math.PI * pull) * 20;
+          recovered = { x: lerp(fx, X - 14, deposit), y: lerp(fy, Y - 10, deposit) - Math.sin(Math.PI * deposit) * 7 };
+          // The retrieval line stays attached until the object reaches the
+          // paw. Then the fox unhooks it and tosses it into the sack.
+          if (u < 35) b = recovered;
+        }
         if (b) {
           // Line with a little sag, then the bobber (or the catch).
           for (let s = 0; s <= 1; s += 1 / 40) {
@@ -106,13 +119,8 @@ export default {
             const ly = lerp(tip.y, b.y, s) + Math.sin(Math.PI * s) * (bob === 'water' ? 3 : 1);
             if ((Math.round(lx) + Math.round(ly)) % 2 === 0 || light < 0.5) canvas.set(Math.round(lx), Math.round(ly), light < 0.5 ? S.cloud : S.ink);
           }
-          const caught = catches && u >= 32 && u < 39;
-          if (caught) {
-            const p = seg(u, 32, 34);
-            const fx = lerp(bobber.x, px + 2, p);
-            const fy = lerp(bobber.y, py + 2, p) - Math.sin(Math.PI * p) * 20;
-            const deposit = seg(u, 36, 39);
-            trash(canvas, lerp(fx, X - 14, deposit), lerp(fy, Y - 10, deposit), c.seed + cycle);
+          if (recovered) {
+            trash(canvas, recovered.x, recovered.y, c.seed + cycle);
           } else {
             canvas.set(Math.round(b.x), Math.round(b.y) - 1, S.logo);
             canvas.set(Math.round(b.x), Math.round(b.y), S.paper);

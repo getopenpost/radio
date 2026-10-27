@@ -7,7 +7,7 @@ import { maskSprite } from '../canvas.js';
 import { band, bayer } from '../dither.js';
 import { S } from '../palette.js';
 import { convergeMask } from '../props.js';
-import { above, APPS, book, laptop, panel } from '../pov.js';
+import { above, book, laptop, panel } from '../pov.js';
 import { BOOK, drawFire, MUG, seg, steam, walkTo } from './common.js';
 
 const LEFT = -14; // outer walls, in set coordinates
@@ -281,8 +281,7 @@ function makeHouse(kind) {
             }
             // Keep working, with a short sip rather than long idle intervals.
             // The desktop stays visible as focus passes between overlapping apps.
-            const k = Math.floor(s / 24);
-            view = { kind: 'laptop', app: APPS[(k + c.seed) % APPS.length], t: s, amount: seg(s, 2, 3.2) * (1 - seg(out, 0, 1.2)) };
+            view = { kind: 'laptop', t: s, amount: seg(s, 2, 3.2) * (1 - seg(out, 0, 1.2)) };
           } else {
             // Read by the fire, pausing just long enough for a sip of cocoa.
             const u = s % 70;
@@ -304,6 +303,12 @@ function makeHouse(kind) {
         if (out < 1.6) Object.assign(pose, { legs: 'sit', seat: kind === 'work' ? 8 : 9, eyes: 'open', headphones: kind === 'work' && out < 0.8 });
         else speed = walkTo(fox, EXIT);
       }
+
+      // Keep the last view while it dissolves during a sip or departure.
+      if (view) state.lastView = view;
+      state.viewAmount ??= 0;
+      state.viewAmount += ((view?.amount ?? 0) - state.viewAmount) * Math.min(1, c.dt * 5);
+      const thought = view ?? state.lastView;
 
       // Things on the desk: the laptop (screen lit while open) and a mug.
       const laptopOpen = kind === 'work' && fox >= seatX - 1 && (out === 0 ? t - (state.seated ?? t) > 3 : out < 1);
@@ -334,11 +339,11 @@ function makeHouse(kind) {
           if (item === 'sip') canvas.draw(MUG, paws.backPaw[0] - 1, paws.backPaw[1] - 2);
           if (item === 'book') canvas.draw(BOOK, paws.frontPaw[0] - 3, paws.frontPaw[1] - 4);
           if (inFront) facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, glows, time });
-          if (view?.amount > 0) {
-            const paint = view.kind === 'laptop' ? (sc, b) => laptop(sc, b, view.app, view.t, c.seed) : (sc, b) => book(sc, b, view.t, c.seed);
+          if (thought && state.viewAmount > 0.02) {
+            const paint = thought.kind === 'laptop' ? (sc, b) => laptop(sc, b, thought.t, c.seed) : (sc, b) => book(sc, b, thought.t, c.seed);
             // Leave room for the camera's modest zoom by the fireplace.
-            const box = view.kind === 'laptop' ? above(260, 150) : { ...above(), x: Math.round(X + 88 - 108), y: 88 };
-            panel(canvas, box, view.amount, paint, paws.top);
+            const box = thought.kind === 'laptop' ? above(280, 158) : { ...above(), x: Math.round(X + 88 - 108), y: 88 };
+            c.overlays.push(() => panel(canvas, box, state.viewAmount, paint, paws.top));
           }
         },
       };
