@@ -14,6 +14,12 @@ Keep a rounded, sustained mono sub, with movement from a separate low-register b
 - [Side Brain's Future Garage workshop overview](https://sidebrain.net/product/future-garage/) identifies displaced accents, off-grid drums, dark chords, Reese bass, layered pads and evolving arrangements. Its public overview informs the vocabulary here. No paid materials were obtained or reproduced. Foley and vocal elements are optional genre conventions, and are omitted from this focus family.
 - [Strudel's official effect documentation](https://strudel.cc/learn/effects/) explains that repeated filter and gain setters override earlier values. A preset's quiet parallel harmonic cannot rely on an inner `.gain()` when the builder later sets role gain. Use an independent relative level, and keep orbit reverb settings constant throughout a track.
 
+## Additional listening references
+
+[Phaeleh's Afterglow](https://phaeleh.bandcamp.com/track/afterglow) is available on the artist's own page. His stated palette spans dubstep, garage, electronica and house. It is a useful adjacent reference for this family, while this generator remains instrumental.
+
+[Erased Tapes' notes for Kiasmos' Looped EP](https://www.erasedtapes.com/releases/eratp066-kiasmos-looped-ep) describe acoustic instruments, synthesizers, drum machines and tape delays. That combination supports a direction with a distinct groove and a soft, layered instrumental background. These are reference links and production notes, not claims that the generated tracks reproduce either recording. Quantitative comparisons here use the user's MM reference.
+
 ## Changes made after the Velvet Field report
 
 The isolated 808 shaker is a repeated filtered-noise sound. The user also found it annoying when auditioned separately. This supports removing it, although it does not prove it was the only sound perceived in the live mix.
@@ -32,3 +38,7 @@ The existing 96-track library is retained. Rebuild the 59 focus, garage, lofi an
 Analyze the main body of rendered FLACs, not only intros or source patterns. Check noise floor, energy distribution, stereo width, gaps, loudness and peak levels. Audition representative tracks and compare against the reference at matched levels. Audio-text model rankings can flag an obvious genre mismatch but do not establish musical quality or replace the listener's judgment.
 
 Render the replacement 1080p60 programme from the repaired library. Keep the previous complete programme live until its replacement is completely uploaded, then verify public YouTube playback and measure the whole VPS sender, including NAS refills and RTMPS.
+
+## Library validation
+
+The rebuilt library contains 59 tracks: 30 focus, 13 lofi, 10 garage and 6 ambient. The other 37 tracks remain unchanged, for 96 total. All 59 saved scores match the current composer; retired shaker and cabasa selections and steady texture layers are absent. Across the rebuilt tracks, measured loudness ranges from -14.5 to -14.0 LUFS, true peak reaches -0.6 dBTP at its highest, and the maximum main-body HF floor is -29.954 dB. All 24 existing tests passed; no tests were added. Live playback and resource measurements are recorded separately.

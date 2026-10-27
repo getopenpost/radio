@@ -1,0 +1,19 @@
+{
+  "host": "rgo-vps",
+  "runtimeRevision": "d561a87",
+  "programme": "p-1793136000000-60-1793137482873",
+  "format": "1080p60",
+  "samples": 85,
+  "seconds": 420.894,
+  "cpuPctOneCore": 6.993825286176567,
+  "cpuPctFourCoreCapacity": 1.7484563215441418,
+  "rssMeanMiB": 93.56328125,
+  "rssPeakMiB": 136.23828125,
+  "cgroupMeanMiB": 99.2335018382353,
+  "cgroupPeakMiB": 127.96875,
+  "minAhead": 9,
+  "oomKills": 0,
+  "outputMbps": 2.1709960097590844,
+  "stoppedAt": "2026-10-27T22:53:53.830Z",
+  "status": "Test broadcast ended and sender stopped at user request"
+}
