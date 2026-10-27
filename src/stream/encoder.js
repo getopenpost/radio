@@ -82,6 +82,15 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
 
 export function startEncoder(options) {
   const ff = spawn('ffmpeg', encoderArgs(options), { stdio: ['pipe', 'ignore', 'pipe', 'pipe', 'pipe'] });
+  const video = ff.stdin;
+  const audio = ff.stdio[3];
+  let alive = true;
+  const abort = () => {
+    alive = false;
+    video.destroy();
+    audio.destroy();
+    ff.kill('SIGTERM');
+  };
   const stats = { seconds: 0, bytes: 0 };
   let progress = '';
   ff.stdio[4].on('data', (chunk) => {
@@ -99,22 +108,33 @@ export function startEncoder(options) {
   ff.stderr.on('data', (chunk) => {
     errors += chunk;
     const end = errors.lastIndexOf('\n');
-    if (end >= 0) { log(errors.slice(0, end + 1)); errors = errors.slice(end + 1); }
+    if (end >= 0) {
+      const lines = errors.slice(0, end + 1);
+      log(lines);
+      // A muxer failure can leave FFmpeg joining an audio reader that still
+      // waits on our pipe. Close both inputs so it can finish and report failure.
+      if (/Task finished with error code: -|Error (?:submitting|muxing|writing)/.test(lines)) abort();
+      errors = errors.slice(end + 1);
+    }
   });
   ff.stderr.on('end', () => { if (errors) log(errors); });
-  const video = ff.stdin;
-  const audio = ff.stdio[3];
-  let alive = true;
-  const exited = new Promise((resolve) => ff.on('close', (code) => resolve((alive = false), code)));
+  const exited = new Promise((resolve) => ff.on('close', (code) => {
+    alive = false;
+    resolve(code);
+  }));
   video.on('error', () => {});
   audio.on('error', () => {});
   const waitForDrain = (stream) => new Promise((resolve) => {
     const done = () => {
       stream.off('drain', done);
+      stream.off('close', done);
+      stream.off('error', done);
       ff.off('close', done);
       resolve();
     };
     stream.once('drain', done);
+    stream.once('close', done);
+    stream.once('error', done);
     ff.once('close', done);
   });
   const write = (stream, data) => {

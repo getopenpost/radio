@@ -52,6 +52,9 @@ Project-specific rules. The shared global instructions still apply.
 
 - Backpressure in the encoder comes from the video pipe only; waiting on the
   audio pipe deadlocks while x264 fills its lookahead.
+- A fatal encoder output error must close both input pipes, so FFmpeg can
+  finish joining its reader threads. Propagate its actual exit code before
+  marking a programme complete.
 - The scene (`src/stream/scene`) draws palette slots at 640x360; colours are
   set per frame in `palette.js` for light, season and weather, so new art
   should use slots rather than fixed colours. The live programme uses a

@@ -250,5 +250,6 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
 }
 current.deck.close();
 next?.deck.close();
-await encoder.close();
+const encoderCode = await encoder.close();
+if (encoderCode !== 0) throw new Error(`ffmpeg exited ${encoderCode}`);
 console.log(`wrote ${(stopAfter / SR).toFixed(0)}s to ${values.output.join(', ')} in ${((performance.now() - started) / 1000).toFixed(1)}s`);
