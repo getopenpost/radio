@@ -36,7 +36,9 @@ export const isRtmp = (url) => /^rtmps?:\/\//.test(url);
 function outputArgs(outputs) {
   if (outputs.length === 1) {
     const [output] = outputs;
-    if (/%0?\d*d\.ts$/.test(output)) return ['-f', 'segment', '-segment_time', '240', '-reset_timestamps', '0', '-segment_format', 'mpegts', '-y', output];
+    // Each chunk resets MPEG-TS continuity counters. Declare that reset so the
+    // sender can concatenate chunks without marking a video packet corrupt.
+    if (/%0?\d*d\.ts$/.test(output)) return ['-f', 'segment', '-segment_time', '240', '-reset_timestamps', '0', '-segment_format', 'mpegts', '-segment_format_options', 'mpegts_flags=+initial_discontinuity', '-y', output];
     return isRtmp(output) ? ['-f', 'flv', '-flvflags', 'no_duration_filesize', output] : ['-y', output];
   }
   const slave = (output) => {
