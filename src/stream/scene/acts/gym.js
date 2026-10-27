@@ -156,18 +156,26 @@ function perform(c, s, into, fx, Y, extra) {
       angle = k > 0.5 ? 0.22 * Math.sin((k - 0.5) * Math.PI * 2) : -0.1 * k * 2;
       if (k > 0.9 && p >= 0.55 && p < 0.7) Object.assign(face, { eyes: 'happy', mouth: 'open' });
     }
-    const paws = body({ legs: 'hang', dangle: Math.sin(time * 2.2) * 0.5, angle, pivot: [3, -11], ...face }, sx, sy, hands, bend);
+    // On the press the shoulder rises past the hands; keep the elbow on the
+    // same side of the arm instead of letting the two-bone solve flip it.
+    const armBend = s.kind === 'muscleup' ? (sy < barY + 1 ? 1 : -1) : bend;
+    const paws = body({ legs: 'hang', dangle: Math.sin(time * 2.2) * 0.5, angle, pivot: [3, -11], ...face }, sx, sy, hands, armBend);
     return { paws, count };
   }
   if (s.kind === 'dip') {
     const barY = Y - DIP.y;
     const hands = [[fx + 2, barY], [fx, barY]];
     if (on < 0.4 || off > 0.6) return { paws: stand({ front: [3, 4], back: [2, 4], ...extra }), count: null };
-    // Support: arms straight down; bottom: shoulders sink below the hands, elbows back, chest forward.
-    let sy = lerp(barY - REACH + 0.5, barY + 2, curve);
+    // Support: arms straight down; bottom: shoulders come level with the
+    // hands with the elbows swept back. Keeping the shoulder above the hand
+    // stops the two-bone arm from flipping sides as it passes the grip.
+    let sy = lerp(barY - REACH + 0.5, barY - 1, curve);
     if (on < 1) sy = lerp(Y - 11, barY - REACH + 0.5, seg(on, 0.4, 1));
     else if (off > 0) sy = lerp(barY - REACH + 0.5, Y - 11, seg(off, 0, 0.6));
-    const paws = body({ legs: 'tuck', angle: 0.28 * curve, pivot: [3, -11], ...face }, fx + 2, sy, hands, 1);
+    // Mounting and dismounting pass the hands; flip the elbow side with the
+    // shoulder so the arm folds through straight instead of swapping sides.
+    const armBend = sy < barY ? 1 : -1;
+    const paws = body({ legs: 'tuck', angle: 0.28 * curve, pivot: [3, -11], ...face }, fx + 2, sy, hands, armBend);
     return { paws, count };
   }
   if (s.kind === 'pushup') {
