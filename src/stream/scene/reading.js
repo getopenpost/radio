@@ -6,45 +6,19 @@ import { clamp01, smooth } from './dither.js';
 import { hashString } from '../../compose/rng.js';
 import { S } from './palette.js';
 import { MOTION } from './motion.js';
-import { LINE, measure, text, wrap } from './text.js';
-import { BOOKS } from './content/book.js';
+import { LINE, measure, text } from './text.js';
+import { paginateBook } from './book-layout.js';
+import prepared from './content/book-pages.json' with { type: 'json' };
 
 const leaf = createCanvas();
 const PERIOD = 20;
 const TURN = MOTION.page;
-const paginated = new Map();
+const paginated = new Map([[`${prepared.width}:${prepared.rows}`, prepared]]);
 
-/** The whole shelf, paginated: each page carries the book it came from. */
-function paginate(width, rows) {
+function layout(width, rows) {
   const key = `${width}:${rows}`;
-  if (paginated.has(key)) return paginated.get(key);
-  const pages = [];
-  let lines = [];
-  let book = BOOKS[0];
-  const flush = () => {
-    while (lines.length && !lines[lines.length - 1].text) lines.pop();
-    if (lines.length) pages.push({ title: book.title, author: book.author, lines });
-    lines = [];
-  };
-  const put = (line) => {
-    lines.push(line);
-    if (lines.length >= rows) flush();
-  };
-  for (const b of BOOKS) {
-    book = b;
-    for (const chapter of b.chapters) {
-      put({ text: '', head: false });
-      put({ text: chapter.title, head: true });
-      put({ text: '', head: false });
-      for (const para of chapter.paragraphs) {
-        for (const row of wrap(para, width, true)) put({ text: row, head: false });
-        put({ text: '', head: false });
-      }
-    }
-    flush();
-  }
-  paginated.set(key, pages);
-  return pages;
+  if (!paginated.has(key)) paginated.set(key, paginateBook(width, rows));
+  return paginated.get(key);
 }
 
 /**
@@ -81,14 +55,8 @@ export function book(c, { x, y, w, h }, t, seed) {
   const pw = Math.floor(w / 2 - 5);
   const ph = h - 8;
   const rows = Math.floor((ph - 26) / LINE.tiny);
-  const pages = paginate(pw - 15, rows);
+  const { pages, full } = layout(pw - 15, rows);
   // Open on a full spread, not on a chapter break or the end of the shelf.
-  const full = [];
-  for (let i = 0; i < pages.length; i++) {
-    const here = pages[i].lines.filter((line) => line.text).length / rows;
-    const next = pages[(i + 1) % pages.length].lines.filter((line) => line.text).length / rows;
-    if (here > 0.75 && next > 0.75) full.push(i);
-  }
   const hash = hashString(`book:${seed}`);
   const start = full.length ? full[hash % full.length] : hash % pages.length;
   const spread = Math.floor(t / PERIOD);

@@ -70,6 +70,9 @@ Project-specific rules. The shared global instructions still apply.
   can otherwise deadlock on Linux socket buffers during stream discovery.
   Drain waits must remove their close handlers; racing a pending lifetime
   promise per video frame retains handlers for the entire broadcast.
+- After changing book content, font widths, or the default book panel size,
+  run `node scripts/build-book-layout.js` and commit `content/book-pages.json`.
+  The live scene loads this prepared layout instead of paginating the shelf.
 - The Converge mark appears only as the logo in the brand chip; keep its
   geometry exact (`convergeMask`). The host character is the fox in
   `character.js`.

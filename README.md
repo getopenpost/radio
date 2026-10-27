@@ -124,17 +124,16 @@ now start in phase with each note.
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
-- **Scene** (`src/stream/scene`): a 640x360 landscape that follows the real
-  sun: OpenPost's light scheme (warm paper and ink) by day, its dark Dither
+- **Scene** (`src/stream/scene`): a 640x360 landscape with a 40-minute world day: OpenPost's light scheme (warm paper and ink) by day, its dark Dither
   scheme (warm charcoal) by night, blended through dawn and dusk. It is drawn
   in palette slots and dithered the way OpenPost's Dither material is: two
   neighbouring colours with a 4x4 Bayer band between solid ends. A fox with a
-  postbag walks it one step per beat, in the middle of the frame. Everything follows the wall clock in Porto: the sun
-  rises on the right and sets on the left, the moon follows its real phase and
-  hours, seasons recolour and rebuild the land (snow, autumn trees, blossom,
+  postbag walks it one step per beat, in the middle of the frame. The wall clock anchors the programme: the sun
+  rises on the right and sets on the left, the moon keeps its real phase, and
+  calendar seasons recolour and rebuild the land (snow, autumn trees, blossom,
   fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
-  two hours the walk crosses into new country (hills, alpine, forest, village,
-  coast, highlands). Every 15 minutes the fox may stop:
+  world day the walk crosses into new country (hills, alpine, forest, village,
+  coast, highlands). Each day chooses 1–4 stops:
   - cleaning a lake from a pier: a look under the water follows the hook
     down to discarded boots, bottles and cans, which it reels in and puts
     in a collection sack;
@@ -169,17 +168,18 @@ now start in phase with each note.
   the hour, the weekday, the month or the season), the sea glitters along a
   path under a low sun or the moon, birds and shooting stars go by, and four visualizer looks (grass, dithered bars, dot
   matrix, ridge) change with the track. A frame takes about 2 ms to draw.
-- **Encoder**: one ffmpeg process upscales 3x with nearest neighbour (crisp
-  1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
+- **Encoder**: one ffmpeg process upscales with nearest neighbour (2x for
+  720p, 3x for 1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
   (Geist Mono), and encodes H.264 + AAC once for every output. Several
   outputs (YouTube and Twitch) share the encode through ffmpeg's tee muxer,
   each behind its own fifo, so a platform that drops reconnects without
   stalling the others. If ffmpeg itself exits, the stream restarts it.
 
-Measured on an M4, the whole stream at 1080p30 with x264 `veryfast` uses about
-0.7 CPU cores. A Skylake VPS core is roughly 2-3x slower, so expect about
-1.5-2 cores there. `RGO_MUSIC_SCALE=2` (720p) roughly halves that, and
-`--fps 24` saves another 20%. These are estimates; measure on the target host.
+The NAS deployment uses Intel hardware H.264 encoding at 720p24, keeping
+radio off the VPS entirely. The initial live run measured roughly 0.35–0.4
+NAS CPU cores and 165–220 MiB of working memory, including the renderer,
+decoder and encoder. Measure the active scene and sustained runtime when
+comparing changes, rather than extrapolating from another CPU.
 
 ## Library storage
 
@@ -193,13 +193,14 @@ RGO_MUSIC_REMOTE=r2:bucket/library scripts/upload-library.sh
 
 The stream reads either a local directory (`RGO_MUSIC_LIBRARY`) or a base URL
 (`RGO_MUSIC_LIBRARY_URL`, for example a public R2 bucket). With a URL it
-downloads each track shortly before it plays and keeps only a few, so the
-streaming host needs almost no disk.
+prefetches ten compatible upcoming tracks in the background. Its cache
+protects current, fading, and queued audio while pruning older tracks.
 
-## Deploying (rgo-vps)
+## VPS software fallback
 
 The flake exports a NixOS module. The host needs only Node and ffmpeg; it does
-not render. In `~/.config/home`:
+not synthesize music. The active deployment is on the NAS; for a software
+encoder fallback, in `~/.config/home`:
 
 ```nix
 # flake inputs
@@ -223,15 +224,7 @@ services.rgo-music = {
 Settings that suit both platforms: 1080p30, keyframes every 2 s, 4.5 Mbps
 video (under Twitch's 6 Mbps ceiling), 160 kbps AAC audio.
 
-## Licences
-
-Code: see the repository licence. Strudel packages are AGPL-3.0. Font: Geist
-Mono under the SIL Open Font License (`assets/fonts`).
-Sounds come from Strudel's default libraries, fetched at render time: Tidal
-drum machines, VCSL (CC0), the Salamander piano (CC-BY 3.0) and General MIDI
-soundfonts. Check the sample licences before monetising the channel.
-
-### Low-resource NAS deployment
+## NAS deployment
 
 The normal programme now runs a complete dawn/day/dusk/night every **40 real
 minutes**, independent of a viewer's timezone. The real date still selects
@@ -267,3 +260,11 @@ progress. RTMP URLs are redacted from encoder diagnostics.
 The generated, badge-free livestream thumbnail is
 [`output/livestream-thumbnail.png`](output/livestream-thumbnail.png).
 Its full-resolution original and generation prompt are in `assets/marketing/`.
+
+## Licences
+
+Code: see the repository licence. Strudel packages are AGPL-3.0. Font: Geist
+Mono under the SIL Open Font License (`assets/fonts`).
+Sounds come from Strudel's default libraries, fetched at render time: Tidal
+drum machines, VCSL (CC0), the Salamander piano (CC-BY 3.0) and General MIDI
+soundfonts. Check the sample licences before monetising the channel.

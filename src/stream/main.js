@@ -10,7 +10,7 @@
 //          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,
 //          --timezone Europe/Lisbon. Each has an RGO_MUSIC_* variable too.
 //          Previews can set the scene's clock: --clock 2026-01-12T17:40 (start
-//          time) and --clock-speed 60 (minutes per second of video, for sky checks).
+//          time) and --clock-speed 60 (a simulated minute per video second).
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
