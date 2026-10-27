@@ -135,24 +135,26 @@ now start in phase with each note.
   fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
   two hours the walk crosses into new country (hills, alpine, forest, village,
   coast, highlands). Every 15 minutes the fox may stop:
-  - fishing from a pier over a lake that mirrors the bank, with a look under
-    the water at the hook as a fish comes to it, sometimes landing it and
-    letting it go;
+  - cleaning a lake from a pier: a look under the water follows the hook
+    down to discarded boots, bottles and cans, which it reels in and puts
+    in a collection sack;
   - working in its studio: it walks in, the front wall dissolves through the
     dither, and it sits at the desk with headphones and laptop, then leaves
-    by the far door. Now and then we see its screen: code being typed, an
-    email written and sent, a team chat, or a study app with a rotating
-    dithered globe (land from Natural Earth, public domain);
+    by the far door. Its screen shows a desktop with overlapping windows:
+    code, mail, chat, scrolling websites, and a study app with notes beside
+    a rotating dithered globe (land from Natural Earth, public domain).
+    A pointer clicks through the work; miniature text stays as ink strokes;
   - on cold days, curling up at home in an armchair by the fire with a book
-    and cocoa, the cat asleep on the rug;
+    and cocoa, the cat asleep on the rug and the fireplace centred in view;
   - a workout in a calisthenics park, with the camera moved in: pull-ups,
     dips, push-ups, handstand push-ups (a tucked kick-up to the wall, the
     head down to the floor) and muscle-ups. Hands stay planted on bars and
-    floor while the arms bend at the elbow; it counts reps, rests with
-    water, and sometimes a friend trains alongside;
+    floor, with straight arms in a full hang and muscle-up support;
+    it counts reps, rests with water, and sometimes a friend trains alongside;
   - rowing across a wide river past ducks, leaving the boat at the far jetty;
   - a campfire where friends join, reading on a bench (we read over its
-    shoulder until a friend sits down for a chat), or stargazing, where a round view opens in the sky on what the
+    shoulder, following a quiet reading guide and printed page turns,
+    with brief pauses for a chat), or stargazing, where a round view opens in the sky on what the
     telescope sees (the moon at its real phase, Saturn, Jupiter, a galaxy);
   - flying: it unfolds a letter from its bag into a paper plane and flies
     over the hills in an aviator cap (on a broom around Halloween).

@@ -1,12 +1,10 @@
-// Fishing from a long footbridge over a lake: casts, waits, sometimes lands a
-// fish, admires it and lets it go. The lake freezes in winter.
-import { sprite } from '../canvas.js';
+// Cleaning a lake from a footbridge: cast, snag a discarded object, reel it
+// in and put it in the collection sack. The lake freezes in winter.
 import { S } from '../palette.js';
 import { drawWater } from '../water.js';
 import { above, panel, underwater } from '../pov.js';
-import { hash01, inside, lerp, seg } from './common.js';
-
-const FISH = sprite(['.ppp..', 'pkpppp', '.ppp.p'], { p: S.paper, k: S.ink });
+import { trash } from '../trash.js';
+import { inside, lerp, seg } from './common.js';
 
 export default {
   spec: { anchored: true, extent: [-100, 260], intro: 8, outro: 6, light: 'any' },
@@ -34,9 +32,9 @@ export default {
 
     // Choreography.
     const bobber = { x: X + 58, y: 289 };
-    const cycle = t > 8 ? Math.floor((t - 8) / 70) : -1;
-    const u = t > 8 ? (t - 8) % 70 : -1;
-    const catches = cycle >= 0 && hash01(`fish:${c.seed}:${cycle}`) > 0.35;
+    const cycle = t > 8 ? Math.floor((t - 8) / 42) : -1;
+    const u = t > 8 ? (t - 8) % 42 : -1;
+    const catches = cycle >= 0;
     const reel = out > 0 ? seg(out, 0, 2) : 0;
     let angle = -40; // rod angle in degrees, 0 = pointing right
     let bob = 'water'; // where the bobber is: water, flying, tip, none
@@ -53,29 +51,26 @@ export default {
       pose.eyes = t > 3.4 ? 'happy' : 'open';
     } else if (u >= 0) {
       angle = -40 + Math.sin(time * 0.7) * 2;
-      if (inside(u, 50, 53)) {
+      if (inside(u, 28, 31)) {
         bob = 'nibble';
         pose.eyes = 'wide';
-      } else if (inside(u, 53, 54)) {
-        angle = catches ? lerp(-40, -72, seg(u, 53, 53.3)) : -40;
+      } else if (inside(u, 31, 32)) {
+        angle = catches ? lerp(-40, -72, seg(u, 31, 31.3)) : -40;
         bob = catches ? 'tip' : 'water';
         pose.eyes = catches ? 'wide' : 'side';
         pose.mouth = 'o';
-      } else if (catches && inside(u, 54, 63)) {
+      } else if (catches && inside(u, 32, 39)) {
         angle = -72;
         bob = 'tip';
         pose.eyes = 'happy';
         pose.mouth = 'open';
         pose.front = [5, -3];
-      } else if (catches && inside(u, 63, 64.5)) {
-        angle = lerp(-90, -38, seg(u, 63, 63.6));
+      } else if (catches && inside(u, 39, 40.5)) {
+        angle = lerp(-90, -38, seg(u, 39, 39.6));
         bob = 'flying';
-        flyP = seg(u, 63.6, 64.5);
-      } else if (!catches && inside(u, 54, 56)) {
-        pose.eyes = 'closed';
-        pose.mouth = 'none';
+        flyP = seg(u, 39.6, 40.5);
       }
-      if (inside(u, 20, 24) || inside(u, 40, 41)) pose.eyes = 'closed'; // dozing a little
+      if (inside(u, 18, 19)) pose.eyes = 'focus';
     }
     if (reel > 0) {
       angle = lerp(-40, -90, reel);
@@ -85,11 +80,15 @@ export default {
       if (out > 3.5) pose.legs = 'stand';
     }
 
+    // A collection sack and previously recovered litter stay on the bridge.
+    canvas.rect(X - 18, Y - 7, 9, 7, S.knitDark);
+    canvas.line(X - 18, Y - 7, X - 9, Y - 7, S.metal);
+    if (cycle > 0 || u >= 39) trash(canvas, X - 14, Y - 10, c.seed + Math.max(0, cycle - 1));
     return {
       pose,
       after(paws) {
-        // Around a bite we see under the water: the hook, the fish coming in.
-        if (u >= 38 && u < 58) panel(canvas, above(), seg(u, 38, 39.2) * (1 - seg(u, 56, 57.2)), (sc, b) => underwater(sc, b, u - 41, { strike: 12, caught: catches }), paws.top);
+        // Follow the hook down to the litter, then watch the retrieval.
+        if (u >= 16 && u < 34) panel(canvas, above(), seg(u, 16, 17.2) * (1 - seg(u, 32.8, 34)), (sc, b) => underwater(sc, b, u - 17, { strike: 14, caught: catches, item: c.seed + cycle }), paws.top);
         if (angle == null) return;
         const [px, py] = paws.frontPaw;
         const rad = (angle * Math.PI) / 180;
@@ -107,12 +106,13 @@ export default {
             const ly = lerp(tip.y, b.y, s) + Math.sin(Math.PI * s) * (bob === 'water' ? 3 : 1);
             if ((Math.round(lx) + Math.round(ly)) % 2 === 0 || light < 0.5) canvas.set(Math.round(lx), Math.round(ly), light < 0.5 ? S.cloud : S.ink);
           }
-          const caught = catches && u >= 54 && u < 63;
+          const caught = catches && u >= 32 && u < 39;
           if (caught) {
-            const p = seg(u, 54, 55.4);
+            const p = seg(u, 32, 34);
             const fx = lerp(bobber.x, px + 2, p);
             const fy = lerp(bobber.y, py + 2, p) - Math.sin(Math.PI * p) * 20;
-            canvas.draw(FISH, fx - 3, fy - 1, { flip: Math.floor(time * 4) % 2 === 0 });
+            const deposit = seg(u, 36, 39);
+            trash(canvas, lerp(fx, X - 14, deposit), lerp(fy, Y - 10, deposit), c.seed + cycle);
           } else {
             canvas.set(Math.round(b.x), Math.round(b.y) - 1, S.logo);
             canvas.set(Math.round(b.x), Math.round(b.y), S.paper);

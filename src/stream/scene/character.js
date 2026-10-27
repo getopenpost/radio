@@ -501,7 +501,7 @@ export function createCharacters() {
     let dx = hx - sx;
     let dy = hy - sy;
     let d = Math.hypot(dx, dy);
-    const reach = UPPER + FORE - 0.5;
+    const reach = UPPER + FORE;
     if (d > reach) {
       hx = sx + (dx / d) * reach;
       hy = sy + (dy / d) * reach;

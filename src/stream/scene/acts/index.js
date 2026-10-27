@@ -10,6 +10,8 @@
 // the ground and scroll with it; unanchored ones travel with the fox.
 //
 // An activity returns { pose, speed, lift, done, after(paws) } or null.
+// Optional `zoom` and `focusX` ease the camera towards a scale and a horizontal
+// focal point in scene coordinates while the fox stays at its activity.
 import campfire from './campfire.js';
 import fish from './fish.js';
 import fly from './fly.js';

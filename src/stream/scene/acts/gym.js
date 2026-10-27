@@ -99,7 +99,7 @@ function perform(c, s, into, fx, Y, extra) {
   const face = { eyes: strain ? 'closed' : 'focus', mouth: strain ? 'o' : 'smile', ...extra };
 
   const [upper, fore] = ARMS[s.kind] ?? [7, 7];
-  const REACH = upper + fore - 0.6;
+  const REACH = upper + fore;
   /** Place the body so its front shoulder lands at (sx, sy), then draw arms to the hands. */
   const body = (pose, sx, sy, hands, bend) => {
     const q = chars.transform(pose)(3, -11);
@@ -115,24 +115,37 @@ function perform(c, s, into, fx, Y, extra) {
 
   if (s.kind === 'pullup' || s.kind === 'muscleup') {
     const barY = Y - BAR.y;
-    const hands = [[fx + 4, barY + 1], [fx + 1, barY + 1]];
+    const hands = [[fx + 4, barY + 1], [fx - 1, barY + 1]];
     if (on < 0.4 || off > 0.6) return { paws: stand({ front: [2, -12], back: [1, -12], eyes: 'up', ...extra }), count: null };
     // Hang: shoulders a full arm below the bar; up: chin over it.
-    let sy = barY + REACH - 0.5;
+    const hang = barY + 1 + REACH;
+    let sx = fx + 4;
+    let sy = hang;
     let angle = 0;
-    let bend = 1;
+    const bend = 1;
     if (on < 1) sy = lerp(Y - 11, sy, seg(on, 0.4, 1));
     else if (off > 0) sy = lerp(sy, Y - 11, seg(off, 0, 0.6));
-    else if (s.kind === 'pullup') sy = lerp(barY + REACH - 0.5, barY + 4, curve);
-    else {
+    else if (s.kind === 'pullup') {
+      sy = lerp(hang, barY + 2, curve);
+      // The chest moves behind the grip on the way up. Elbows stay below
+      // the shoulders at the top instead of folding sideways into the head.
+      sx -= 10 * curve;
+      angle = -0.1 * curve;
+    } else {
       // Muscle-up: a high pull, the chest over the bar, a press to lockout, then back down.
       const k = p < 0.3 ? smooth(p / 0.3) * 0.5 : p < 0.55 ? 0.5 + smooth((p - 0.3) / 0.25) * 0.5 : p < 0.7 ? 1 : 1 - smooth((p - 0.7) / 0.3);
-      if (k < 0.5) sy = lerp(barY + REACH - 0.5, barY + 2, k / 0.5);
-      else sy = lerp(barY + 2, barY - REACH + 1, (k - 0.5) / 0.5);
-      angle = k > 0.35 && k < 0.85 ? 0.35 * Math.sin(((k - 0.35) / 0.5) * Math.PI) : 0;
+      if (k < 0.5) {
+        sy = lerp(hang, barY + 2, k / 0.5);
+        sx -= 10 * smooth(k / 0.5);
+      } else {
+        const press = (k - 0.5) / 0.5;
+        sy = lerp(barY + 2, barY + 1 - REACH, press);
+        sx -= 10 * (1 - smooth(press));
+      }
+      angle = k > 0.5 ? 0.22 * Math.sin((k - 0.5) * Math.PI * 2) : -0.1 * k * 2;
       if (k > 0.9 && p >= 0.55 && p < 0.7) Object.assign(face, { eyes: 'happy', mouth: 'open' });
     }
-    const paws = body({ legs: 'hang', dangle: Math.sin(time * 2.2) * 0.5, angle, pivot: [3, -11], ...face }, fx + 2, sy, hands, bend);
+    const paws = body({ legs: 'hang', dangle: Math.sin(time * 2.2) * 0.5, angle, pivot: [3, -11], ...face }, sx, sy, hands, bend);
     return { paws, count };
   }
   if (s.kind === 'dip') {
@@ -292,7 +305,7 @@ export default {
       // While training the activity draws the fox itself (arms and all).
       pose: set ? { hidden: true } : walkPose ?? {},
       speed,
-      zoom: out === 0 ? 2 : 1,
+      zoom: out === 0 ? 1.6 : 1,
       after() {
         if (set) {
           const { paws, count } = perform(c, set.s, set.into, c.foxX, Y, c.winter ? { winter: true } : {});

@@ -85,6 +85,8 @@ export default {
     if (u < 0 || u >= 26) pose.headY = Math.floor(beat) % 2 ? 1 : 0;
     return {
       pose,
+      zoom: out === 0 ? 1.2 : 1,
+      focusX: out === 0 ? fx + 7 : undefined,
       after(paws) {
         if (!stick) return;
         const [px, py] = paws.frontPaw;

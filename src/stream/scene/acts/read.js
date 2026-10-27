@@ -21,9 +21,9 @@ const VISITS = [
     bye: [{ who: 'b', text: 'OFF I GO' }, { who: 'a', text: 'TAKE CARE!' }],
   },
 ];
-const PERIOD = 160; // a visitor at most every this many seconds
-const STAY = 75;
-const FIRST = 36; // the first visitor comes once the fox has read a while
+const PERIOD = 240; // leave long stretches for the book between short visits
+const STAY = 50;
+const FIRST = 65;
 
 export default {
   spec: { anchored: true, extent: [-20, 46], intro: 5, outro: 5, light: 'day' },
@@ -80,14 +80,14 @@ export default {
     }
     if (out > 3.5) pose.legs = 'stand';
 
-    // While it reads alone we look over its shoulder at the page now and
-    // then, closing the view before a friend arrives or the fox gets up.
+    // Keep the reading view open, with short pauses for conversation or
+    // getting up. A friend can sit and read alongside without hiding it.
     const { state } = c;
-    if (friend || !reading) state.alone = null;
+    if (talking || !reading) state.alone = null;
     else state.alone ??= t;
     const nextVisit = FIRST + (k + 1) * PERIOD;
-    const u = state.alone == null ? 0 : (t - state.alone) % 40;
-    const view = state.alone == null ? 0 : seg(u, 2, 3.2) * (1 - seg(u, 20, 21.2)) * (1 - seg(t, nextVisit - 2.4, nextVisit - 1.2)) * (1 - seg(out, 0, 1.2));
+    const u = state.alone == null ? 0 : t - state.alone;
+    const view = state.alone == null ? 0 : seg(u, 1, 2.2) * (1 - seg(out, 0, 1.2));
 
     // A small bird lands on the free end of the backrest now and then.
     // It comes while the fox is alone and leaves before anyone arrives.

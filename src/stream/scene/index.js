@@ -2,7 +2,7 @@
 // (nearest neighbour) by ffmpeg.
 //
 // A fox with a postbag walks a dithered landscape in time with the music.
-// Every so often it stops for something (fishing, working in its studio or
+// Every so often it stops for something (lake cleanup, working in its studio or
 // warming up at home, a campfire with friends, reading, stargazing, a
 // workout, rowing across a river, flying), then walks on. The wall clock drives the sun and moon, seasons, weather,
 // the region the walk passes through and what the fox does, so the picture
@@ -67,6 +67,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
   let actDone = false; // the current stop says it is finished (the river is crossed)
   let actZoom = 1; // how close the current stop wants the camera
   let zoom = 1;
+  let focusX = FOX_X;
   const zoomed = new Uint8Array(WIDTH * HEIGHT);
   const finished = new Set(); // stops already done in their time slot
   let lift = 0; // how high the fox is off the path
@@ -343,6 +344,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     let after = null;
     let actLift = 0;
     actZoom = 1;
+    let actFocusX = FOX_X;
     if (act) {
       const X = spec.anchored ? Math.round(act.wx - ground) : FOX_X; // unanchored sets travel with the fox
       const t = act.start == null ? -1 : time - act.start;
@@ -361,6 +363,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
       actSpeed = res?.speed ?? 0;
       actDone = Boolean(res?.done);
       actZoom = (mode === 'stay' && res?.zoom) || 1;
+      if (mode === 'stay') actFocusX = res?.focusX ?? FOX_X;
     }
     lift = actLift || bridge;
 
@@ -424,10 +427,15 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon' } = {}) {
     // The camera moves in on some stops (the gym), easing in and out; the
     // ground line sits lower in the frame as it closes in.
     zoom += (actZoom - zoom) * Math.min(1, dt * 1.2);
-    if (zoom > 1.01) {
+    focusX += (actFocusX - focusX) * Math.min(1, dt * 0.7);
+    if (zoom > 1.01 || Math.abs(focusX - FOX_X) > 0.5) {
       const { index } = canvas;
       zoomed.set(index);
-      const cx = FOX_X;
+      // Panning needs the margin provided by the zoom. Keep every sample
+      // inside the picture, including while the two eases settle at different
+      // rates, or a star/tree on the edge stretches into a horizontal streak.
+      const halfView = WIDTH / (2 * zoom);
+      const cx = Math.max(halfView, Math.min(WIDTH - halfView, focusX));
       const cy = HEIGHT / 2 + (PATH_Y - 54 - HEIGHT / 2) * (zoom - 1);
       for (let y = 0; y < HEIGHT; y++) {
         const sy = Math.max(0, Math.min(HEIGHT - 1, Math.floor(cy + (y - HEIGHT / 2) / zoom)));

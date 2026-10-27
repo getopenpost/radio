@@ -268,47 +268,35 @@ function makeHouse(kind) {
           Object.assign(pose, { legs: 'sit', seat: kind === 'work' ? 8 : 9, eyes: 'open' });
           if (kind === 'work') {
             pose.headphones = s > 2;
-            const typing = s > 4 && Math.floor((s / 6) % 5) !== 4;
+            const typing = s > 2 && s % 42 < 40;
             pose.front = [10, 1 + (typing && Math.floor(beat * 2) % 2 ? -1 : 0)];
             pose.back = [9, 2 + (typing && Math.floor(beat * 2 + 1) % 2 ? -1 : 0)];
             pose.eyes = 'focus';
             pose.headX = 1;
-            const u = s % 60;
-            if (u > 40 && u < 50) {
-              pose.eyes = 'closed';
-              pose.headY = Math.floor(beat) % 2 ? 1 : 0;
-            } else if (u > 50 && u < 53) {
-              pose.front = [3, -12];
-              pose.back = [2, -12];
-              pose.eyes = 'closed';
-              pose.mouth = 'o';
-            } else if (u > 25 && u < 29) {
+            const u = s % 70;
+            if (u > 64 && u < 66) {
               pose.back = [5, -6];
               pose.eyes = 'closed';
               item = 'sip';
             }
-            // Every so often we see its screen: code, email, the team chat, a study app.
-            const k = Math.floor(s / 34);
-            const v = s % 34;
-            if (s > 5) view = { kind: 'laptop', app: APPS[(k + c.seed) % APPS.length], t: Math.max(0, v - 3), amount: seg(v, 3, 4.2) * (1 - seg(v, 27, 28.2)) };
+            // Keep working, with a short sip rather than long idle intervals.
+            // The desktop stays visible as focus passes between overlapping apps.
+            const k = Math.floor(s / 24);
+            view = { kind: 'laptop', app: APPS[(k + c.seed) % APPS.length], t: s, amount: seg(s, 2, 3.2) * (1 - seg(out, 0, 1.2)) };
           } else {
-            // Reading, sipping cocoa, dozing off by the fire.
-            const u = s % 50;
-            if (u < 24) {
+            // Read by the fire, pausing just long enough for a sip of cocoa.
+            const u = s % 70;
+            if (u < 65) {
               pose.front = [6, -1];
               pose.back = [8, -1];
               pose.eyes = 'focus';
               pose.headY = 1;
               item = 'book';
-              view = { kind: 'book', t: s, amount: seg(u, 3, 4.2) * (1 - seg(u, 20, 21.2)) };
-            } else if (u < 30) {
+              view = { kind: 'book', t: s, amount: seg(u, 1, 2.2) * (1 - seg(u, 63.5, 65)) };
+            } else {
               pose.back = [5, -6];
               pose.eyes = 'closed';
               item = 'sip';
-            } else {
-              pose.eyes = 'closed';
-              pose.headY = 1;
-              pose.front = [3, 3];
             }
           }
         }
@@ -322,6 +310,8 @@ function makeHouse(kind) {
       return {
         pose,
         speed,
+        zoom: kind === 'home' && out === 0 && state.seated != null ? 1.25 : 1,
+        focusX: kind === 'home' && out === 0 && state.seated != null ? X + 88 : undefined,
         done: out > 0 && fox >= EXIT - 1,
         after(paws) {
           if (cut > 0 && kind === 'work') {
@@ -346,7 +336,9 @@ function makeHouse(kind) {
           if (inFront) facade(canvas, X, Y, { kind, cut, leftOpen, rightOpen, light, season, glows, time });
           if (view?.amount > 0) {
             const paint = view.kind === 'laptop' ? (sc, b) => laptop(sc, b, view.app, view.t, c.seed) : (sc, b) => book(sc, b, view.t, c.seed);
-            panel(canvas, above(), view.amount, paint, paws.top);
+            // Leave room for the camera's modest zoom by the fireplace.
+            const box = view.kind === 'laptop' ? above(260, 150) : { ...above(), x: Math.round(X + 88 - 108), y: 88 };
+            panel(canvas, box, view.amount, paint, paws.top);
           }
         },
       };
