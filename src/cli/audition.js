@@ -2,7 +2,7 @@
 // render the first main section of a few seeds per style, level-match the
 // excerpts, then score how well each matches its style description, how
 // it fares against "generic" alternatives, and how produced it sounds.
-// Usage: npm run audition -- [--styles focus,lofi] [--seeds 1,2] [--label before]
+// Usage: npm run audition -- [--styles melodic,slow] [--seeds 1,2] [--label before]
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { availableParallelism } from 'node:os';
@@ -12,13 +12,10 @@ import { parseArgs } from 'node:util';
 import { rootDir } from '../paths.js';
 
 export const DESCRIPTIONS = {
-  focus: 'deep bass-led downtempo electronic focus music',
-  cafe: 'warm jazzy chillhop with clean electric guitar, rhodes and bass guitar',
-  lofi: 'relaxing lofi hip hop beat with warm jazzy keys',
-  house: 'deep chill house music',
-  garage: 'future garage music with shuffled beats and reese bass',
-  wave: 'dreamy synthwave night drive music',
-  ambient: 'calm ambient music with soft evolving pads',
+  melodic: 'melodic deep house with a warm rolling bassline and sidechained chords',
+  deep: 'deep house with a warm rolling bassline and soulful chord stabs',
+  broken: 'broken beat house with a shuffled two step groove and deep bass',
+  slow: 'slow soulful hip hop beat with warm electric piano and bass guitar',
 };
 const ALTERNATIVES = ['cheap generic synthesizer demo', 'corporate background music', 'video game music'];
 const EARSHOT = ['--python', '3.12', '--from', 'earshot@git+https://github.com/Leonxlnx/earshot@591fa3e028032e6dce56620a20e932e35667e8d8', 'earshot'];

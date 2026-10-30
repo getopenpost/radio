@@ -1,12 +1,12 @@
 // Compose a track and print its Strudel code, or render it.
-// Usage: npm run compose -- --style focus --seed 42 [--render out.wav] [--json]
+// Usage: npm run compose -- --style melodic --seed 42 [--render out.wav] [--json]
 import { writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { composeTrack, styles } from '../compose/index.js';
 
 const { values } = parseArgs({
   options: {
-    style: { type: 'string', default: 'focus' },
+    style: { type: 'string', default: 'melodic' },
     seed: { type: 'string', default: String(Date.now() % 100000) },
     render: { type: 'string' },
     code: { type: 'string' },

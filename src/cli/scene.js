@@ -16,12 +16,12 @@ const { values } = parseArgs({
     out: { type: 'string', default: 'tmp/scene' },
     bpm: { type: 'string', default: '90' },
     timezone: { type: 'string', default: 'Europe/Lisbon' },
-    track: { type: 'string', default: 'focus-1' },
+    track: { type: 'string', default: 'melodic-1' },
   },
 });
 await mkdir(values.out, { recursive: true });
 const nowPlaying = join(values.out, 'nowplaying.txt');
-const title = 'Glass Lantern · deep focus';
+const title = 'Glass Lantern · melodic house';
 await writeFile(nowPlaying, title);
 const pillWidth = Math.round(26 + title.length * CHAR_WIDTH);
 const fps = 30;

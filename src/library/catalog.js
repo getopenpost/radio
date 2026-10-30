@@ -2,8 +2,9 @@
 import { readdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// How much of the library each style makes up; focus is the core sound.
-export const STYLE_WEIGHTS = { focus: 30, cafe: 20, lofi: 12, garage: 10, house: 9, wave: 9, ambient: 10 };
+// How much of the library each style makes up, roughly in the proportion of the
+// reference mixes: mostly house, with slow soul as the long rest between runs.
+export const STYLE_WEIGHTS = { melodic: 42, deep: 22, broken: 10, slow: 26 };
 
 export async function trackIds(dir) {
   try {

@@ -1,5 +1,5 @@
 // Build or extend the track library.
-// Usage: npm run library -- [--count 20] [--styles focus,lofi] [--jobs N] [--dir library]
+// Usage: npm run library -- [--count 20] [--styles melodic,slow] [--jobs N] [--dir library]
 //        npm run library -- --catalog   (only rebuild catalog.json)
 // Tracks already in the library are skipped, so the command is resumable.
 import { spawn } from 'node:child_process';
