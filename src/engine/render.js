@@ -44,6 +44,7 @@ const prebakeSources = [
   'https://raw.githubusercontent.com/tidalcycles/uzu-drumkit/main/strudel.json',
 ];
 const bankAliases = 'https://raw.githubusercontent.com/todepond/samples/main/tidal-drum-machines-alias.json';
+const kitBase = new URL('../../assets/kit/', import.meta.url).href; // scripts/build-kit.js
 
 let prebaked;
 function prebake() {
@@ -52,7 +53,7 @@ function prebake() {
     webaudio.registerSynthSounds();
     webaudio.registerZZFXSounds();
     soundfonts.registerSoundfonts();
-    await Promise.all(prebakeSources.map((url) => webaudio.samples(url)));
+    await Promise.all([...prebakeSources.map((url) => webaudio.samples(url)), webaudio.samples(`${kitBase}strudel.json`, kitBase)]);
     await webaudio.aliasBank(bankAliases);
   })();
   return prebaked;

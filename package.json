@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "postinstall": "node scripts/build-strudel.js",
+    "postinstall": "node scripts/build-strudel.js && node scripts/build-kit.js",
     "compose": "node src/cli/compose.js",
     "render": "node src/cli/render.js",
     "calibrate": "node src/cli/calibrate.js",

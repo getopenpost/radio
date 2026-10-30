@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cacheDir } from '../paths.js';
 
 const noop = () => {};
@@ -42,6 +43,7 @@ const httpCache = join(cacheDir, 'http');
 
 globalThis.fetch = async (input, init) => {
   const url = typeof input === 'string' ? input : input.url;
+  if (url.startsWith('file:')) return new Response(await readFile(fileURLToPath(url)), { status: 200 });
   if (!/^https?:/.test(url) || (init?.method && init.method !== 'GET')) return networkFetch(input, init);
   const file = join(httpCache, createHash('sha256').update(url).digest('hex'));
   try {

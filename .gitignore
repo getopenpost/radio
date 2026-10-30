@@ -13,6 +13,7 @@ dist/
 /cache/
 /out/
 /tmp/
+/assets/kit/
 *.wav
 *.flac
 
