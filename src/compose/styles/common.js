@@ -1,19 +1,13 @@
-// Shared composition engine. A style is a config: which instruments it
-// favours, how loud each role sits, its groove family, bass and comping
-// vocabulary, arrangement plans and what plays in each section. The engine
-// turns that plus a seed into Strudel code.
-import { createBuilder, duck } from '../builder.js';
-import { GROOVES, grooveMini } from '../grooves.js';
+// Shared song engine. Every style is a loop-based song: one harmonic loop, a
+// few parts that each own a register, and a form of 8 and 16 bar blocks in
+// which parts enter on block lines and a slow filter arc replaces chord
+// changes as the source of movement. The numbers come from transcribing the
+// reference mixes (docs/music/reference-analysis.md).
+import { createBuilder } from '../builder.js';
 import { pickKit, pickPreset } from '../instruments.js';
-import { bassLine, BASS_RHYTHMS, motif } from '../patterns.js';
-import { chordsPerBar, progressionMini } from '../theory.js';
-
-export const DEFAULT_ARPS = ['[0 2 4 6]*2', '0 2 4 2 6 4 2 4', '[0 4 2 6]*2', '0 ~ 2 4 ~ 6 4 2', '[0 2 4]*2 [6 4]', '0 4 7 4 2 4 6 4'];
-// Played feel: each note lands a few milliseconds late and a little softer or
-// louder, drifting slowly, so parts breathe instead of sitting on the grid.
-const feel = (late, low) => `.nudge(perlin.slow(1.7).range(0, ${late})).velocity(perlin.slow(2.3).range(${low}, 1))`;
-
-export const DEFAULT_COMPS = ['~ [~ x] ~ ~', '[~ x] ~ [~ x] ~', '~ ~ [~ x] ~', 'x ~ ~ [~ x]', '~ [~ x@3] ~ [~ x]', '[~ x] [~ x] ~ ~'];
+import { barMini, barsMini, num } from '../mini.js';
+import { bassLine, BASS_RHYTHMS, cascade, chops, fills, gridMini, hook } from '../patterns.js';
+import { chordsPerBar, noteName, voiceLoop } from '../theory.js';
 
 /** Expand ['intro', 8, 'A', 32, ...] into [{ name, bars }]. */
 export const sectionsOf = (flat) => flat.reduce((out, x, i) => (i % 2 ? out : [...out, { name: x, bars: flat[i + 1] }]), []);
@@ -26,17 +20,33 @@ export function makeStyle(config) {
     moods: config.moods,
     modes: config.modes,
     energy: config.energy,
+    presence: config.presence ?? 3, // dB at 2.5 kHz in the master
     compose: (ctx) => compose(config, ctx),
   };
 }
+
+// A rhythm that changes on the last bar of every four, so a loop turns over.
+const turn = (a, b) => `<[${gridMini(a, 'x')}]!3 [${gridMini(b, 'x')}]>`;
+
+const chordNotes = (notes) => `[${notes.map(noteName).join(',')}]`;
+
+/**
+ * Comping that can lean into the next chord: `cell` is [[step, length, next]],
+ * where next plays the following bar's chord early, as a pianist anticipates.
+ */
+const comp = (voicings, cell) =>
+  barsMini(
+    voicings.map((notes, i) =>
+      barMini(cell.map(([step, len, next]) => ({ step, len, value: chordNotes(next ? voicings[(i + 1) % voicings.length] : notes) }))),
+    ),
+  );
 
 function compose(config, { rng, key, bpm, progressions }) {
   const [progA, progB] = progressions;
   const chordsA = chordsPerBar(key, progA);
   const chordsB = chordsPerBar(key, progB);
-  const b = createBuilder({ rng, levels: config.levels });
-  const tags = config.tags;
-  const role = (name) => config.presets?.[name] ?? tags;
+  const b = createBuilder({ rng, levels: config.levels, swing: config.swing, echo: config.echo });
+  const role = (name) => config.presets?.[name] ?? config.tags;
 
   const pick = {
     sub: pickPreset(rng, 'sub', role('sub')),
@@ -44,102 +54,113 @@ function compose(config, { rng, key, bpm, progressions }) {
     pad: pickPreset(rng, 'pad', role('pad')),
     keys: pickPreset(rng, 'keys', role('keys')),
     lead: pickPreset(rng, 'lead', role('lead')),
-    arp: pickPreset(rng, 'arp', role('arp')),
-    texture: pickPreset(rng, 'texture', role('texture')),
   };
-  // Styles without grain still draw the pick, so a seed keeps its later choices.
-  if (config.texture === false) pick.texture = null;
-  pick.pad2 = pickPreset(rng, 'pad', role('pad2'), [pick.pad.id]);
-  const kitTags = config.kitTags ?? tags;
-  const kits = Object.fromEntries(['kick', 'snare', 'hat', 'openhat', 'perc'].map((part) => [part, pickKit(rng, part, kitTags)]));
-  const grooves = GROOVES[config.groove];
-  const grooveA = grooveMini(rng.pick(grooves));
-  const grooveB = grooveMini(rng.pick(grooves));
-  const swing = rng.pick(config.swing ?? ['']);
-
-  const subLow = config.subLow ?? 26; // sub roots between D1 and Db2 (37-69 Hz)
-  const bassLow = config.bassLow ?? 40;
-  const sub = (chords, rhythm) => bassLine(chords, BASS_RHYTHMS[rhythm], { low: subLow, key, legato: true });
-  const line = (chords, rhythm) => bassLine(chords, BASS_RHYTHMS[rhythm], { low: bassLow, key, legato: config.legatoBass });
-  const rh = {
-    subA: rng.pick(config.subRhythms[0]),
-    subB: rng.pick(config.subRhythms[1]),
-    bassA: rng.pick(config.bassRhythms[0]),
-    bassB: rng.pick(config.bassRhythms[1]),
+  const kitTags = config.kitTags ?? config.tags;
+  const kits = Object.fromEntries(['kick', 'snare', 'hat', 'tick', 'openhat', 'perc'].map((part) => [part, pickKit(rng, part, kitTags)]));
+  // Each song makes one or two clear choices rather than using every part.
+  const song = {
+    chords: rng.weighted(config.chordModes),
+    melody: rng.weighted(config.melodyModes),
+    bass: rng.chance(config.bassChance ?? 1),
+    chops: rng.chance(config.chopChance ?? 0),
   };
 
-  b.def('A', `chord("${progressionMini(key, progA)}")`);
-  b.def('B', `chord("${progressionMini(key, progB)}")`);
+  b.comment('Harmony: rootless close voicings, moved as little as possible.');
+  const center = rng.int(...(config.center ?? [58, 62]));
+  const voice = (chords) => voiceLoop(chords, { center, size: config.voices ?? 4 });
+  const voicedA = voice(chordsA);
+  const voicedB = voice(chordsB);
+  b.def('A', `note("${barsMini(voicedA.map(chordNotes))}")`);
+  b.def('B', `note("${barsMini(voicedB.map(chordNotes))}")`);
+  b.def('heldA', `note("${barsMini(voicedA.map(chordNotes), { tie: true })}")`);
+  b.def('heldB', `note("${barsMini(voicedB.map(chordNotes), { tie: true })}")`);
 
-  b.comment('Bass: a sustained sub plus a moving low-register line.');
-  b.def('subA', `note("${sub(chordsA, rh.subA)}")`);
-  b.def('subA2', `note("${sub(chordsA, rh.subB)}")`);
-  b.def('subB', `note("${sub(chordsB, rh.subB)}")`);
-  b.def('lineA', `note("${line(chordsA, rh.bassA)}")`);
-  b.def('lineA2', `note("${line(chordsA, rh.bassB)}")`);
-  b.def('lineB', `note("${line(chordsB, rh.bassB)}")`);
+  b.comment('Low end: one held sub, and for some songs a sparse line above it.');
+  const subLow = config.subLow ?? 27;
+  const bassLow = config.bassLow ?? 36;
+  const subRhythm = rng.pick(config.subRhythms);
+  const sub = (chords) => bassLine(chords, BASS_RHYTHMS[subRhythm], { low: subLow, legato: true, tie: subRhythm === 'hold' });
+  const line = (chords, rhythm) => bassLine(chords, BASS_RHYTHMS[rhythm], { low: bassLow, legato: config.legatoBass });
+  const [rhythmA, rhythmB] = rng.shuffle(config.bassRhythms);
+  b.def('subA', `note("${sub(chordsA)}")`);
+  b.def('subB', `note("${sub(chordsB)}")`);
+  b.def('lineA', `note("${line(chordsA, rhythmA)}")`);
+  b.def('lineA2', `note("${line(chordsA, rhythmB ?? rhythmA)}")`);
+  b.def('lineB', `note("${line(chordsB, rhythmB ?? rhythmA)}")`);
   b.notes('sub', pick.sub);
-  // Spread the bass line a little; the sub stays mono.
-  const bassWidth = pick.bass.chain(rng).includes('.layer(') ? '' : `.layer(x => x.pan(${config.bassPan?.[0] ?? 0.32}), x => x.add(note(.07)).pan(${config.bassPan?.[1] ?? 0.68}))`;
-  b.notes('bass', pick.bass, { extra: `.hpf(55)${bassWidth}${feel(0.006, 0.85)}${config.bassExtra ?? ''}` });
+  b.notes('bass', pick.bass, { extra: config.bassExtra ?? '' });
 
-  b.comment('Harmony.');
-  const padTop = rng.pick(config.padAnchors ?? ['g4', 'a4', 'bb4', 'c5']);
-  const padSweep = `.lpf(sine.slow(32).range(${rng.int(7, 9) * 100}, ${rng.int(11, 14) * 100}))`;
-  const padHighPass = rng.int(22, 30) * 10;
-  b.chords('pad', pick.pad, { anchor: padTop, extra: `.hpf(${config.padHighPass ?? padHighPass})${config.padSweep === false ? '' : padSweep}${config.padExtra ?? ''}` });
-  b.chords('pad2', pick.pad2, { anchor: 'e4', extra: '.hpf(260).pan(sine.slow(16).range(.3, .7))', scale: config.pad2Scale ?? 0.6 });
-  // Comping varies on the fourth bar of each phrase so loops do not sit still.
-  const comps = rng.shuffle(config.comps ?? DEFAULT_COMPS);
-  const comp = comps.length > 1 ? `<[${comps[0]}]!3 [${comps[1]}]>` : comps[0];
-  // Guitar styles pick broken chords instead; the fourth bar varies the same way.
-  const picks = config.picks ? rng.shuffle(config.picks) : null;
-  const picked = picks ? `<[${picks[0]}]!3 [${picks[1]}]>` : undefined;
-  b.chords('keys', pick.keys, { anchor: rng.pick(config.keysAnchors ?? ['c5']), struct: comp, pick: picked, extra: `.hpf(200)${config.keysWide ? '' : '.pan(.42)'}${feel(0.012, 0.72)}${config.keysExtra ?? ''}${swing}` });
+  b.comment('Parts above the bass.');
+  const [cellA, cellB] = rng.shuffle(config.stabs);
+  b.pattern('stab', pick.keys, { struct: turn(cellA, cellB ?? cellA), extra: config.stabExtra ?? '', scale: song.chords === 'both' ? 0.6 : 1 });
+  b.pattern('held', pick.pad);
+  if (config.comps) {
+    const [compA, compB] = rng.shuffle(config.comps);
+    b.def('compA', `note("${comp(voicedA, compA)}")`);
+    b.def('compA2', `note("${comp(voicedA, compB ?? compA)}")`);
+    b.def('compB', `note("${comp(voicedB, compB ?? compA)}")`);
+    b.pattern('keys', pick.keys, { scale: 1 });
+  }
+  const [lo, hi] = config.hookRange ?? [69, 86];
+  const melodyBars = Math.max(8, chordsA.length);
+  b.def('hookA', `note("${hook(rng, key, chordsA, { lo, hi, bars: melodyBars })}")`);
+  b.def('hookB', `note("${hook(rng, key, chordsA, { lo: lo + 3, hi: hi + 3, bars: melodyBars })}")`);
+  b.def('runA', `note("${cascade(rng, key, chordsA, { top: hi, bars: melodyBars })}")`);
+  b.notes('lead', pick.lead, { on: 'fx', extra: '.pan(perlin.slow(4).range(.42, .62))' });
+  b.notes('run', pick.lead, { on: 'fx', extra: '.clip(6).release(.9).pan(perlin.slow(3).range(.3, .7))', scale: 0.8 });
+  if (config.chopChance) {
+    b.def('chopA', `note("${chops(rng, chordsA, { bars: melodyBars })}")`);
+    b.def('voice', 'n => n.s("gm_voice_oohs").attack(.008).release(.08).hpf(500).lpf(3200)' + `.gain(${num((config.levels.voice ?? 0.2))})${b.bus.fx}`);
+  }
+  if (config.fills) {
+    b.def('fillA', `note("${fills(rng, key, chordsA, { bars: melodyBars })}")`);
+    b.def('fillB', `note("${fills(rng, key, chordsA, { base: 77, bars: melodyBars })}")`);
+  }
 
-  b.comment('Melody: a sparse motif and an arpeggio, both through the delay.');
-  const [lo, hi] = config.motifRange ?? [64, 81];
-  const phrase = rng.pick(['AABA', 'ABAC', 'AAAB', 'ABAB']);
-  b.def('motif', `note("${motif(rng, key, [...chordsA, ...chordsA], { lo, hi, phrase, density: config.motifDensity ?? 0.5 })}")`);
-  b.def('motifB', `note("${motif(rng, key, [...chordsB, ...chordsB], { lo, hi, phrase, density: config.motifDensity ?? 0.5 })}")`);
-  b.notes('lead', pick.lead, { extra: `.pan(perlin.slow(4).range(.3, .7))${feel(0.01, 0.7)}${config.leadExtra ?? ''}` });
-  b.arp('arp', pick.arp, {
-    shape: rng.pick(config.arps ?? DEFAULT_ARPS),
-    anchor: rng.pick(config.arpAnchors ?? ['c5', 'd5', 'e5']),
-    extra: `.lpf(sine.slow(32).range(${rng.int(8, 12) * 100}, ${rng.int(22, 32) * 100})).pan(sine.slow(8).range(.2, .8))${feel(0.005, 0.6)}${config.arpExtra ?? ''}`,
-  });
-
-  b.comment('Drums.');
-  const kickDuck = config.duck === false ? '' : duck(rng, config.duckDepth ? rng.step(...config.duckDepth, 0.05) : undefined);
-  const drumExtra = config.drumExtra ?? '';
-  b.drum('kick', kits.kick, grooveA.kick, { role: 'kick', extra: kickDuck + drumExtra, humanize: 0 });
-  b.drum('kickB', kits.kick, grooveB.kick, { role: 'kick', extra: kickDuck + drumExtra, humanize: 0 });
-  b.drum('snare', kits.snare, grooveA.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
-  b.drum('snareB', kits.snare, grooveB.snare, { role: 'snare', extra: drumExtra + (config.snareExtra ?? ''), on: config.snareBus ?? 'drums' });
-  const flourish = config.hatFlourish === false ? '' : '.lastOf(4, x => x.ply("1 1 1 2"))'; // a small roll closing each 4-bar phrase
-  b.drum('hats', kits.hat, grooveA.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}${config.hatExtra ?? ''}` });
-  b.drum('hatsB', kits.hat, grooveB.hat, { role: 'hat', extra: `.hpf(6000).pan(.6)${flourish}${swing}${drumExtra}${config.hatExtra ?? ''}` });
-  b.drum('openhat', kits.openhat, config.openhat ?? '[~ x]*4', { role: 'openhat', extra: `.hpf(5000).decay(.12).pan(.66)${drumExtra}`, scale: 0.8 });
-  b.drum('perc', kits.perc, grooveA.perc ?? '~', { role: 'perc', extra: `.pan(.38)${swing}${drumExtra}` });
-  b.drum('fill', kits.perc, '[~ ~ ~ [x x x x]]', { role: 'perc', extra: `.pan(sine.range(.3, .7)).mask("<0!7 1>")${drumExtra}`, scale: 0.8 });
-  b.def('drums', 'stack(kick, snare, hats, perc, fill).lastOf(8, x => x.mask("1 1 1 [1 0]"))');
-  b.def('drumsB', 'stack(kickB, snareB, hatsB, perc, fill).lastOf(8, x => x.mask("1 1 1 [1 0]"))');
-  if (pick.texture) b.texture('air', pick.texture);
-  config.extraLayers?.(b, { rng, key, chordsA, chordsB, kits });
+  b.comment('Drums: the kick ducks everything that holds a note.');
+  const groove = rng.pick(config.grooves);
+  const pattern = (grid) => (grid.length > 16 ? `<${gridMini(grid.slice(0, 16), 'x')} ${gridMini(grid.slice(16), 'x')}>` : gridMini(grid, 'x'));
+  b.drum('kick', kits.kick, pattern(groove.kick), { role: 'kick', extra: config.duck ? b.duck(config.duck) : '', humanize: 0 });
+  b.drum('clap', kits.snare, pattern(groove.clap), { role: 'snare', humanize: 0.08 });
+  b.drum('hat', kits.hat, pattern(groove.hat), { role: 'hat', extra: '.pan(.54)', humanize: 0.12 });
+  b.drum('tick', kits.tick, pattern(groove.tick), { role: 'tick', extra: `.pan(.46).velocity("[1 .45 .75 .55]*4")${b.swing}`, humanize: 0 });
+  b.drum('open', kits.openhat, pattern(groove.open), { role: 'openhat', extra: '.pan(.6)', humanize: 0.1 });
+  b.drum('perc', kits.perc, pattern(groove.perc), { role: 'perc', extra: `.pan(.4)${b.swing}`, humanize: 0.2 });
+  b.def('riser', `s("white").slow(8).attack(7).release(.3).hpf(1200).lpf(6500).gain(${num(config.levels.riser ?? 0.03)}).orbit(4)`);
 
   const plan = sectionsOf(rng.pick(config.plans(rng)));
-  const sections = plan.map(({ name, bars }) => ({ name, bars, stack: config.sections(name, bars, rng) }));
+  const [dark, bright] = config.arc ?? [520, 3400];
+  const sections = plan.map(({ name, bars }) => {
+    const hz = (x) => Math.round(dark * Math.pow(bright / dark, x));
+    const open = (from, to = from) => (from === to ? String(hz(from)) : `saw.slow(${bars}).range(${hz(from)}, ${hz(to)})`);
+    const ctx = {
+      rng,
+      bars,
+      open,
+      // The last bar of a block drops the kick; the loop keeps playing over the gap.
+      drop: `.mask("<1!${bars - 1} 0>")`,
+      enter: (n) => `.mask("<0@${n} 1@${bars - n}>")`,
+      leave: (n) => `.mask("<1@${n} 0@${bars - n}>")`,
+      // The chord part this song chose, at a point on the filter arc.
+      chords: (from, to = from) => [
+        ...(song.chords !== 'stab' ? [`held(heldA).lpf(${open(from, to)})`] : []),
+        ...(song.chords !== 'pad' ? [`stab(A).lpf(${open(from, to)})`] : []),
+      ],
+      low: (line = 'lineA') => ['sub(subA)', ...(song.bass ? [`bass(${line})`] : [])],
+      // The melody this song chose: `n` picks the phrase, higher for later sections.
+      melody: (n = 0) => [
+        ...(song.melody !== 'run' ? [`lead(${n ? 'hookB' : 'hookA'})`] : []),
+        ...(song.melody !== 'hook' ? ['run(runA)'] : []),
+        ...(song.chops ? ['voice(chopA)'] : []),
+      ],
+    };
+    return { name, bars, stack: config.sections(name, ctx) };
+  });
   return {
     code: `setcps(${bpm}/60/4)\n${b.code(sections)}`,
     sections: sections.map(({ name, bars }) => [name, bars]),
-    instruments: Object.fromEntries([...Object.entries(pick).filter(([, v]) => v).map(([k, v]) => [k, v.id]), ...Object.entries(kits).map(([k, v]) => [k, v.id])]),
+    instruments: Object.fromEntries([...Object.entries(pick).map(([k, v]) => [k, v.id]), ...Object.entries(kits).map(([k, v]) => [k, v.id])]),
     introBars: sections[0].bars,
     outroBars: sections.at(-1).bars,
   };
 }
-
-// Section helpers shared by styles.
-export const rise = (bars, lo = 300, hi = 1200) => `saw.slow(${bars}).range(${lo}, ${hi})`;
-export const fall = (bars, hi = 1200, lo = 300) => `saw.slow(${bars}).range(${hi}, ${lo})`;
-export const enterAfter = (bars, of) => `.mask("<0@${bars} 1@${of - bars}>")`;
-export const leaveAfter = (bars, of) => `.mask("<1@${bars} 0@${of - bars}>")`;

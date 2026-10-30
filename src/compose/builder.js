@@ -1,59 +1,49 @@
 // Assembles a track's Strudel code from named layers and an arrangement.
 //
 // Mixing conventions shared by every style:
-// - each role (sub, kick, pad, ...) has a level, multiplied by the preset's
+// - each role (sub, kick, stab, ...) has a level, multiplied by the preset's
 //   calibration so any preset lands at the same loudness for its role;
-// - effects live on fixed orbits with constant reverb settings per orbit, so
+// - effects live on fixed orbits with constant settings per orbit, so
 //   superdough never regenerates an impulse response mid-track:
-//   1 drums (small dark room), 2 harmony (large dark hall, ducked by the kick),
-//   3 bass (dry, lightly ducked), 4 fx (tempo delay + hall; `hall` sends
-//   there without the delay), 5 texture (dry).
+//   1 drums (almost dry), 2 harmony (short dark room and dotted echo, ducked),
+//   3 bass (dry, ducked), 4 melody (longer echo and room, lightly ducked).
+//   Rooms stay small and dark: long halls fill the gaps between stabs, and
+//   those gaps are what separate the reference mixes from a wall of sound.
 import { calibrated } from './instruments.js';
 import { num } from './mini.js';
 
-export function createBuilder({ rng, levels }) {
+// superdough's duck gain is 1 - sqrt(depth); this is the depth for a dB target.
+const duckDepth = (db) => (1 - Math.pow(10, -db / 20)) ** 2;
+
+export function createBuilder({ rng, levels, swing = 0.1, echo: harmonyEcho = 0.24 }) {
   const lines = [];
-  const hall = { room: rng.step(0.45, 0.75, 0.05), size: rng.step(4, 7, 0.5) };
-  const delay = { amount: rng.step(0.25, 0.4, 0.05), sync: rng.pick(['3/16', '3/8', '1/4']), feedback: rng.step(0.35, 0.5, 0.05) };
+  const room = rng.step(0.22, 0.34, 0.02);
+  const size = rng.step(1.6, 2.4, 0.2);
+  const echo = rng.pick(['3/16', '3/16', '1/8']);
   const bus = {
-    drums: `.room(${num(rng.step(0.15, 0.3, 0.05))}).roomsize(1.4).roomlp(5000).roomdim(1200).orbit(1)`,
-    harmony: `.room(${num(hall.room)}).roomsize(${num(hall.size)}).roomlp(3500).roomdim(700).orbit(2)`,
+    drums: '.room(.1).roomsize(1).roomlp(6000).roomdim(1500).orbit(1)',
+    harmony: `.delay(${num(harmonyEcho)}).delaysync(${echo}).delayfeedback(.32).room(${num(room)}).roomsize(${num(size)}).roomlp(3800).roomdim(800).orbit(2)`,
     bass: '.orbit(3)',
-    fx: `.delay(${num(delay.amount)}).delaysync(${delay.sync}).delayfeedback(${num(delay.feedback)}).room(.45).roomsize(4).roomlp(4000).roomdim(900).orbit(4)`,
-    hall: '.room(.6).roomsize(4).roomlp(4000).roomdim(900).orbit(4)', // the fx orbit's reverb without the delay
-    texture: '.orbit(5)',
+    fx: `.delay(.38).delaysync(${echo}).delayfeedback(.44).room(${num(room + 0.06)}).roomsize(${num(size + 0.4)}).roomlp(4000).roomdim(900).orbit(4)`,
   };
   const gain = (role, id, scale = 1) => num((levels[role] ?? 0.5) * calibrated(id) * scale, 3);
 
   const b = {
     bus,
+    swing: swing ? `.swingBy(${num(swing)}, 8)` : '',
     comment: (text) => lines.push(`\n// ${text}`),
     def: (name, code) => lines.push(`const ${name} = ${code}`),
 
-    /**
-     * A chord-pattern instrument: `name(c)` voices the chords of `c`, struck
-     * together on the `struct` rhythm, or picked one note at a time when
-     * `pick` gives voicing indices (a guitarist's broken chords).
-     */
-    chords(name, preset, { role = preset.role, anchor = 'a4', struct, pick, extra = '', on = 'harmony', scale = 1 } = {}) {
-      const rhythm = pick ? `.n("${pick}")` : struct ? `.struct("${struct}")` : '';
-      b.def(name, `c => c${rhythm}.anchor("${anchor}").voicing()${preset.chain(rng)}${extra}\n  .gain(${gain(role, preset.id, scale)})${bus[on]}`);
-    },
-
-    /** An arpeggio over the chords of `c`; `shape` indexes the voicing. */
-    arp(name, preset, { shape, anchor = 'c5', extra = '', on = 'fx', scale = 1 } = {}) {
-      b.def(name, `c => c.n("${shape}").anchor("${anchor}").voicing()${preset.chain(rng)}${extra}\n  .gain(${gain('arp', preset.id, scale)})${bus[on]}`);
+    /** A chord part: `name(c)` plays the notes of `c`, on `struct` when given. */
+    pattern(name, preset, { role = preset.role, struct, extra = '', on = 'harmony', scale = 1 } = {}) {
+      const rhythm = struct ? `.struct("${struct}")` : '';
+      b.def(name, `c => c${rhythm}${preset.chain(rng)}${extra}\n  .gain(${gain(role, preset.id, scale)})${bus[on]}`);
     },
 
     /** A note-pattern instrument: `name(n)` plays the notes of `n`. */
     notes(name, preset, { role = preset.role, extra = '', on, scale = 1 } = {}) {
-      on ??= role === 'sub' || role === 'bass' ? 'bass' : role === 'texture' ? 'texture' : 'fx';
+      on ??= role === 'sub' || role === 'bass' ? 'bass' : 'fx';
       b.def(name, `n => n${preset.chain(rng)}${extra}\n  .gain(${gain(role, preset.id, scale)})${bus[on]}`);
-    },
-
-    /** A texture layer that needs no notes. */
-    texture(name, preset, { scale = 1 } = {}) {
-      b.def(name, `note("a3")${preset.chain(rng)}.gain(${gain('texture', preset.id, scale)})${bus.texture}`);
     },
 
     /**
@@ -66,6 +56,12 @@ export function createBuilder({ rng, levels }) {
       b.def(name, `s("${rhythm.replaceAll('x', kit.sound)}")${kit.mods}${extra}\n  .gain(${level})${bus[on]}`);
     },
 
+    /** Sidechain the harmony, bass and melody orbits from a kick. Depths in dB. */
+    duck({ harmony = 7, bass = 6, melody = 4, recover = 0.3 } = {}) {
+      const depth = [harmony, bass, melody].map((db) => num(duckDepth(db))).join(':');
+      return `.duckorbit("2:3:4").duckdepth("${depth}").duckattack("${num(recover)}:${num(recover * 0.8)}:${num(recover)}")`;
+    },
+
     /** Final code: definitions followed by the arrangement. */
     code(sections) {
       const arrangement = sections.map(({ name, bars, stack }) => `  [${bars}, stack(\n    ${stack.join(',\n    ')}\n  )], // ${name}`);
@@ -73,9 +69,4 @@ export function createBuilder({ rng, levels }) {
     },
   };
   return b;
-}
-
-/** Sidechain duck applied to a kick: pumps the harmony and, lightly, the bass. */
-export function duck(rng, depth = rng.step(0.35, 0.6, 0.05)) {
-  return `.duckorbit("2:3").duckdepth("${num(depth)}:${num(depth * 0.45)}").duckattack("${num(rng.step(0.22, 0.35, 0.01))}:0.15")`;
 }

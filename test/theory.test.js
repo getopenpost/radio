@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { camelot, chordScale, keyDistance, makeChord, PROGRESSIONS, QUALITIES } from '../src/compose/theory.js';
+import { camelot, keyDistance, makeChord, PROGRESSIONS, QUALITIES } from '../src/compose/theory.js';
 
 test('camelot positions match the published wheel', () => {
   assert.deepEqual(camelot({ tonic: 9, mode: 'aeolian' }), { n: 8, letter: 'A' }); // A minor
@@ -20,12 +20,6 @@ test('chord symbols and tones', () => {
   const c = makeChord({ tonic: 9, mode: 'aeolian' }, 8, 'maj9'); // VI of A minor
   assert.equal(c.symbol, 'F^9');
   assert.deepEqual(new Set(c.tones), new Set([5, 9, 0, 4, 7]));
-});
-
-test('chord scales avoid notes a semitone above chord tones', () => {
-  const key = { tonic: 0, mode: 'ionian' };
-  const cmaj7 = makeChord(key, 0, 'maj7');
-  assert.ok(!chordScale(key, cmaj7).includes(5)); // F over Cmaj7 rubs against E
 });
 
 test('every progression uses known qualities', () => {

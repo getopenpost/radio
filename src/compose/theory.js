@@ -81,21 +81,6 @@ export function makeChord(key, offset, quality) {
   };
 }
 
-/** Scale pitch classes of a key. */
-export function scalePcs(key) {
-  return MODES[key.mode].map((i) => (key.tonic + i) % 12);
-}
-
-/**
- * Notes that sound good over a chord: chord tones plus scale tensions that
- * are not a semitone above a chord tone (the classic "avoid notes").
- */
-export function chordScale(key, chord) {
-  const scale = scalePcs(key);
-  const tones = new Set(chord.tones);
-  return scale.filter((pc) => tones.has(pc) || !chord.tones.some((t) => (pc - t + 12) % 12 === 1));
-}
-
 /** All MIDI notes in [lo, hi] whose pitch class is in pcs. */
 export function notesInRange(pcs, lo, hi) {
   const set = new Set(pcs);
@@ -111,64 +96,46 @@ export function nearest(pc, target) {
 }
 
 // Progressions: [semitone offset from tonic, quality, bars]. Each declares the
-// mode it implies, which drives melody scales and key labelling.
+// mode it implies, which drives melody scales and key labelling. These are the
+// loop shapes transcribed from the reference mixes: chords last two bars or
+// more, and maj9 and m9 colour nearly everything.
 export const PROGRESSIONS = [
-  // Dark minor: focus, garage, ambient
-  { id: 'dark-1', mode: 'aeolian', moods: ['dark', 'deep'], chords: [[0, 'm9', 1], [8, 'maj9', 1], [3, 'maj7', 1], [10, '6', 1]] },
-  { id: 'dark-2', mode: 'aeolian', moods: ['dark', 'deep'], chords: [[0, 'm9', 2], [8, 'maj7', 1], [10, '9sus', 1]] },
-  { id: 'dark-3', mode: 'aeolian', moods: ['dark'], chords: [[0, 'm11', 1], [5, 'm9', 1], [8, 'maj7', 1], [7, 'm7', 1]] },
-  { id: 'dark-4', mode: 'aeolian', moods: ['dark', 'deep'], chords: [[0, 'm9', 1], [10, '6', 1], [8, 'maj9', 1], [5, 'm9', 1]] },
-  { id: 'dark-5', mode: 'aeolian', moods: ['dark', 'deep'], chords: [[8, 'maj9', 1], [10, '6', 1], [0, 'm9', 2]] },
-  { id: 'dark-6', mode: 'aeolian', moods: ['dark'], chords: [[0, 'm9', 1], [7, 'm7', 1], [8, 'maj7', 1], [5, 'm9', 1]] },
-  { id: 'dark-7', mode: 'aeolian', moods: ['dark', 'ambient', 'deep'], chords: [[0, 'madd9', 2], [8, 'maj7s11', 2]] },
-  { id: 'dark-8', mode: 'aeolian', moods: ['dark'], chords: [[8, 'maj7', 1], [7, 'm7', 1], [5, 'm9', 1], [0, 'm9', 1]] },
-  { id: 'dark-9', mode: 'aeolian', moods: ['dark', 'deep'], chords: [[0, 'm9', 2], [5, 'm9', 2], [8, 'maj9', 2], [10, '9sus', 2]] },
-  { id: 'phryg-1', mode: 'phrygian', moods: ['dark', 'deep'], chords: [[0, 'm11', 2], [1, 'maj7', 2]] },
-  { id: 'phryg-2', mode: 'phrygian', moods: ['dark'], chords: [[0, 'm9', 1], [1, 'maj7', 1], [0, 'm9', 1], [10, 'm7', 1]] },
-  // Dorian: warm minor, lofi and focus
-  { id: 'dorian-1', mode: 'dorian', moods: ['deep', 'jazzy', 'house'], chords: [[0, 'm9', 1], [5, '9', 1]] },
-  { id: 'dorian-2', mode: 'dorian', moods: ['deep', 'jazzy'], chords: [[0, 'm11', 1], [3, 'maj9', 1], [10, '6', 1], [5, '9', 1]] },
-  { id: 'dorian-3', mode: 'dorian', moods: ['deep', 'house'], chords: [[0, 'm9', 2], [10, '69', 1], [5, '9', 1]] },
-  { id: 'dorian-4', mode: 'dorian', moods: ['jazzy', 'deep'], chords: [[0, 'm9', 1], [2, 'm7', 1], [3, 'maj7', 1], [5, '13', 1]] },
-  // Major-key jazzy: lofi, chillhop
-  { id: 'jazz-1', mode: 'ionian', moods: ['cafe', 'jazzy', 'bright'], chords: [[2, 'm9', 1], [7, '13', 1], [0, 'maj9', 1], [9, 'm9', 1]] },
-  { id: 'jazz-2', mode: 'ionian', moods: ['cafe', 'jazzy', 'bright'], chords: [[0, 'maj9', 1], [9, 'm9', 1], [2, 'm9', 1], [7, '9sus', 1]] },
-  { id: 'jazz-3', mode: 'ionian', moods: ['jazzy'], chords: [[5, 'maj9', 1], [4, 'm7', 1], [9, 'm9', 1], [2, 'm9', 1]] },
-  { id: 'jazz-4', mode: 'ionian', moods: ['jazzy'], chords: [[5, 'maj7', 1], [5, 'm6', 1], [4, 'm7', 1], [9, 'm9', 1]] },
-  { id: 'jazz-5', mode: 'ionian', moods: ['jazzy', 'bright'], chords: [[0, 'maj7', 1], [5, 'maj7', 1]] },
-  { id: 'jazz-6', mode: 'ionian', moods: ['cafe', 'jazzy'], chords: [[9, 'm9', 1], [2, 'm9', 1], [7, '13', 1], [0, 'maj9', 1]] },
-  { id: 'jazz-7', mode: 'aeolian', moods: ['jazzy', 'dark'], chords: [[0, 'm9', 1], [8, 'maj9', 1], [2, 'm7b5', 1], [7, '7b9', 1]] },
-  { id: 'jazz-8', mode: 'ionian', moods: ['jazzy'], chords: [[2, 'm9', 1], [7, '9sus', 1], [4, 'm7', 1], [9, 'm9', 1]] },
-  { id: 'jazz-9', mode: 'ionian', moods: ['cafe', 'jazzy', 'bright'], chords: [[0, 'maj9', 1], [4, 'm7', 1], [5, 'maj9', 1], [7, '9sus', 1]] },
-  // Pop minor: synthwave, chillwave
-  // Cafe chillhop and soul: the royal road (IV V iii vi) and its III7 turn,
-  // ii-V-Is, a minor "just the two of us" turnaround and a two-chord funk vamp.
-  { id: 'cafe-1', mode: 'ionian', moods: ['cafe'], chords: [[5, 'maj9', 1], [4, 'm7', 1], [2, 'm9', 1], [7, '13', 1]] },
-  { id: 'cafe-2', mode: 'ionian', moods: ['cafe'], chords: [[0, 'maj9', 1], [9, 'm9', 1], [5, 'maj9', 1], [7, '9sus', 1]] },
-  { id: 'cafe-3', mode: 'ionian', moods: ['cafe'], chords: [[2, 'm9', 1], [7, '13', 1], [0, 'maj9', 2]] },
-  { id: 'cafe-4', mode: 'ionian', moods: ['cafe'], chords: [[0, 'maj9', 1], [4, '7b9', 1], [9, 'm9', 1], [7, '9sus', 1]] },
-  { id: 'cafe-5', mode: 'ionian', moods: ['cafe'], chords: [[5, 'maj9', 1], [7, '9', 1], [4, 'm7', 1], [9, 'm9', 1]] },
-  { id: 'cafe-6', mode: 'ionian', moods: ['cafe'], chords: [[5, 'maj9', 1], [7, '13', 1], [4, '7b9', 1], [9, 'm9', 1]] },
-  { id: 'cafe-7', mode: 'ionian', moods: ['cafe'], chords: [[0, '69', 1], [2, 'm9', 1], [4, 'm7', 1], [5, 'maj9', 1]] },
-  { id: 'cafe-8', mode: 'dorian', moods: ['cafe'], chords: [[0, 'm9', 1], [5, '13', 1]] },
-  { id: 'cafe-9', mode: 'aeolian', moods: ['cafe'], chords: [[8, 'maj7', 1], [7, '7b9', 1], [0, 'm9', 1], [10, '9', 1]] },
-  { id: 'cafe-10', mode: 'aeolian', moods: ['cafe'], chords: [[0, 'm9', 1], [5, 'm9', 1], [10, '13', 1], [3, 'maj9', 1]] },
-  { id: 'wave-1', mode: 'aeolian', moods: ['wave'], chords: [[0, 'min', 1], [8, 'maj', 1], [3, 'maj', 1], [10, 'maj', 1]] },
-  { id: 'wave-2', mode: 'aeolian', moods: ['wave'], chords: [[8, 'maj', 1], [10, 'maj', 1], [0, 'min', 2]] },
-  { id: 'wave-3', mode: 'aeolian', moods: ['wave', 'dark'], chords: [[0, 'min', 1], [10, 'maj', 1], [8, 'maj', 1], [10, 'maj', 1]] },
-  { id: 'wave-4', mode: 'aeolian', moods: ['wave'], chords: [[0, 'madd9', 1], [5, 'min', 1], [8, 'maj7', 1], [10, 'sus2', 1]] },
-  { id: 'wave-5', mode: 'aeolian', moods: ['wave', 'dark'], chords: [[0, 'min', 2], [8, 'maj7', 2], [5, 'm7', 2], [10, 'sus4', 1], [10, 'maj', 1]] },
-  { id: 'wave-6', mode: 'dorian', moods: ['wave'], chords: [[0, 'm7', 1], [5, 'maj', 1], [3, 'maj7', 1], [10, 'maj', 1]] },
-  // House and garage vamps
-  { id: 'house-1', mode: 'dorian', moods: ['house', 'deep'], chords: [[0, 'm9', 2], [5, 'm9', 2]] },
-  { id: 'house-2', mode: 'aeolian', moods: ['house', 'dark'], chords: [[0, 'm7', 1], [10, '6', 1], [8, 'maj7', 1], [10, '6', 1]] },
-  { id: 'house-3', mode: 'ionian', moods: ['house', 'bright'], chords: [[2, 'm9', 1], [0, 'maj9', 1], [5, 'maj9', 1], [7, '69', 1]] },
-  { id: 'house-4', mode: 'dorian', moods: ['house', 'deep'], chords: [[0, 'm11', 1], [10, 'maj9', 1], [8, 'maj7', 1], [10, 'maj9', 1]] },
-  // Ambient: slow, open colours
-  { id: 'amb-1', mode: 'lydian', moods: ['ambient', 'bright'], chords: [[0, 'maj7s11', 4], [9, 'm9', 4]] },
-  { id: 'amb-2', mode: 'aeolian', moods: ['ambient', 'dark'], chords: [[0, 'madd9', 4], [8, 'maj7', 4]] },
-  { id: 'amb-3', mode: 'ionian', moods: ['ambient'], chords: [[5, 'maj9', 4], [0, 'add9', 4]] },
-  { id: 'amb-4', mode: 'dorian', moods: ['ambient', 'deep'], chords: [[0, 'm11', 4], [5, '9sus', 2], [3, 'maj9', 2]] },
+  // Melodic house, minor: eight-bar loops that open out from the tonic.
+  { id: 'night-1', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 4], [3, 'maj9', 2], [8, 'maj9', 2]] },
+  { id: 'night-2', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 2], [5, 'm9', 2], [8, 'maj9', 2], [3, 'maj9', 2]] },
+  { id: 'night-3', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 2], [3, 'maj9', 2], [7, 'm9', 2], [8, 'maj9', 2]] },
+  { id: 'night-4', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 4], [8, 'maj9', 2], [3, 'maj9', 2]] },
+  { id: 'night-5', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 4], [2, 'm7', 2], [10, '9sus', 1], [3, 'maj9', 1]] },
+  { id: 'night-6', mode: 'aeolian', moods: ['melodic'], chords: [[0, 'm9', 2], [8, 'maj9', 2], [3, 'maj9', 2], [10, '9sus', 2]] },
+  { id: 'night-7', mode: 'phrygian', moods: ['melodic'], chords: [[0, 'm9', 6], [1, 'maj9', 1], [5, 'm9', 1]] },
+  // Melodic house, major: the brighter half of the same mixes.
+  { id: 'day-1', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 2], [9, 'm9', 1], [7, '69', 1]] },
+  { id: 'day-2', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 2], [7, '69', 2], [2, 'm9', 2], [9, 'm9', 1], [5, 'maj9', 1]] },
+  { id: 'day-3', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 4], [7, '69', 4]] },
+  { id: 'day-4', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 2], [4, 'm9', 2]] },
+  { id: 'day-5', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 6], [5, 'maj9', 2]] },
+  { id: 'day-6', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 2], [9, 'm9', 1], [4, 'm9', 1]] },
+  { id: 'day-7', mode: 'ionian', moods: ['melodic'], chords: [[0, 'maj9', 2], [7, '69', 1], [0, 'maj9', 1], [5, 'maj9', 4]] },
+  // Deep house vamps: one or two chords for the whole song.
+  { id: 'vamp-1', mode: 'dorian', moods: ['deep'], chords: [[0, 'm9', 2], [5, 'm9', 2]] },
+  { id: 'vamp-2', mode: 'dorian', moods: ['deep'], chords: [[0, 'm9', 4]] },
+  { id: 'vamp-3', mode: 'dorian', moods: ['deep'], chords: [[0, 'm9', 3], [5, '9', 1]] },
+  { id: 'vamp-4', mode: 'aeolian', moods: ['deep'], chords: [[0, 'm9', 3], [7, 'm9', 1]] },
+  { id: 'vamp-5', mode: 'dorian', moods: ['deep'], chords: [[0, 'm11', 2], [5, 'm9', 2]] },
+  { id: 'vamp-6', mode: 'ionian', moods: ['deep'], chords: [[5, 'maj9', 3], [7, '69', 1]] },
+  { id: 'vamp-7', mode: 'ionian', moods: ['deep'], chords: [[0, 'maj9', 3], [5, 'maj9', 1]] },
+  { id: 'vamp-8', mode: 'ionian', moods: ['deep'], chords: [[5, 'maj9', 2], [9, 'm9', 2]] },
+  // Slow soul: chords every bar or two, ii and vi leaning back towards I.
+  { id: 'soul-1', mode: 'ionian', moods: ['soul'], chords: [[2, 'm9', 2], [0, 'maj9', 2], [2, 'm9', 2], [4, 'm7', 1], [9, 'm9', 1]] },
+  { id: 'soul-2', mode: 'ionian', moods: ['soul'], chords: [[5, 'maj9', 1], [0, 'maj9', 1], [5, 'maj9', 1], [7, '9sus', 1]] },
+  { id: 'soul-3', mode: 'ionian', moods: ['soul'], chords: [[0, 'maj9', 1], [5, 'maj9', 1], [2, 'm9', 1], [7, '13', 1]] },
+  { id: 'soul-4', mode: 'ionian', moods: ['soul'], chords: [[0, 'maj9', 1], [9, 'm9', 1], [5, 'maj9', 1], [2, 'm9', 1]] },
+  { id: 'soul-5', mode: 'ionian', moods: ['soul'], chords: [[2, 'm9', 1], [7, '13', 1], [5, 'maj9', 2]] },
+  { id: 'soul-6', mode: 'ionian', moods: ['soul'], chords: [[0, 'maj9', 2], [2, 'm9', 2], [4, 'm7', 1], [9, 'm9', 1], [2, 'm9', 1], [9, 'm9', 1]] },
+  { id: 'soul-7', mode: 'ionian', moods: ['soul'], chords: [[9, 'm9', 1], [4, 'm7', 1], [9, 'm9', 1], [0, 'maj9', 1], [5, 'maj9', 1], [4, 'm7', 1], [7, '13', 1], [0, 'maj9', 1]] },
+  { id: 'soul-8', mode: 'ionian', moods: ['soul'], chords: [[2, 'm9', 1], [0, 'maj9', 2], [2, 'm9', 1], [5, 'maj9', 2], [7, '9sus', 2]] },
+  { id: 'soul-9', mode: 'dorian', moods: ['soul'], chords: [[0, 'm9', 2], [5, '9', 1], [7, 'm7', 1], [5, '9', 2], [3, 'maj9', 2]] },
+  { id: 'soul-10', mode: 'aeolian', moods: ['soul'], chords: [[10, 'maj9', 2], [7, 'm7', 2], [10, 'maj9', 2], [0, 'm9', 2]] },
 ];
 
 export function progressionBars(progression) {
@@ -192,4 +159,63 @@ export function progressionMini(key, progression) {
     return bars > 1 ? `${symbol}@${bars}` : symbol;
   });
   return `<${parts.join(' ')}>`;
+}
+
+// Colour tones in the order a sparse voicing keeps them. The bass owns the
+// root, so a stab of four notes stays clear of it and of the sub.
+const COLOUR_ORDER = [3, 4, 10, 11, 14, 2, 9, 21, 5, 17, 7, 6, 18, 13];
+
+/** Pitch classes of a rootless voicing of `size` notes. */
+export function colourTones(chord, size = 4) {
+  const hasThird = chord.intervals.some((i) => i === 3 || i === 4);
+  const ranked = chord.intervals
+    .filter((i) => i !== 0)
+    .sort((a, b) => COLOUR_ORDER.indexOf(a) - COLOUR_ORDER.indexOf(b));
+  // A sus chord has no third, so its fourth takes that place in the order.
+  if (!hasThird) ranked.sort((a, b) => (b === 5 || b === 2) - (a === 5 || a === 2));
+  const pcs = ranked.map((i) => (chord.root + i) % 12);
+  return [...new Set(pcs)].slice(0, size);
+}
+
+/** Every closed inversion of `pcs` as ascending MIDI notes, centred near `center`. */
+function closedInversions(pcs, center) {
+  return pcs.map((_, turn) => {
+    const order = [...pcs.slice(turn), ...pcs.slice(0, turn)];
+    const notes = [];
+    for (const pc of order) {
+      const floor = notes.length ? notes.at(-1) + 1 : 0;
+      notes.push(floor + (((pc - floor) % 12) + 12) % 12);
+    }
+    const mean = notes.reduce((a, b) => a + b, 0) / notes.length;
+    const shift = Math.round((center - mean) / 12) * 12;
+    return notes.map((n) => n + shift);
+  });
+}
+
+/**
+ * Voice one chord per bar: rootless, close, and moving as little as possible
+ * from bar to bar, so repeated stabs read as one instrument instead of jumps.
+ */
+export function voiceLoop(chords, { center = 60, size = 4 } = {}) {
+  let previous;
+  return chords.map((chord) => {
+    const pcs = colourTones(chord, size).sort((a, b) => a - b);
+    const options = closedInversions(pcs, center);
+    const cost = (notes) => {
+      const mean = notes.reduce((a, b) => a + b, 0) / notes.length;
+      const moved = previous ? notes.reduce((sum, n, i) => sum + Math.abs(n - (previous[i] ?? previous.at(-1))), 0) : 0;
+      // Neighbouring semitones beat against each other this low in the mix.
+      const rough = notes.filter((n, i) => i && n - notes[i - 1] === 1).length;
+      return moved + Math.abs(mean - center) * 1.5 + rough * 24;
+    };
+    const best = options.reduce((a, b) => (cost(b) < cost(a) ? b : a));
+    previous = best;
+    return best;
+  });
+}
+
+/** Pentatonic pitch classes of a key: hooks built on these sit over every chord of the loop. */
+export function pentatonic(key) {
+  const minor = MINOR_MODES.has(key.mode);
+  return (minor ? [0, 3, 5, 7, 10] : [0, 2, 4, 7, 9]).map((i) => (key.tonic + i) % 12);
 }
