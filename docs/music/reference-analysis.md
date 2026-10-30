@@ -53,3 +53,18 @@ The references master near -10.5 LUFS with peaks at full scale and a crest facto
 ## What did not work
 
 Automatic numbers needed checking against the sheets. `.xxx.xxx.xxx.xxx` looked like a rolling bass until reading showed a held note re-swelling after the sidechain. Stem "vocals" in the slow mix are lead leakage. The Sonnet analysts read grids well but opened few sheets, so hook templates were taken from sheets read directly. No transcription replaces listening: these targets get the mix and the form right, and only the user can judge the songs.
+
+## Library validation
+
+The rebuilt library holds 96 tracks and 7.5 hours of music: 44 melodic, 23 slow, 19 deep and 10 broken. All rendered without failure, 233-333 seconds each, at -14.5 to -14.0 LUFS with true peaks at or below -0.8 dBTP. Medians below are measured from 60 to 180 seconds of each track.
+
+| Style | Spectrum error against family | Mid floor, reference | Roughness, reference | Crest | Loudness swing |
+| --- | --- | --- | --- | --- | --- |
+| melodic | 2.6 dB | -27.3, -29.9 | 1.54, 1.77 | 11.9 | 8.2 |
+| deep | 2.9 dB | -31.8, -34.6 | 1.36, 2.46 | 11.9 | 8.2 |
+| broken | 2.7 dB | -24.4, -29.3 | 1.24, 1.76 | 11.9 | 7.8 |
+| slow | 3.4 dB | -20.5, -29.5 | 1.02, 0.94 | 12.5 | 3.3 |
+
+The same window in the old library gave a swing of 1.0-1.6 dB in ambient, focus, garage, house and wave, and a crest of 13.1-14.7 dB in all but ambient. Reference swing was measured on 90-second excerpts, so the 120-second figures for new tracks read a little high where a window spans a breakdown.
+
+Known gaps: slow soul's middle stays about 9 dB fuller than its reference, its swing is about half, and several slow tracks run 8-10 dB bright at 10 kHz. Broken beat's mid floor is about 5 dB high. Automated checks cover spectrum, mix and form only, and nobody has yet judged the songs by ear.
