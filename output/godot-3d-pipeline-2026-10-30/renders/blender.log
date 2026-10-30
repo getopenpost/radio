@@ -1,0 +1,191 @@
+/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/tools/scene_demo.py:139: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  world.use_nodes = False
+BlenderMCP addon registered
+BlenderMCP addon unregistered
+23:03:07 | INFO: Data are loaded, start creating Blender stuff
+23:03:07 | INFO: Blender create Mesh node Cube
+23:03:08 | INFO: glTF import finished in 0.51s
+[demo] actions: ['Attack', 'Death', 'Eating', 'Gallop', 'Gallop_Jump', 'Idle', 'Idle_2', 'Idle_2_HeadLow', 'Idle_HitReact1', 'Idle_HitReact2', 'Jump_ToIdle', 'Walk']
+[demo] animated mesh bbox: z -1.00..2.47
+[demo] BackLowerLeg.L.tail        minz= -0.16 zrange= 0.43 xsweep= 0.030
+[demo] BackLowerLeg.R.tail        minz= -0.16 zrange= 0.43 xsweep= 0.029
+[demo] IKBackLeg.L.tail           minz=  0.07 zrange= 0.19 xsweep= 0.000
+[demo] IKBackLeg.R.tail           minz=  0.07 zrange= 0.18 xsweep= 0.000
+[demo] IKFrontLeg.R.tail          minz=  0.07 zrange= 0.20 xsweep= 0.000
+[demo] IKFrontLeg.L.tail          minz=  0.07 zrange= 0.20 xsweep= 0.000
+[demo] IKBackLeg.L.head           minz=  0.20 zrange= 0.24 xsweep= 0.000
+[demo] IKBackLeg.R.head           minz=  0.20 zrange= 0.24 xsweep= 0.000
+[demo] IKFrontLeg.R.head          minz=  0.21 zrange= 0.24 xsweep= 0.000
+[demo] IKFrontLeg.L.head          minz=  0.22 zrange= 0.24 xsweep= 0.000
+[demo] paw ground z=-0.16, visual fox height=2.64
+[demo] paw sweep=0.030m body_travel=0.000 clip speed=0.027m/s; demo scroll=0.890m/s
+/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/tools/scene_demo.py:40: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  m.use_nodes = True
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node boat-row-small
+23:03:08 | INFO: Blender create Mesh node paddles
+23:03:08 | INFO: glTF import finished in 0.01s
+[demo] placed dinghy     at x= -9.00 h=  2.64 front_y= -3.69
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Sail
+23:03:08 | INFO: Blender create Mesh node Boat
+23:03:08 | INFO: glTF import finished in 0.01s
+[demo] placed sailboat   at x= -6.60 h=  5.01 front_y= -3.29
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node House_1
+23:03:08 | INFO: glTF import finished in 0.04s
+[demo] placed house1     at x= -2.60 h=  8.17 front_y= -3.17
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Handle
+23:03:08 | INFO: Blender create Mesh node FrontWheel
+23:03:08 | INFO: Blender create Mesh node Saddle
+23:03:08 | INFO: Blender create Mesh node Frame
+23:03:08 | INFO: Blender create Mesh node BackWheel
+23:03:08 | INFO: glTF import finished in 0.03s
+[demo] placed bicycle    at x= -1.20 h=  3.96 front_y= -3.84
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Inn
+23:03:08 | INFO: glTF import finished in 0.04s
+[demo] placed inn        at x=  1.90 h=  9.49 front_y= -5.47
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Tree1
+23:03:08 | INFO: glTF import finished in 0.01s
+[demo] placed tree1      at x=  3.50 h= 11.87 front_y= -4.73
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Tree_1_A_Color1
+23:03:08 | INFO: glTF import finished in 0.01s
+[demo] placed tree2      at x=  5.00 h= 10.55 front_y= -4.12
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Bell_Tower
+23:03:08 | INFO: glTF import finished in 0.06s
+[demo] placed belltower  at x=  7.20 h= 16.48 front_y= -3.82
+23:03:08 | INFO: Data are loaded, start creating Blender stuff
+23:03:08 | INFO: Blender create Mesh node Tree1
+23:03:08 | INFO: glTF import finished in 0.01s
+[demo] placed tree3      at x=  9.40 h= 12.53 front_y= -5.00
+/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/tools/scene_demo.py:261: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  win_mat.use_nodes = True
+[demo] engine: BLENDER_EEVEE
+00:02.825  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/still_day.png'
+[demo] day still mean luma: 0.262
+00:03.309  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/still_night.png'
+00:03.725  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0001.png'
+00:04.100  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0002.png'
+00:04.504  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0003.png'
+00:04.899  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0004.png'
+00:05.266  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0005.png'
+00:05.640  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0006.png'
+00:06.029  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0007.png'
+00:06.433  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0008.png'
+00:06.877  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0009.png'
+00:07.289  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0010.png'
+00:07.723  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0011.png'
+00:08.156  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0012.png'
+00:08.580  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0013.png'
+00:09.025  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0014.png'
+00:09.425  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0015.png'
+00:09.865  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0016.png'
+00:10.368  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0017.png'
+00:10.853  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0018.png'
+00:11.373  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0019.png'
+00:11.790  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0020.png'
+00:12.181  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0021.png'
+00:12.582  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0022.png'
+00:12.984  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0023.png'
+00:13.341  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0024.png'
+00:13.733  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0025.png'
+00:14.137  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg00_0026.png'
+[demo] segment rendered, total frames 26
+00:14.607  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0001.png'
+00:15.088  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0002.png'
+00:15.486  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0003.png'
+00:15.823  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0004.png'
+00:16.217  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0005.png'
+00:16.603  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0006.png'
+00:17.006  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0007.png'
+00:17.419  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0008.png'
+00:17.826  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0009.png'
+00:18.227  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0010.png'
+00:18.712  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0011.png'
+00:19.114  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0012.png'
+00:19.525  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0013.png'
+00:19.888  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0014.png'
+00:20.272  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0015.png'
+00:20.673  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0016.png'
+00:21.033  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0017.png'
+00:21.412  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0018.png'
+00:21.834  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0019.png'
+00:22.221  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0020.png'
+00:22.588  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0021.png'
+00:23.001  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0022.png'
+00:23.416  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0023.png'
+00:23.830  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0024.png'
+00:24.255  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0025.png'
+00:24.669  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg01_0026.png'
+[demo] segment rendered, total frames 52
+00:25.053  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0001.png'
+00:25.428  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0002.png'
+00:25.809  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0003.png'
+00:26.177  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0004.png'
+00:26.546  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0005.png'
+00:26.964  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0006.png'
+00:27.389  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0007.png'
+00:27.819  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0008.png'
+00:28.232  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0009.png'
+00:28.629  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0010.png'
+00:28.990  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0011.png'
+00:29.382  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0012.png'
+00:29.757  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0013.png'
+00:30.123  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0014.png'
+00:30.552  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0015.png'
+00:30.925  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0016.png'
+00:31.297  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0017.png'
+00:31.721  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0018.png'
+00:32.223  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0019.png'
+00:32.613  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0020.png'
+00:33.032  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0021.png'
+00:33.542  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0022.png'
+00:33.939  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0023.png'
+00:34.313  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0024.png'
+00:34.669  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0025.png'
+00:35.026  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg02_0026.png'
+[demo] segment rendered, total frames 78
+00:35.392  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0001.png'
+00:35.741  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0002.png'
+00:36.106  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0003.png'
+00:36.481  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0004.png'
+00:36.956  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0005.png'
+00:37.445  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0006.png'
+00:37.947  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0007.png'
+00:38.396  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0008.png'
+00:38.822  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0009.png'
+00:39.273  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0010.png'
+00:39.859  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0011.png'
+00:40.462  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0012.png'
+00:40.913  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0013.png'
+00:41.447  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0014.png'
+00:42.157  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0015.png'
+00:42.789  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0016.png'
+00:43.469  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0017.png'
+00:44.134  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0018.png'
+00:44.870  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0019.png'
+00:45.348  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0020.png'
+00:45.822  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0021.png'
+00:46.293  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0022.png'
+00:46.712  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0023.png'
+00:47.139  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0024.png'
+00:47.568  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0025.png'
+00:48.038  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg03_0026.png'
+[demo] segment rendered, total frames 104
+00:48.596  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0001.png'
+00:49.110  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0002.png'
+00:49.610  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0003.png'
+00:50.065  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0004.png'
+00:50.472  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0005.png'
+00:50.973  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0006.png'
+00:51.432  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0007.png'
+00:51.810  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0008.png'
+00:52.182  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0009.png'
+00:52.668  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0010.png'
+00:53.085  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0011.png'
+00:53.488  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0012.png'

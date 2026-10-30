@@ -1,0 +1,13 @@
+{
+ "status": "ok",
+ "fox_height_m": 2.6369003653526306,
+ "frame_height_m": 13.184501826763153,
+ "paw_sweep_m": 0.02972927689552307,
+ "body_travel_m": 0.0,
+ "walk_speed_mps": 0.8899538733065129,
+ "clip_authored_speed_mps": 0.0274424094420213,
+ "engine": "BLENDER_EEVEE",
+ "frames": 120,
+ "fps": 24,
+ "clip_len": 26
+}

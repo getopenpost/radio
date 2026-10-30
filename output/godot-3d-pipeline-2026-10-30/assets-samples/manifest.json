@@ -1,0 +1,153 @@
+{
+  "generated": "2026-10-30",
+  "purpose": "Sample GLB assets and pack previews for the OpenPost Radio Godot 4 low-poly middle-band evaluation. All GLBs fetched from the gamedev.trebeljahr.com mirror, which re-hosts the original CC0 packs as per-model GLB downloads. Every file's first 4 bytes verified as 'glTF'.",
+  "license_note": "The mirror bakes GLB from the original packs; licenses are the original pack licenses (all CC0 here). Mirror model pages state the license explicitly (e.g. 'CC0 1.0 license details').",
+  "samples": [
+    {
+      "file": "house-1.glb",
+      "bytes": 410268,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Medieval Village Pack (Dec 2020)",
+      "pack_page": "https://quaternius.com/packs/medievalvillage.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/medieval-village-pack-dec-2020/glb/house-1.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/medieval-village-pack-dec-2020/house-1",
+      "license": "CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)",
+      "category": "buildings",
+      "role": "Cottage archetype for board 18 house-library tests"
+    },
+    {
+      "file": "inn.glb",
+      "bytes": 468600,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Medieval Village Pack (Dec 2020)",
+      "pack_page": "https://quaternius.com/packs/medievalvillage.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/medieval-village-pack-dec-2020/glb/inn.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/medieval-village-pack-dec-2020/inn",
+      "license": "CC0 1.0",
+      "category": "buildings",
+      "role": "Larger townhouse/inn massing for settlement strips (board 19)"
+    },
+    {
+      "file": "bell-tower.glb",
+      "bytes": 728440,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Medieval Village Pack (Dec 2020)",
+      "pack_page": "https://quaternius.com/packs/medievalvillage.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/medieval-village-pack-dec-2020/glb/bell-tower.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/medieval-village-pack-dec-2020/bell-tower",
+      "license": "CC0 1.0",
+      "category": "buildings",
+      "role": "Chapel/tower landmark proxy for board 18"
+    },
+    {
+      "file": "boatwsail.glb",
+      "bytes": 58132,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Ships Pack (Feb 2018)",
+      "pack_page": "https://quaternius.com/packs/ships.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/ships-by-quaternius/glb/boatwsail.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/ships-by-quaternius/boatwsail",
+      "license": "CC0 1.0",
+      "category": "props/vehicles",
+      "role": "Small sailboat for board 22 / scene 09 ocean travel"
+    },
+    {
+      "file": "kenney-boat-row-small.glb",
+      "bytes": 27664,
+      "magic": "glTF",
+      "author": "Kenney",
+      "pack": "Pirate Kit",
+      "pack_page": "https://kenney.nl/assets/pirate-kit",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/kenney/pirate-kit/glb/boat-row-small.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/kenney/pirate-kit/boat-row-small",
+      "license": "CC0 1.0 (Kenney assets are CC0: https://kenney.nl/assets/pirate-kit)",
+      "category": "props/vehicles",
+      "role": "Cream-dinghy proxy for board 22 / scenes 07-08 lake crossing"
+    },
+    {
+      "file": "bicycle.glb",
+      "bytes": 166052,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Public Transport Pack (Feb 2017)",
+      "pack_page": "https://quaternius.com/packs/publictransport.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/public-transport-pack-feb-2017/bicycle.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/public-transport-pack-feb-2017/bicycle",
+      "license": "CC0 1.0",
+      "category": "props/vehicles",
+      "role": "Bicycle for board 22 / scene 07 coastal bicycle travel"
+    },
+    {
+      "file": "quaternius-tree-1.glb",
+      "bytes": 26956,
+      "magic": "glTF",
+      "author": "Quaternius",
+      "pack": "Simple Nature Pack (Dec 2016)",
+      "pack_page": "https://quaternius.com/packs/simplenature.html",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/quaternius/simple-nature-pack-dec-2016/glb/tree1.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/quaternius/simple-nature-pack-dec-2016/tree-1",
+      "license": "CC0 1.0",
+      "category": "vegetation",
+      "role": "Untextured flat-colour tree; best pixelation survival test"
+    },
+    {
+      "file": "kaykit-tree-1.glb",
+      "bytes": 19636,
+      "magic": "glTF",
+      "author": "Kay Lousberg (KayKit)",
+      "pack": "KayKit - Forest Nature Pack",
+      "pack_page": "https://kaylousberg.itch.io/",
+      "source_url": "https://assets.gamedev.trebeljahr.com/glb/kaykit/forest-nature-pack/glb/tree-1-a-color1.glb",
+      "mirror_model_page": "https://gamedev.trebeljahr.com/kaykit/forest-nature-pack/tree-1-a-color-1",
+      "license": "CC0 1.0 (KayKit packs are CC0 per their itch.io asset license)",
+      "category": "vegetation",
+      "role": "KayKit flat-shaded tree; style-consistency comparison against Quaternius"
+    }
+  ],
+  "previews": [
+    {
+      "file": "../previews/medievalvillagemegakit.jpg",
+      "bytes": 608289,
+      "source_pack": "Quaternius Medieval Village MegaKit",
+      "url": "https://quaternius.com/assets/images/fullres/medievalvillagemegakit.jpg",
+      "pack_page": "https://quaternius.com/packs/medievalvillagemegakit.html",
+      "license": "CC0 (pack art, promotional)"
+    },
+    {
+      "file": "../previews/medievalvillage.jpg",
+      "bytes": 605433,
+      "source_pack": "Quaternius Medieval Village Pack",
+      "url": "https://quaternius.com/assets/images/fullres/medievalvillage.jpg",
+      "pack_page": "https://quaternius.com/packs/medievalvillage.html",
+      "license": "CC0 (pack art, promotional)"
+    },
+    {
+      "file": "../previews/ships.jpg",
+      "bytes": 315409,
+      "source_pack": "Quaternius Ships Pack",
+      "url": "https://quaternius.com/assets/images/fullres/ships.jpg",
+      "pack_page": "https://quaternius.com/packs/ships.html",
+      "license": "CC0 (pack art, promotional)"
+    },
+    {
+      "file": "../previews/stylizednaturemegakit.jpg",
+      "bytes": 679539,
+      "source_pack": "Quaternius Stylized Nature MegaKit",
+      "url": "https://quaternius.com/assets/images/fullres/stylizednaturemegakit.jpg",
+      "pack_page": "https://quaternius.com/packs/stylizednaturemegakit.html",
+      "license": "CC0 (pack art, promotional)"
+    },
+    {
+      "file": "../previews/simplebuildings.jpg",
+      "bytes": 253086,
+      "source_pack": "Quaternius Simple Buildings Pack",
+      "url": "https://quaternius.com/assets/images/fullres/simplebuildings.jpg",
+      "pack_page": "https://quaternius.com/packs/simplebuildings.html",
+      "license": "CC0 (pack art, promotional)"
+    }
+  ]
+}

@@ -1,0 +1,289 @@
+{
+  "created": "2026-10-30",
+  "mode": "built-in image_gen.imagegen",
+  "full_frames": 13,
+  "study_boards": 10,
+  "files": [
+    {
+      "id": "01-autumn-valley",
+      "title": "Autumn valley, the master direction",
+      "file": "scenes/01-autumn-valley.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2367001,
+      "sha256": "fec0c1aef23b8e3a11b5483dc015322bca422ee3b8bf1323f56cdffe1210d4ec",
+      "alpha": null
+    },
+    {
+      "id": "02-spring-riverside",
+      "title": "Spring riverside, a passing friend",
+      "file": "scenes/02-spring-riverside.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2970110,
+      "sha256": "1809c30ea67800cc9b16ce1b40cbe36e47f1031a5b333073db65f2f9fd32b9c5",
+      "alpha": null
+    },
+    {
+      "id": "03-summer-hill-town",
+      "title": "Summer hillside town",
+      "file": "scenes/03-summer-hill-town.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2793693,
+      "sha256": "eb8412c2101dcb4d33acb8b2cdfd2229441483317bf45265b337b8ee51f75bc1",
+      "alpha": null
+    },
+    {
+      "id": "04-rainy-city",
+      "title": "Rainy canal city at blue hour",
+      "file": "scenes/04-rainy-city.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2838931,
+      "sha256": "847f942415e6374eaeeee2bbf578960e32de2bdaf55b767e86af9945fb119cd1",
+      "alpha": null
+    },
+    {
+      "id": "05-winter-alpine",
+      "title": "Winter alpine pass in snowfall",
+      "file": "scenes/05-winter-alpine.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2767896,
+      "sha256": "2231e199833ba5581ef5269f057f3994cdcaaf69f96d2766ada461957469c270",
+      "alpha": null
+    },
+    {
+      "id": "06-winter-moonlight",
+      "title": "Winter moonlight and northern lights",
+      "file": "scenes/06-winter-moonlight.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2774167,
+      "sha256": "d546cc6ccf041c27951f378925ba9b4da8a56771a7a161d1ea24b4045da4a03d",
+      "alpha": null
+    },
+    {
+      "id": "07-coastal-bicycle",
+      "title": "Cycling the summer coast",
+      "file": "scenes/07-coastal-bicycle.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2798486,
+      "sha256": "35b853b404185398fc007d55529001d66424ce65014d1c7d94771db8088d550f",
+      "alpha": null
+    },
+    {
+      "id": "08-alpine-lake-boat",
+      "title": "Paddling across an alpine lake",
+      "file": "scenes/08-alpine-lake-boat.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2388579,
+      "sha256": "0717bd64a61965fd970c26e1c6a68f78b91369fc30330465b2c449be20f29025",
+      "alpha": null
+    },
+    {
+      "id": "09-ocean-sailing",
+      "title": "Under sail across the open sea",
+      "file": "scenes/09-ocean-sailing.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2291729,
+      "sha256": "2ff9a03026f54aa55d05db63bbc5d4abe3b4f3e552963e6d9dc370263456e439",
+      "alpha": null
+    },
+    {
+      "id": "10-forest-broom-flight",
+      "title": "Broom flight through the evening forest",
+      "file": "scenes/10-forest-broom-flight.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2617394,
+      "sha256": "2ffd41f85e1d20da68b9a6920b6f704936a2ff347b4ddd20242860460438e8ed",
+      "alpha": null
+    },
+    {
+      "id": "11-calisthenics-park",
+      "title": "A quick roadside workout",
+      "file": "scenes/11-calisthenics-park.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2404609,
+      "sha256": "9109c82587dd8d2d51a546ee1ef43e7248c3322d8d127136ebaf9e31586dc972",
+      "alpha": null
+    },
+    {
+      "id": "12-telescope-glance",
+      "title": "A five-second telescope encounter",
+      "file": "scenes/12-telescope-glance.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2606840,
+      "sha256": "965f9dd94939e6557de5bdf2753e1e7cf1645f3b67bd924414aefcd66834f281",
+      "alpha": null
+    },
+    {
+      "id": "13-rainy-forest",
+      "title": "Walking through a rainy forest",
+      "file": "scenes/13-rainy-forest.png",
+      "kind": "scene",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3047366,
+      "sha256": "ac9e07113968b6c1617ed20dca624a8edc021e77c5d448b1bdbca4781911c86d",
+      "alpha": null
+    },
+    {
+      "id": "14-day-night-cycle",
+      "title": "One place, four times of day",
+      "file": "studies/14-day-night-cycle.png",
+      "kind": "study",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2742071,
+      "sha256": "f6ecfa71d4106103fe516bb42cbb313781d023a2dfa93aa684b841e6d6f6c502",
+      "alpha": null
+    },
+    {
+      "id": "15-fox-walk-cycle",
+      "title": "Fox walk cycle and passing greeting",
+      "file": "studies/15-fox-walk-cycle.png",
+      "kind": "study",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 1627360,
+      "sha256": "d5d9cdbb69c588a1c563126e9800b2a231c09cadbfcb6cf95a1a34c4de471b4d",
+      "alpha": null
+    },
+    {
+      "id": "16-fox-travel-wardrobe",
+      "title": "Travel poses and seasonal clothing",
+      "file": "studies/16-fox-travel-wardrobe.png",
+      "kind": "study",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1806943,
+      "sha256": "1de12d5f9096902ea198f252399b3e84749e325e6e79fb7e6d7162b99396e695",
+      "alpha": null
+    },
+    {
+      "id": "17-fox-calisthenics",
+      "title": "Workout contact and pose study",
+      "file": "studies/17-fox-calisthenics.png",
+      "kind": "study",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1522624,
+      "sha256": "a01df3c90525910084183a7df777165e4e8e4ef9301265ae34f83d8994997eee",
+      "alpha": null
+    },
+    {
+      "id": "18-house-library",
+      "title": "Sixteen house and landmark designs",
+      "file": "studies/18-house-library.png",
+      "kind": "study",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2688124,
+      "sha256": "ba022f435facdca7108e7bd3c1771eccc8bd83f2efd87ab20fcc13cf68c21233",
+      "alpha": {
+        "transparent_pixels": 663058,
+        "opaque_pixels": 0,
+        "partial_pixels": 909806,
+        "min": 0,
+        "max": 254,
+        "transparent_percent": 42.16
+      }
+    },
+    {
+      "id": "19-settlement-strips",
+      "title": "Six towns and city silhouettes",
+      "file": "studies/19-settlement-strips.png",
+      "kind": "study",
+      "width": 1672,
+      "height": 941,
+      "bytes": 3183617,
+      "sha256": "f704febeee44d1fbeebe035bc93358db8c9c4df83419e50a7efc58269bf73275",
+      "alpha": null
+    },
+    {
+      "id": "20-terrain-library",
+      "title": "Mountains, hills, cliffs and islands",
+      "file": "studies/20-terrain-library.png",
+      "kind": "study",
+      "width": 1774,
+      "height": 887,
+      "bytes": 1685852,
+      "sha256": "851171eb2f1658ba7002694d5e0f63260f927da2882dcdcd1061986e65b3a22e",
+      "alpha": {
+        "transparent_pixels": 792916,
+        "opaque_pixels": 1092,
+        "partial_pixels": 779530,
+        "min": 0,
+        "max": 255,
+        "transparent_percent": 50.39
+      }
+    },
+    {
+      "id": "21-vegetation-library",
+      "title": "Trees and ground cover across seasons",
+      "file": "studies/21-vegetation-library.png",
+      "kind": "study",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 2856105,
+      "sha256": "3b45daff50886b8f3a21f19808aa4a573f7282a819cc835f704d39f11e4be473",
+      "alpha": {
+        "transparent_pixels": 313293,
+        "opaque_pixels": 0,
+        "partial_pixels": 1259571,
+        "min": 0,
+        "max": 253,
+        "transparent_percent": 19.92
+      }
+    },
+    {
+      "id": "22-vehicles-and-passersby",
+      "title": "Vehicles, roadside props and passing characters",
+      "file": "studies/22-vehicles-and-passersby.png",
+      "kind": "study",
+      "width": 1448,
+      "height": 1086,
+      "bytes": 1008557,
+      "sha256": "43e386aacd6a806b4b44bfaddecd79081d82faa82b620c4cff7c10db2ade38a6",
+      "alpha": {
+        "transparent_pixels": 1042292,
+        "opaque_pixels": 1502,
+        "partial_pixels": 528734,
+        "min": 0,
+        "max": 255,
+        "transparent_percent": 66.28
+      }
+    },
+    {
+      "id": "23-sky-weather-library",
+      "title": "Cloud shapes, weather and sky lighting",
+      "file": "studies/23-sky-weather-library.png",
+      "kind": "study",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1980989,
+      "sha256": "05baea4c5513cb6d75760f713b95013efe984442d28b1157518aea99280e0d4c",
+      "alpha": null
+    }
+  ]
+}
