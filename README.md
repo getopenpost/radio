@@ -15,13 +15,13 @@ compose (seeded Strudel code) → render (Node, no browser) → master (-14 LUFS
 devenv shell          # or: nix shell nixpkgs#nodejs_24 nixpkgs#ffmpeg
 npm install           # also bundles Strudel for Node (dist/strudel.js)
 
-npm run compose -- --style focus --seed 42                  # print the track's Strudel code
-npm run compose -- --style focus --seed 42 --render out.wav # render it
+npm run compose -- --style melodic --seed 42                # print the track's Strudel code
+npm run compose -- --style melodic --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
 npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
 npm run stream -- --tour --output tour.mp4                  # 13-minute fast-forward through every scene
-npm run audition -- --styles focus --seeds 1,2              # score excerpts with earshot (needs uv)
+npm run audition -- --styles melodic --seeds 1,2            # score excerpts with earshot (needs uv)
 npm test
 ```
 
@@ -30,52 +30,39 @@ strudel.cc to hear it in the browser and edit it.
 
 ## Music
 
-Seven styles share one sound library and mixing system, so the stream changes
-colour without changing world:
+Four styles share one engine, kit and mix, modelled on the reference mixes
+analysed in [docs/music/reference-analysis.md](docs/music/reference-analysis.md):
 
 | style   | label         | bpm     | character |
 | ------- | ------------- | ------- | --------- |
-| focus   | deep focus    | 112-124   | bass-led downtempo and future beats: sustained sub, electric piano over soft pads, detail between the pulses |
-| cafe    | cafe          | 76-88   | coffee-shop chillhop: fingerpicked jazz guitar over Rhodes, plucked finger bass, soft lazy drums, dark and clean |
-| garage  | future garage | 128-136 | two-step shuffle, reese bass, vowel pads, crackle |
-| house   | chill house   | 112-122 | soft four on the floor, stabs, rolling bass |
-| lofi    | lofi          | 70-88   | jazzy keys with tape wobble, swung boom-bap, upright bass, vinyl |
-| wave    | night drive   | 84-108  | pumping eighth-note bass, polysynth pads, arpeggios, reverb snare |
-| ambient | ambient       | 60-76   | beatless chords over a drone; the stream's breathing space |
+| melodic | melodic house | 118-127 | an eight-bar chord loop held over one sidechained sub, a short hook crossing the bar line |
+| deep    | deep house    | 119-123 | one or two chords for a whole song, offbeat stabs, a plucked bass that avoids the kick, vocal chops |
+| broken  | broken beat   | 128-134 | two kicks a bar off the grid, steady sixteenths, held ninth chords |
+| slow    | slow soul     | 80-95   | electric piano leading a loose beat, a walking bass, pentatonic fills at phrase ends |
 
 What keeps 8 hours from getting boring:
 
-- **Composition** (`src/compose`): progressions from a curated library in any
-  key, bass lines resolved against each chord (approach notes, octave moves),
-  motifs that walk the chord scale and land on chord tones, comping and
-  arpeggio vocabularies, and several arrangement plans per style. Sections
-  swap progressions, bass rhythms and drum grooves so a track moves through
-  different bass and harmonic profiles.
-- **Sound** (`src/compose/instruments.js`): 73 presets across sub, bass,
-  pad, keys, lead, arp and texture, plus 42 drum kit pieces from 9 classic
-  machines and the CC0 VCSL percussion.
-  Each style picks presets by tag or names them outright.
-- **Restraint**: a section carries at most two harmonic layers (pad, keys,
-  second pad) and one melodic voice (lead or arpeggio), so tracks stay easy to
-  work to. Keys, bass, leads and arpeggios land a few milliseconds late and
-  drift in velocity, so parts sound played rather than gridded.
+- **Composition** (`src/compose`): every song is one harmonic loop in any key,
+  voiced as rootless close chords with minimal movement. Forms are 8 and 16 bar
+  blocks. Parts enter on block lines, a one-bar kick dropout closes a block, and
+  a filter arc over the whole song does the work chord changes would otherwise
+  do. Each seed makes one or two clear choices (held or stabbed chords, a hook
+  or a falling run) rather than using every part.
+- **Sound** (`src/compose/instruments.js`): presets for sub, bass, stabs, held
+  chords and hooks, and a kit synthesised by `scripts/build-kit.js` to the
+  measured kick, clap and hat of the references.
+- **Restraint**: chords are four or five notes, one chord part and one melody
+  at a time, rooms are short and dark, and upper parts leave gaps. Those gaps
+  are what separate these songs from a wall of sound.
 - **Mix**: `npm run calibrate` measures every preset on a reference phrase and
   stores gain factors in `calibration.json`; styles set levels per role. Any
   preset combination therefore lands at the same balance. Fixed effect buses
-  per orbit keep reverbs constant. The kick ducks the pads and, lightly, the
-  bass.
-- **Targets**: the focus sound was tuned against a reference mix with
-  `npm run analyze`. That reference has 87-95% of its energy below 400 Hz, a
-  140-260 Hz spectral centroid, a sustained bass floor, no gaps in the
-  harmonic bed and wide low mids. The main sections of rendered focus tracks
-  measure about 85% below 400 Hz, a 205-225 Hz centroid and a continuous bass.
-  The cafe style was tuned against a coffee-shop chillhop mix: 80-95 bpm,
-  mostly major keys, a 255-346 Hz centroid, almost nothing above 3 kHz and a
-  plucked bass with air between the notes; cafe renders measure 272-330 Hz.
-  Its guitar picks broken chords, because the soundfont guitars struck as
-  block chords read as an electric piano. No style carries a steady noise
-  bed: `analyze` reports the high-frequency floor, which stays near -30 dB
-  or lower.
+  per orbit keep reverbs constant. The kick pumps chords and bass, as much as
+  8 dB in the house styles.
+- **Targets**: `tools/reference-analysis` measures renders and references the
+  same way. House mains sit near 90% of energy below 400 Hz with a 250-350 Hz
+  centroid, a mid-band floor well below the peaks and a crest factor near
+  11.5 dB. Slow soul is darker, about -24 dB above 2 kHz.
 - **Listening**: `npm run audition` renders the opening of a few seeds per
   style and scores them with [earshot](https://github.com/Leonxlnx/earshot):
   how well each matches its style's description against "cheap synth demo",
@@ -118,9 +105,8 @@ now start in phase with each note.
 
 `npm run stream` (`src/stream/main.js`):
 
-- **Director**: styles move only between neighbours (focus can drift into
-  garage or lofi but never jumps from ambient to house). Style runs are a few
-  tracks long, keys stay Camelot-compatible, tempos stay close, nothing repeats
+- **Director**: melodic and deep house trade places, with broken beats and
+  slow soul as a change of pace. Style runs are a few tracks long, keys stay Camelot-compatible, tempos stay close, nothing repeats
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
