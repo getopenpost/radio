@@ -189,3 +189,13 @@ BlenderMCP addon unregistered
 00:52.668  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0010.png'
 00:53.085  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0011.png'
 00:53.488  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0012.png'
+00:53.867  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0013.png'
+00:54.229  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0014.png'
+00:54.675  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0015.png'
+00:55.200  render           | Saved: '/Users/rgo/dev/rgo-music/output/godot-3d-pipeline-2026-10-30/renders/raw/seg04_0016.png'
+[demo] segment rendered, total frames 120
+[demo] walk frames rendered: 120
+[demo] meta: {"status": "ok", "fox_height_m": 2.6369003653526306, "frame_height_m": 13.184501826763153, "paw_sweep_m": 0.02972927689552307, "body_travel_m": 0.0, "walk_speed_mps": 0.8899538733065129, "clip_authored_speed_mps": 0.0274424094420213, "engine": "BLENDER_EEVEE", "frames": 120, "fps": 24, "clip_len": 26}
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:49:19)
+
+Blender quit
