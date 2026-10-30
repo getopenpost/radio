@@ -1,5 +1,7 @@
-// Mastering: level the render into a gentle glue compressor, set loudness to
-// the target behind a peak limiter, and write a dithered 16-bit FLAC.
+// Mastering: level the render, lift the presence band, run a glue compressor,
+// drive a limiter until the mix reaches the density of the reference masters
+// (they ship near -10.5 LUFS, with crest factors around 11.5 dB), trim to the
+// delivery loudness and write a dithered 16-bit FLAC.
 import { spawn } from 'node:child_process';
 
 function ffmpeg(args) {
@@ -28,19 +30,21 @@ export async function measure(path, filter) {
  * @param {string} output .flac path
  * @returns {Promise<{lufs: number, truePeak: number, seconds: number}>}
  */
-export async function master(input, output, { lufs: target = -14, truePeak = -1.5 } = {}) {
+export async function master(input, output, { lufs: target = -14, density = -11, truePeak = -1.5, presence = 3 } = {}) {
   const raw = await measure(input);
   // Bring every render to the same level before the compressor so its
   // threshold means the same thing for every track.
-  const glue = `volume=${(-20 - raw.lufs).toFixed(2)}dB,acompressor=threshold=-26dB:ratio=1.8:attack=25:release=300:knee=8`;
+  const glue = `volume=${(-20 - raw.lufs).toFixed(2)}dB,equalizer=f=2500:t=q:w=0.9:g=${presence},acompressor=threshold=-24dB:ratio=2.2:attack=14:release=170:knee=6`;
   const glued = await measure(input, glue);
-  let gain = target - glued.lufs;
-  const limit = Math.pow(10, (truePeak - 0.5) / 20); // sample-peak limit leaves room for inter-sample peaks
+  const drive = density - glued.lufs;
+  const limit = Math.pow(10, (truePeak + 0.5) / 20); // the trim below leaves headroom for inter-sample peaks
+  let gain = target - density;
   for (let attempt = 0; ; attempt++) {
     const chain = [
       glue,
+      `volume=${drive.toFixed(2)}dB`,
+      `alimiter=limit=${limit.toFixed(4)}:attack=3:release=60:level=false`,
       `volume=${gain.toFixed(2)}dB`,
-      `alimiter=limit=${limit.toFixed(4)}:attack=5:release=80:level=false`,
       'silenceremove=stop_periods=1:stop_duration=1:stop_threshold=-70dB',
       'aresample=48000:osf=s16:dither_method=triangular',
     ].join(',');

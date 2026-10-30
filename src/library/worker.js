@@ -22,7 +22,7 @@ try {
   await writeWav(wav, audio.left, audio.right, audio.sampleRate);
   const flac = join(tracksDir, `${track.id}.flac`);
   const partial = `${flac}.partial`;
-  const loudness = await master(wav, partial);
+  const loudness = await master(wav, partial, { presence: track.presence });
   const metrics = analyze(await decodeAudio(partial));
   await rename(partial, flac);
   const { code, ...meta } = track;
