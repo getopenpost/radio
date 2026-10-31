@@ -86,6 +86,9 @@ Project-specific rules. The shared global instructions still apply.
   Create or replace the YouTube broadcast before restarting the relay: a
   broadcast that attaches to an hours-old sender session makes YouTube's
   ingest loop its 8-second prebuffer instead of advancing.
+  Run `scripts/prewarm-relay-cache.sh` before a programme-adopting restart: a
+  cold cache leaves a multi-minute ingest gap, and YouTube answers any gap by
+  looping its buffered window on air.
   Publish audio before the catalog with `scripts/publish-nas-library.sh`.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.

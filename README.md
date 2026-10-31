@@ -208,7 +208,11 @@ node src/cli/program.js --hours 8 --fps 60 --scale 3 --bitrate 6000k --encoder h
 
 Preparation draws every frame at 60fps. It does not duplicate a 30fps movie.
 The programme manifest becomes current only after all chunks are published.
-Restart `openpost-radio.service` to adopt it. At the 6 Mbps video budget,
+Warm the relay cache, then restart `openpost-radio.service` to adopt it. Run
+`scripts/prewarm-relay-cache.sh` first: the relay only starts FFmpeg once its
+11-chunk window is on disk, so a cold-cache restart leaves the YouTube ingest
+with no data for minutes and YouTube responds by looping its buffered window on
+air. With the cache warm the restart reconnects in seconds. At the 6 Mbps video budget,
 allow about 2.1 GB of VPS cache for the current chunk plus ten ahead.
 
 Create or replace the YouTube broadcast first, then restart the relay. A
