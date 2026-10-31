@@ -1,0 +1,50 @@
+{
+ "frames": 120,
+ "palette_day": 33,
+ "palette_night": 35,
+ "dither_strength": 36.0,
+ "world_shift_px_per_frame": 1.012,
+ "day_share": [
+  {
+   "slot": "cloudShade",
+   "share": 12.7
+  },
+  {
+   "slot": "sky1",
+   "share": 7.7
+  },
+  {
+   "slot": "path",
+   "share": 7.7
+  },
+  {
+   "slot": "wall",
+   "share": 6.9
+  },
+  {
+   "slot": "far0",
+   "share": 5.8
+  },
+  {
+   "slot": "trunk",
+   "share": 5.0
+  },
+  {
+   "slot": "far1",
+   "share": 5.0
+  },
+  {
+   "slot": "bag",
+   "share": 4.8
+  }
+ ],
+ "outputs": [
+  "day_before_after.png",
+  "day_styled.png",
+  "night_before_after.png",
+  "night_styled.png",
+  "post.log",
+  "walk_screen_anchored.gif",
+  "walk_world_anchored.gif"
+ ]
+}

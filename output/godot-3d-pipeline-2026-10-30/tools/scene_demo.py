@@ -118,6 +118,7 @@ def place_prop(path, x, front_y, target_h, rotz=0.0, name=''):
     root.location.z += -lo.z
     root.rotation_euler.rotate_axis('Z', radians(rotz))
     bpy.context.view_layer.update()
+    lo, hi = static_bbox(new)  # after the move, for placement decisions
     root.parent = world_root
     root.matrix_parent_inverse = world_root.matrix_world.inverted()
     log('placed %-10s at x=%6.2f h=%6.2f front_y=%6.2f' % (name, x, hi.z - lo.z, lo.y))
@@ -136,8 +137,10 @@ try:
     scene.frame_end = 26
 
     world = bpy.data.worlds.new('Sky')
-    world.use_nodes = False
-    world.color = hex_rgb('#f1ede4')  # palette.js sky1, day
+    world.use_nodes = True  # a node world renders the sky AND lights the scene
+    bg_node = world.node_tree.nodes.get('Background')
+    bg_node.inputs['Color'].default_value = (*hex_rgb('#f1ede4'), 1.0)  # palette.js sky1, day
+    bg_node.inputs['Strength'].default_value = 0.85
     scene.world = world
 
     world_root = bpy.data.objects.new('WorldRoot', None)
@@ -230,14 +233,14 @@ try:
         return o
 
     band('ground', '#d3cab9', -3.0, 0.0, -120, 120, -0.5)      # ground0
-    band('path', '#e6dfd2', -0.05, 0.0, -120, 120, -1.4)       # path
+    band('path', '#e6dfd2', -0.08, 0.0, -120, 120, -1.4)       # path
     band('water', '#c3c9c6', -1.6, 0.0, -10.5, -3.0, -0.7)     # water0
 
     for i, (x, r, d, col, y) in enumerate([
-        (-14, 5.0, 7.0, '#d7cfc2', 50), (-6, 3.6, 5.2, '#d7cfc2', 50),
-        (2, 6.2, 8.5, '#d7cfc2', 50), (10, 4.4, 6.0, '#d7cfc2', 50),
-        (-10, 3.0, 4.6, '#c9c0b2', 40), (-2, 4.4, 6.4, '#c9c0b2', 40),
-        (6, 3.2, 4.2, '#c9c0b2', 40), (13, 5.0, 7.0, '#c9c0b2', 40),
+        (-14, 5.5, 9.5, '#d7cfc2', 50), (-6, 4.0, 7.5, '#d7cfc2', 50),
+        (2, 6.5, 11.0, '#d7cfc2', 50), (10, 5.0, 8.5, '#d7cfc2', 50),
+        (-10, 3.4, 6.0, '#c9c0b2', 40), (-2, 4.8, 7.8, '#c9c0b2', 40),
+        (6, 3.6, 5.5, '#c9c0b2', 40), (13, 5.6, 9.0, '#c9c0b2', 40),
     ]):
         bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=r, depth=d, location=(x, y, d / 2 - 0.2))
         cone = bpy.context.active_object
@@ -246,15 +249,15 @@ try:
         cone.matrix_parent_inverse = world_root.matrix_world.inverted()
 
     # --- CC0 props along the strip -------------------------------------------
-    place_prop(SAMPLES + '/kenney-boat-row-small.glb', -9.0, -0.9, 0.20 * V, 0, 'dinghy')
-    place_prop(SAMPLES + '/boatwsail.glb', -6.6, -0.9, 0.38 * V, 0, 'sailboat')
-    h1lo, h1hi = place_prop(SAMPLES + '/house-1.glb', -2.6, -1.3, 0.62 * V, 0, 'house1')
-    place_prop(SAMPLES + '/bicycle.glb', -1.2, -2.6, 0.30 * V, 0, 'bicycle')
-    h2lo, h2hi = place_prop(SAMPLES + '/inn.glb', 1.9, -1.3, 0.72 * V, 0, 'inn')
-    place_prop(SAMPLES + '/quaternius-tree-1.glb', 3.5, -1.3, 0.9 * V, 0, 'tree1')
-    place_prop(SAMPLES + '/kaykit-tree-1.glb', 5.0, -1.3, 0.8 * V, 0, 'tree2')
-    place_prop(SAMPLES + '/bell-tower.glb', 7.2, -1.3, 1.25 * V, 0, 'belltower')
-    place_prop(SAMPLES + '/quaternius-tree-1.glb', 9.4, -1.3, 0.95 * V, 180, 'tree3')
+    place_prop(SAMPLES + '/kenney-boat-row-small.glb', -9.0, -0.9, 0.16 * V, 0, 'dinghy')
+    place_prop(SAMPLES + '/boatwsail.glb', -6.6, -0.9, 0.30 * V, 0, 'sailboat')
+    h1lo, h1hi = place_prop(SAMPLES + '/house-1.glb', -2.6, -1.3, 0.50 * V, 0, 'house1')
+    place_prop(SAMPLES + '/bicycle.glb', -1.2, -2.6, 0.22 * V, 0, 'bicycle')
+    h2lo, h2hi = place_prop(SAMPLES + '/inn.glb', 1.9, -1.3, 0.58 * V, 0, 'inn')
+    place_prop(SAMPLES + '/quaternius-tree-1.glb', 3.5, -1.3, 0.55 * V, 0, 'tree1')
+    place_prop(SAMPLES + '/kaykit-tree-1.glb', 5.0, -1.3, 0.50 * V, 0, 'tree2')
+    place_prop(SAMPLES + '/bell-tower.glb', 7.2, -1.3, 0.85 * V, 0, 'belltower')
+    place_prop(SAMPLES + '/quaternius-tree-1.glb', 9.4, -1.3, 0.58 * V, 180, 'tree3')
 
     # --- warm windows for the night render ------------------------------------
     win_mat = bpy.data.materials.new('window')
@@ -288,9 +291,9 @@ try:
     sun = bpy.context.active_object
     sun.data.angle = radians(2.5)
     sun.data.color = (1.0, 0.94, 0.84)
-    sun.data.energy = 4.0
+    sun.data.energy = 0.45
     sun.rotation_mode = 'QUATERNION'
-    sun.rotation_quaternion = Vector((-12, 4, -20)).normalized().to_track_quat('-Z', 'X')
+    sun.rotation_quaternion = Vector((-11, 7, -15)).normalized().to_track_quat('-Z', 'X')
 
     # --- camera ----------------------------------------------------------------
     camd = bpy.data.cameras.new('Cam')
@@ -298,7 +301,9 @@ try:
     camd.sensor_fit = 'VERTICAL'
     camd.ortho_scale = V
     cam = bpy.data.objects.new('Cam', camd)
-    cam.location = (0, -8, V / 2)
+    # The path line lands at 84% of frame height (HANDOFF), so the bottom 16%
+    # of the frame is foreground ground and the fox stands at 20%..84%.
+    cam.location = (0, -8, 0.34 * V)
     cam.rotation_euler = (radians(90), 0, 0)
     scene.collection.objects.link(cam)
     scene.camera = cam
@@ -352,15 +357,17 @@ try:
     # Night still: moonlight sun + warm windows.
     sun.data.energy = 0.45
     sun.data.color = (0.65, 0.75, 1.0)
-    world.color = hex_rgb('#2d2723')  # palette.js night sky1
+    bg_node.inputs['Color'].default_value = (*hex_rgb('#2d2723'), 1.0)  # night sky1
+    bg_node.inputs['Strength'].default_value = 0.55
     if 'Emission Strength' in bsdf.inputs:
         bsdf.inputs['Emission Strength'].default_value = 2.5
     render_still(RAW + '/still_night.png', STILL_FRAME)
 
     # Day walk sequence, rendered in cycle-length segments.
-    sun.data.energy = 4.0
+    sun.data.energy = 0.45
     sun.data.color = (1.0, 0.94, 0.84)
-    world.color = hex_rgb('#f1ede4')
+    bg_node.inputs['Color'].default_value = (*hex_rgb('#f1ede4'), 1.0)
+    bg_node.inputs['Strength'].default_value = 0.85
     bsdf.inputs['Emission Strength'].default_value = 0.0
     done = 0
     seg = 0

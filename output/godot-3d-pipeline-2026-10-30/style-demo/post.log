@@ -1,0 +1,127 @@
+these 38 paths will be fetched (41.5 MiB download, 217.1 MiB unpacked):
+  /nix/store/7b9qkm8r162kaa17fvxshg40l9gcl1yp-brotli-1.2.0-lib
+  /nix/store/9fq83a8hb836fibnymwzbkkxdc32rnid-dav1d-1.5.3
+  /nix/store/482ccz29iiibdngdrzzczn18v7y0q53j-expat-2.7.4
+  /nix/store/s34kxs7c3bm9sf30rnmkc3q2shll72i3-freetype-2.13.3
+  /nix/store/lxmnzjq7cpq3y82j57aswnm6yndncnjm-fribidi-1.0.16
+  /nix/store/5dr5liax7iahdid81gzj5hy7f7v61wzg-gdbm-1.26-lib
+  /nix/store/f1163x63f3pcy2b1si7n5xl06fj1mi53-gdk-pixbuf-2.44.5
+  /nix/store/c3rym9kq9dyhfy61d6k29qa1sb7qldgx-giflib-5.2.2
+  /nix/store/ccc9k907n0b2dk4j3h42vg376ssscvwn-glib-2.86.3
+  /nix/store/nh70wyihlnhnrhy44m1qhxc5kappmhqp-graphite2-1.3.14
+  /nix/store/5dknw9wy464z2mrq5a72r201x2xmnlck-harfbuzz-12.3.0
+  /nix/store/w4ahaqiymlar0xnssfgxh1k6glwqr5hr-lcms2-2.18
+  /nix/store/k8rxxd21065qw08y38nljj0zvl1jypkn-lerc-4.0.0
+  /nix/store/fng38nplx6fm0vd7jlqi1fig6ibfmp5s-libaom-3.12.1
+  /nix/store/6nsjwx4hxhr36zhdwfa3nh2fj04ab2nb-libavif-1.3.0
+  /nix/store/7h5ba1885xz4x1kg0k8dfjfm1qa5rg5a-libdeflate-1.25
+  /nix/store/7iz1fzqbkqpr8pzbr6mn00qb923xygw2-libimagequant-4.4.1
+  /nix/store/vd62xkpa4k4ry73rv19insc02vik9dwr-libjpeg-turbo-3.1.3
+  /nix/store/j4sy8ayc2mq53fl9ajyjbmgia80bk01d-libpng-apng-1.6.54
+  /nix/store/ryn9sjby7fpwy145m9jdqsa3cfnpjz8m-libraqm-0.10.4
+  /nix/store/gd6dggx642yq41c9yn95vg22gl4wfz52-libtiff-4.7.1
+  /nix/store/bhl56lzbw85spdqqijgxd8365s7yp1ka-libvmaf-3.0.0
+  /nix/store/bn8d7hvjrpxxi76lxnagvfc7z1bc52dj-libwebp-1.6.0
+  /nix/store/vjwpv0qg0n3p8fxrb82v5g0fyk56nvlp-libwebp-1.6.0
+  /nix/store/w6ww49xki8dypdc2gpn6id6p614y3iqg-libxau-1.0.12
+  /nix/store/82crlfayw6vhc8bgk1cmgb1j8mhpg4bn-libxcb-1.17.0
+  /nix/store/561dx368yy6fkgbfz6ckp1d52bvxs3nv-libxcrypt-4.5.2
+  /nix/store/hdvxsnzdfzwzaqdvrmzj2n1mjj9n85l0-libxdmcp-1.1.5
+  /nix/store/6sm7zk8d7bvd41qynf5x1wxlhips4cj0-libyuv-1908
+  /nix/store/g2gzj7sw858cr8m74hxpgmskrm83n31i-mpdecimal-4.0.1
+  /nix/store/436zcw93xknk4qqwp880z6ql1vm9qwxh-openjpeg-2.5.4
+  /nix/store/6m0sga6inpabxm4nh7ab8zvychy66d48-python3-3.12.12
+  /nix/store/jhcmaf9m9jpjrmms6gha8ics7c3a88ds-python3.12-numpy-2.4.2
+  /nix/store/b2h7200w0si65bdqrdb6jfykigkmbqq8-python3.12-pillow-12.1.0
+  /nix/store/n78wl37nhy4qfspmkl37ib43fl9mgzkl-sqlite-3.51.2
+  /nix/store/nssnpv7ghq4f1fdm41q304dmak5aanjv-stdenv-darwin
+  /nix/store/m1i3gmkmsdrcbm9m2axajj604rsfdna6-zlib-1.3.1-static
+  /nix/store/dkki6m2dlmlswjzsy9c17pk0mgkc2xmn-zstd-1.5.7
+copying path '/nix/store/w4ahaqiymlar0xnssfgxh1k6glwqr5hr-lcms2-2.18' from 'https://cache.nixos.org'...
+copying path '/nix/store/vd62xkpa4k4ry73rv19insc02vik9dwr-libjpeg-turbo-3.1.3' from 'https://cache.nixos.org'...
+copying path '/nix/store/7b9qkm8r162kaa17fvxshg40l9gcl1yp-brotli-1.2.0-lib' from 'https://cache.nixos.org'...
+copying path '/nix/store/9fq83a8hb836fibnymwzbkkxdc32rnid-dav1d-1.5.3' from 'https://cache.nixos.org'...
+copying path '/nix/store/482ccz29iiibdngdrzzczn18v7y0q53j-expat-2.7.4' from 'https://cache.nixos.org'...
+copying path '/nix/store/lxmnzjq7cpq3y82j57aswnm6yndncnjm-fribidi-1.0.16' from 'https://cache.nixos.org'...
+copying path '/nix/store/5dr5liax7iahdid81gzj5hy7f7v61wzg-gdbm-1.26-lib' from 'https://cache.nixos.org'...
+copying path '/nix/store/c3rym9kq9dyhfy61d6k29qa1sb7qldgx-giflib-5.2.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/k8rxxd21065qw08y38nljj0zvl1jypkn-lerc-4.0.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/7h5ba1885xz4x1kg0k8dfjfm1qa5rg5a-libdeflate-1.25' from 'https://cache.nixos.org'...
+copying path '/nix/store/w6ww49xki8dypdc2gpn6id6p614y3iqg-libxau-1.0.12' from 'https://cache.nixos.org'...
+copying path '/nix/store/561dx368yy6fkgbfz6ckp1d52bvxs3nv-libxcrypt-4.5.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/hdvxsnzdfzwzaqdvrmzj2n1mjj9n85l0-libxdmcp-1.1.5' from 'https://cache.nixos.org'...
+copying path '/nix/store/g2gzj7sw858cr8m74hxpgmskrm83n31i-mpdecimal-4.0.1' from 'https://cache.nixos.org'...
+copying path '/nix/store/nssnpv7ghq4f1fdm41q304dmak5aanjv-stdenv-darwin' from 'https://cache.nixos.org'...
+copying path '/nix/store/m1i3gmkmsdrcbm9m2axajj604rsfdna6-zlib-1.3.1-static' from 'https://cache.nixos.org'...
+copying path '/nix/store/ccc9k907n0b2dk4j3h42vg376ssscvwn-glib-2.86.3' from 'https://cache.nixos.org'...
+copying path '/nix/store/nh70wyihlnhnrhy44m1qhxc5kappmhqp-graphite2-1.3.14' from 'https://cache.nixos.org'...
+copying path '/nix/store/7iz1fzqbkqpr8pzbr6mn00qb923xygw2-libimagequant-4.4.1' from 'https://cache.nixos.org'...
+copying path '/nix/store/j4sy8ayc2mq53fl9ajyjbmgia80bk01d-libpng-apng-1.6.54' from 'https://cache.nixos.org'...
+copying path '/nix/store/bhl56lzbw85spdqqijgxd8365s7yp1ka-libvmaf-3.0.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/82crlfayw6vhc8bgk1cmgb1j8mhpg4bn-libxcb-1.17.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/n78wl37nhy4qfspmkl37ib43fl9mgzkl-sqlite-3.51.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/dkki6m2dlmlswjzsy9c17pk0mgkc2xmn-zstd-1.5.7' from 'https://cache.nixos.org'...
+copying path '/nix/store/6sm7zk8d7bvd41qynf5x1wxlhips4cj0-libyuv-1908' from 'https://cache.nixos.org'...
+copying path '/nix/store/s34kxs7c3bm9sf30rnmkc3q2shll72i3-freetype-2.13.3' from 'https://cache.nixos.org'...
+copying path '/nix/store/bn8d7hvjrpxxi76lxnagvfc7z1bc52dj-libwebp-1.6.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/fng38nplx6fm0vd7jlqi1fig6ibfmp5s-libaom-3.12.1' from 'https://cache.nixos.org'...
+copying path '/nix/store/6m0sga6inpabxm4nh7ab8zvychy66d48-python3-3.12.12' from 'https://cache.nixos.org'...
+copying path '/nix/store/gd6dggx642yq41c9yn95vg22gl4wfz52-libtiff-4.7.1' from 'https://cache.nixos.org'...
+copying path '/nix/store/5dknw9wy464z2mrq5a72r201x2xmnlck-harfbuzz-12.3.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/f1163x63f3pcy2b1si7n5xl06fj1mi53-gdk-pixbuf-2.44.5' from 'https://cache.nixos.org'...
+copying path '/nix/store/vjwpv0qg0n3p8fxrb82v5g0fyk56nvlp-libwebp-1.6.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/436zcw93xknk4qqwp880z6ql1vm9qwxh-openjpeg-2.5.4' from 'https://cache.nixos.org'...
+copying path '/nix/store/ryn9sjby7fpwy145m9jdqsa3cfnpjz8m-libraqm-0.10.4' from 'https://cache.nixos.org'...
+copying path '/nix/store/6nsjwx4hxhr36zhdwfa3nh2fj04ab2nb-libavif-1.3.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/jhcmaf9m9jpjrmms6gha8ics7c3a88ds-python3.12-numpy-2.4.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/b2h7200w0si65bdqrdb6jfykigkmbqq8-python3.12-pillow-12.1.0' from 'https://cache.nixos.org'...
+{
+ "frames": 120,
+ "palette_day": 33,
+ "palette_night": 35,
+ "dither_strength": 36.0,
+ "world_shift_px_per_frame": 1.012,
+ "day_share": [
+  {
+   "slot": "cloudShade",
+   "share": 12.7
+  },
+  {
+   "slot": "sky1",
+   "share": 7.7
+  },
+  {
+   "slot": "path",
+   "share": 7.7
+  },
+  {
+   "slot": "wall",
+   "share": 6.9
+  },
+  {
+   "slot": "far0",
+   "share": 5.8
+  },
+  {
+   "slot": "trunk",
+   "share": 5.0
+  },
+  {
+   "slot": "far1",
+   "share": 5.0
+  },
+  {
+   "slot": "bag",
+   "share": 4.8
+  }
+ ],
+ "outputs": [
+  "day_before_after.png",
+  "day_styled.png",
+  "night_before_after.png",
+  "night_styled.png",
+  "post.log",
+  "walk_screen_anchored.gif",
+  "walk_world_anchored.gif"
+ ]
+}
