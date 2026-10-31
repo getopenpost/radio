@@ -3,7 +3,7 @@
 set -euo pipefail
 source_dir="${1:-library}"
 nas="${RGO_MUSIC_NAS:-kraktoos@rgo-nas}"
-remote_dir="${RGO_MUSIC_NAS_DIR:-/volume1/homes/kraktoos/openpost-radio-music}"
+remote_dir="${RGO_MUSIC_NAS_DIR:-/volume1/media/openpost-radio-music}"
 node src/cli/library.js --catalog --dir "$source_dir"
 # Keep replaced audio and metadata together for a rollback. Rsync publishes
 # each replacement by rename; the catalog is sent only after every track.

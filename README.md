@@ -188,7 +188,7 @@ node src/cli/program.js --hours 8 --fps 30
 ```
 
 This publishes closed four-minute MPEG-TS chunks and an atomic manifest to
-`/volume1/homes/kraktoos/openpost-radio-music/programmes/` on the NAS.
+`/volume1/media/openpost-radio-music/programmes/` on the NAS.
 Two FIFO readers stream video directly into temporary NAS files. Each file
 is renamed after its upload closes. The local work directory holds only
 small metadata files and pipes, so preparation needs little local disk space.
@@ -238,7 +238,10 @@ an outdoor stop into the studio. `--day-minutes 0` retains real solar time
 for direct rendering; the scripted `--tour` uses its own dates.
 
 The original audio library remains on the NAS at
-`/volume1/homes/kraktoos/openpost-radio-music`. Generate compositions on a
+`/volume1/media/openpost-radio-music` (moved out of the user home in October
+2026 so Synology Drive stops indexing and versioning the radio chunks; a
+symlink at the old home path bridges the relay's root-owned read jail, whose
+`ROOT` should follow at the next admin pass). Generate compositions on a
 workstation and publish with `scripts/publish-nas-library.sh`, which copies
 finished audio before the catalog. Direct `npm run stream` playback still
 supports a local library or an HTTP source with ten compatible tracks ahead,

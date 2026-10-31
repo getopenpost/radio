@@ -14,7 +14,7 @@ const { values: v } = parseArgs({
     nas: { type: "string", default: "kraktoos@rgo-nas" },
     root: {
       type: "string",
-      default: "/volume1/homes/kraktoos/openpost-radio-music",
+      default: "/volume1/media/openpost-radio-music",
     },
     work: { type: "string", default: "tmp/program" },
   },
