@@ -211,6 +211,12 @@ The programme manifest becomes current only after all chunks are published.
 Restart `openpost-radio.service` to adopt it. At the 6 Mbps video budget,
 allow about 2.1 GB of VPS cache for the current chunk plus ten ahead.
 
+Create or replace the YouTube broadcast first, then restart the relay. A
+broadcast that attaches to a sender session already hours old leaves YouTube's
+ingest unable to advance: it keeps the connection and replays its ~8-second
+prebuffer forever, so audio and video play back stacked on themselves. A fresh
+session starts at zero-based timestamps together with the broadcast.
+
 The VPS keeps the current chunk and ten ahead, at most eleven chunks. That gives about 40 minutes of
 NAS-outage headroom after the buffer fills, using roughly 1.1 GB of bounded
 cache instead of the entire library. A dedicated restricted SSH key can

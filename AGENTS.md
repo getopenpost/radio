@@ -83,6 +83,9 @@ Project-specific rules. The shared global instructions still apply.
   sync that artifact and its source revision when changing the live sender.
   A programme
   repeats until replaced; do not describe this as fresh live generation.
+  Create or replace the YouTube broadcast before restarting the relay: a
+  broadcast that attaches to an hours-old sender session makes YouTube's
+  ingest loop its 8-second prebuffer instead of advancing.
   Publish audio before the catalog with `scripts/publish-nas-library.sh`.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.
