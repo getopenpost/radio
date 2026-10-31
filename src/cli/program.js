@@ -98,17 +98,25 @@ const finished = (p, label) => new Promise((resolve, reject) => {
   p.once("error", reject);
   p.once("close", (code) => code === 0 ? resolve() : reject(Error(`${label} exited ${code}`)));
 });
+// A stalled NAS read (remote `cat` blocked while TCP keepalives stay healthy)
+// otherwise hangs the FIFO drain forever and freezes the whole programme.
+const UPLOAD_WATCHDOG = 900000;
 async function upload(i) {
   const target = `${remote}/${id}/${fileName(i)}`;
   const cat = spawn("cat", [pipes[i]], { stdio: ["ignore", "pipe", "inherit"] });
   const send = spawn("ssh", [...ssh, `cat > ${quote(target + ".partial")} && mv ${quote(target + ".partial")} ${quote(target)}`], { stdio: ["pipe", "ignore", "inherit"] });
   transfers.add(cat); transfers.add(send);
+  const watchdog = setTimeout(() => {
+    console.error(`upload stalled: ${fileName(i)}`);
+    cat.kill("SIGKILL"); send.kill("SIGKILL");
+  }, UPLOAD_WATCHDOG);
   try {
     await Promise.all([finished(cat, "FIFO reader"), finished(send, "NAS upload"), pipeline(cat.stdout, send.stdin)]);
     await unlink(pipes[i]);
     manifest.ready++;
     await publish();
   } finally {
+    clearTimeout(watchdog);
     cat.kill("SIGKILL"); send.kill("SIGKILL");
     transfers.delete(cat); transfers.delete(send);
   }
