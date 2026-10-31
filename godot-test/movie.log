@@ -1,0 +1,6 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M4 (Apple9)
+
+frames mode: dir=output/frames max=1800
+DEBUG visible_rect=[P: (0.0, 0.0), S: (1280.0, 720.0)] window=(1280, 720) scale=1.0
+fox facing rotation: 1.5707963267949 (neck-tail vector (0.0, -0.080347, 2.022326))

@@ -1,0 +1,6 @@
+# Godot editor cache
+.godot/
+# the downloaded Godot binary (see README how to fetch it)
+bin/
+# rendered movies and encoded previews
+output/
