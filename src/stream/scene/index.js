@@ -52,6 +52,20 @@ const BROOM_ALONE = 5;
 const METER = 13; // rows the sound meter adds to the now-playing chip
 const SCOPE_OFFSET = 56;
 
+// A ghost frame still moves the weather, which only writes pixels; there is nothing to write to.
+const GHOST_CANVAS = { set() {}, rect() {} };
+
+/** Whether any water can be seen from here. Most of the road has none, and the sea is the costliest thing to draw. */
+function waterShows(ground) {
+  if (crossing(ground, 700)) return true;
+  // The far hills cover ten times more road than the screen is wide.
+  for (let d = ground - 3600; d <= ground + 3600; d += 400) {
+    const g = geography(d);
+    if (g.lake > 0.01 || g.sea > 0.01) return true;
+  }
+  return false;
+}
+
 /** A friend walking the other way, if one is near this stretch of road. */
 function friendNear(ground) {
   const cell = Math.floor((ground + 700) / FRIEND_CELL);
@@ -66,7 +80,7 @@ function friendNear(ground) {
   return null;
 }
 
-export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes = 0 } = {}) {
+export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes = 0, alwaysWater = false } = {}) {
   const canvas = createCanvas();
   const rgb = Buffer.alloc(WIDTH * HEIGHT * 3);
   const palette = new Uint8Array(SLOTS * 3);
@@ -138,9 +152,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
    * @param {Float32Array} s.bands spectrum levels in [0, 1], low to high
    * @param {number} s.pillWidth now-playing pill width (0 hides it)
    * @param {object} [s.steer] for previews: `at` (jump to a distance), `weather`, `trigger` a sky event
+   * @param {boolean} [s.ghost] advance everything that carries over between frames, but draw nothing
    * @returns {Buffer} RGB24 frame
    */
-  function render({ time, dt, date, beat, bands, pillWidth, steer }) {
+  function render({ time, dt, date, beat, bands, pillWidth, steer, ghost = false }) {
     if (ground == null) ground = distanceAt(date);
     if (steer?.at != null && steer.at !== lastAt) {
       ground = steer.at;
@@ -161,7 +176,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     const moonUp = st.moon != null ? Math.sin(Math.PI * st.moon) : 0;
     const moonlight = moonUp * (1 - Math.abs(st.moonAge - 0.5) * 2) * (1 - overcast);
     wet += ((rain > 0.2 ? 1 : 0) - wet) * Math.min(1, dt * (rain > 0.2 ? 0.25 : 0.05));
-    computePalette(palette, { light: st.light, warmth: st.warmth, overcast, rain, fog, moonlight, wet, time });
+    if (!ghost) computePalette(palette, { light: st.light, warmth: st.warmth, overcast, rain, fog, moonlight, wet, time });
 
     // --- The road: pace, stops, and what the fox is riding. ---
     const trip = movingAt(ground);
@@ -203,21 +218,34 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
 
     // --- Sky and land, back to front. ---
     const body = st.sun != null && st.light > 0.2 ? arc(st.sun) : st.moon != null ? arc(st.moon, 135) : null;
-    sky.draw(canvas, { time, dt, light: st.light, sunProgress: st.sun, moonProgress: st.moon, moonAge: st.moonAge, overcast, wind, date, scroll: ground });
+    sky.draw(canvas, { time, dt, light: st.light, sunProgress: st.sun, moonProgress: st.moon, moonAge: st.moonAge, overcast, wind, date, scroll: ground, ghost });
     if (steer?.trigger) sky.trigger(steer.trigger, `${steer.trigger}:${time}`);
-    water.draw(canvas, { ground, time, body, light: st.light, overcast, rough: (geography(ground).sea > 0.5 ? 1 : 0.42) * (1 + wind) });
+    const printing = c.winter > 0.4 && kind === 'walk' && !hold;
+    if (printing && Math.abs(ground - lastPrint) > STRIDE / 2) {
+      lastPrint = ground;
+      prints.push(ground - 1);
+      if (prints.length > 30) prints.shift();
+    }
+    const onLand = !crossing(ground, 0);
+    const weather = {
+      dt, time, rain, snow: snow * clamp01(c.winter * 2), wind, scroll: speed,
+      leaves: c.autumn * (0.25 + windy * 0.75) * (onLand ? 1 : 0),
+      fireflies: c.summer > 0.5 && st.light < 0.3 && onLand ? 1 - st.light * 3 : 0,
+      petals: c.spring * (onLand ? 0.5 : 0),
+    };
+    if (ghost) {
+      weatherFx.draw(GHOST_CANVAS, weather);
+      if (pillWidth > 0) meter(pillWidth, bands, dt);
+      return null;
+    }
+
+    if (waterShows(ground) || alwaysWater) water.draw(canvas, { ground, time, body, light: st.light, overcast, rough: (geography(ground).sea > 0.5 ? 1 : 0.42) * (1 + wind) });
     land.draw(canvas, 0, view);
     fogBanks(view, time, fog, st.light);
     land.draw(canvas, 1, view);
     land.draw(canvas, 2, view);
-    const onLand = !crossing(ground, 0);
 
-    if (c.winter > 0.4 && kind === 'walk' && !hold) {
-      if (Math.abs(ground - lastPrint) > STRIDE / 2) {
-        lastPrint = ground;
-        prints.push(ground - 1);
-        if (prints.length > 30) prints.shift();
-      }
+    if (printing) {
       for (const p of prints) {
         const x = Math.round(FOX_X + p - view);
         if (x > 0 && x < FOX_X - 6) canvas.rect(x, roadY(p) + (Math.round(p / 23) % 2 ? 0 : 3), 4, 1, S.snow3);
@@ -352,12 +380,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
 
     land.draw(canvas, 3, view);
 
-    weatherFx.draw(canvas, {
-      dt, time, rain, snow: snow * clamp01(c.winter * 2), wind, scroll: speed,
-      leaves: c.autumn * (0.25 + windy * 0.75) * (onLand ? 1 : 0),
-      fireflies: c.summer > 0.5 && st.light < 0.3 && onLand ? 1 - st.light * 3 : 0,
-      petals: c.spring * (onLand ? 0.5 : 0),
-    });
+    weatherFx.draw(canvas, weather);
 
     // Brand chip (top left) and now-playing pill (top right); ffmpeg draws the text.
     roundedRect(BRAND.x, BRAND.y, BRAND.w, BRAND.h, 7, S.pill);
@@ -378,20 +401,26 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     return rgb;
   }
 
-  /** The sound, as a row of level bars along the bottom of the now-playing chip. */
-  function drawMeter(left, width, bands, dt) {
-    const span = width - 16;
-    const count = Math.floor(span / 3);
+  /** The meter's falling levels, which carry over between frames. */
+  function meter(width, bands, dt) {
+    const count = Math.floor((width - 16) / 3);
     if (levels.length !== count) levels = new Array(count).fill(0);
-    const floor = BRAND.y + BRAND.h + METER - 4;
     for (let i = 0; i < count; i++) {
       // Low notes on the left, spread as the ear hears them.
       const at = Math.min(bands.length - 1, Math.floor(((i / count) ** 1.6) * bands.length));
       const level = clamp01(bands[at] ?? 0);
       levels[i] = level > levels[i] ? level : Math.max(level, levels[i] - dt * 1.8);
-      const h = Math.round(levels[i] * (METER + 1));
-      canvas.rect(left + 8 + i * 3, floor - h, 2, h + 1, S.logo);
     }
+  }
+
+  /** The sound, as a row of level bars along the bottom of the now-playing chip. */
+  function drawMeter(left, width, bands, dt) {
+    meter(width, bands, dt);
+    const floor = BRAND.y + BRAND.h + METER - 4;
+    levels.forEach((level, i) => {
+      const h = Math.round(level * (METER + 1));
+      canvas.rect(left + 8 + i * 3, floor - h, 2, h + 1, S.logo);
+    });
   }
 
   /** The gym routine. Hands stay on their bars; only the shoulders travel. */
@@ -468,5 +497,14 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     }
   }
 
-  return { render, state: () => ({ mode: mood, moving: !hold && speed > 0.5, ground, speed, season: seasonAt(ground ?? 0) }) };
+  /** Everything that carries from one frame to the next, so a worker can start mid-stream. */
+  const snapshot = () => JSON.parse(JSON.stringify({ ground, lastAt, speed, hold, passedStop, wet, mood, prints, lastPrint, levels, sky: sky.snapshot(), weather: weatherFx.snapshot() }));
+  function restore(state) {
+    ({ ground, lastAt, speed, hold, passedStop, wet, mood, lastPrint, levels } = state);
+    prints.splice(0, prints.length, ...state.prints);
+    sky.restore(state.sky);
+    weatherFx.restore(state.weather);
+  }
+
+  return { render, snapshot, restore, state: () => ({ mode: mood, moving: !hold && speed > 0.5, ground, speed, season: seasonAt(ground ?? 0) }) };
 }

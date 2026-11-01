@@ -22,12 +22,16 @@ const LINES = Array.from({ length: 26 }, (_, i) => {
   };
 });
 const BANDS = [S.water0, S.water1, S.water2, S.water3, S.waterDeep];
+// The sea asks for tens of thousands of sines a frame, so they come from a table.
+const STEPS = 4096;
+const SINE = Float32Array.from({ length: STEPS }, (_, i) => Math.sin((i / STEPS) * 6.283185307));
+const sine = (radians) => SINE[Math.floor((radians / 6.283185307) * STEPS) & (STEPS - 1)];
 
 /** Height of a line at a world column. */
 function surge(line, wx, time) {
   const a = (wx + line.seed * 9) / line.long;
   const b = time * line.speed;
-  return Math.sin(a * 6.283 + b) * 0.6 + Math.sin(a * 2.7 * 6.283 - b * 0.7 + line.seed) * 0.28 + Math.sin(a * 0.43 * 6.283 + b * 0.4) * 0.5;
+  return sine(a * 6.283 + b) * 0.6 + sine(a * 2.7 * 6.283 - b * 0.7 + line.seed) * 0.28 + sine(a * 0.43 * 6.283 + b * 0.4) * 0.5;
 }
 
 /** How the sea lifts and tips something floating at a screen column, near the viewer. */

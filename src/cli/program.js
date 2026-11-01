@@ -1,6 +1,10 @@
 // Prepare a stream-copy broadcast on a workstation; publish only closed chunks.
+// One pass plans the music and the scene, then one worker per core draws and
+// encodes chunks independently, so preparing scales with the machine.
 import { spawn, spawnSync } from "node:child_process";
-import { mkdir, writeFile, lstat, unlink } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -9,7 +13,8 @@ const { values: v } = parseArgs({
     hours: { type: "string", default: "8" },
     fps: { type: "string", default: "30" },
     scale: { type: "string", default: "2" },
-    encoder: { type: "string", default: "libx264" },
+    preset: { type: "string", default: "veryfast" },
+    jobs: { type: "string", default: String(availableParallelism()) },
     bitrate: { type: "string", default: "3000k" },
     nas: { type: "string", default: "kraktoos@rgo-nas" },
     root: {
@@ -67,18 +72,12 @@ const manifest = {
         : "autumn",
 };
 const fileName = (i) => `chunk-${String(i).padStart(5, "0")}.ts`;
-const pipes = Array.from({ length: manifest.count }, (_, i) => join(dir, fileName(i)));
-// MPEG-TS needs no seeking. Two FIFO readers upload the current and next
-// segments directly, keeping local storage independent of programme length.
-command("mkfifo", pipes);
 const transfers = new Set();
-let stopped = false, publishing = Promise.resolve();
+let stopped = false, publishing = Promise.resolve(), planner = null;
+const workers = new Set();
 const abort = () => {
   stopped = true;
-  if (!manifest.complete) {
-    try { process.kill(-child.pid, "SIGKILL"); } catch (e) { if (e.code !== "ESRCH") throw e; }
-  }
-  for (const p of transfers) p.kill("SIGKILL");
+  for (const p of [planner, ...workers, ...transfers]) p?.kill("SIGKILL");
 };
 const publish = () => (publishing = publishing.then(publishNow));
 async function publishNow() {
@@ -98,72 +97,72 @@ const finished = (p, label) => new Promise((resolve, reject) => {
   p.once("error", reject);
   p.once("close", (code) => code === 0 ? resolve() : reject(Error(`${label} exited ${code}`)));
 });
-// A stalled NAS read (remote `cat` blocked while TCP keepalives stay healthy)
-// otherwise hangs the FIFO drain forever and freezes the whole programme.
+// A stalled NAS write otherwise hangs the queue and freezes the whole programme.
 const UPLOAD_WATCHDOG = 900000;
 async function upload(i) {
+  const file = join(dir, fileName(i));
   const target = `${remote}/${id}/${fileName(i)}`;
-  const cat = spawn("cat", [pipes[i]], { stdio: ["ignore", "pipe", "inherit"] });
   const send = spawn("ssh", [...ssh, `cat > ${quote(target + ".partial")} && mv ${quote(target + ".partial")} ${quote(target)}`], { stdio: ["pipe", "ignore", "inherit"] });
-  transfers.add(cat); transfers.add(send);
+  transfers.add(send);
   const watchdog = setTimeout(() => {
     console.error(`upload stalled: ${fileName(i)}`);
-    cat.kill("SIGKILL"); send.kill("SIGKILL");
+    send.kill("SIGKILL");
   }, UPLOAD_WATCHDOG);
   try {
-    await Promise.all([finished(cat, "FIFO reader"), finished(send, "NAS upload"), pipeline(cat.stdout, send.stdin)]);
-    await unlink(pipes[i]);
+    await Promise.all([finished(send, "NAS upload"), pipeline(createReadStream(file), send.stdin)]);
+    await unlink(file);
     manifest.ready++;
     await publish();
   } finally {
     clearTimeout(watchdog);
-    cat.kill("SIGKILL"); send.kill("SIGKILL");
-    transfers.delete(cat); transfers.delete(send);
+    send.kill("SIGKILL");
+    transfers.delete(send);
   }
 }
-await publish();
-const child = spawn(
-  process.execPath,
-  [
-    "src/stream/main.js",
-    "--output",
-    join(dir, "chunk-%05d.ts"),
-    "--duration",
-    String(seconds),
-    "--clock",
-    new Date(anchor).toISOString(),
-    "--fps",
-    v.fps,
-    "--scale",
-    v.scale,
-    "--encoder",
-    v.encoder,
-    "--bitrate",
-    v.bitrate,
-    "--preset",
-    "veryfast",
-    "--loop-ready",
-    "--state",
-    join(dir, "state"),
-  ],
-  { detached: true, stdio: ["ignore", "inherit", "inherit"] },
-);
+const started = performance.now();
 process.once("SIGTERM", abort);
 process.once("SIGINT", abort);
-const rendered = finished(child, "programme renderer");
-let next = 0;
+planner = spawn(
+  process.execPath,
+  ["src/stream/main.js", "--plan", dir, "--duration", String(seconds), "--clock", new Date(anchor).toISOString(), "--fps", v.fps, "--loop-ready", "--state", join(dir, "state")],
+  { stdio: ["ignore", "inherit", "inherit"] },
+);
+await finished(planner, "programme planner");
+console.log(`planned in ${((performance.now() - started) / 1000).toFixed(0)}s`);
+// Each worker draws and encodes one chunk on one core. Finished chunks wait for
+// the uploaders, and workers pause if the queue grows, which bounds local disk.
+const encoded = [];
+let next = 0, drawing = true;
+async function worker() {
+  while (!stopped && next < manifest.count) {
+    while (encoded.length >= 6 && !stopped) await new Promise((r) => setTimeout(r, 500));
+    const i = next++;
+    const p = spawn(process.execPath, ["src/stream/chunk.js", "--plan", dir, "--index", String(i), "--output", join(dir, fileName(i)), "--scale", v.scale, "--bitrate", v.bitrate, "--preset", v.preset], { stdio: ["ignore", "inherit", "inherit"] });
+    workers.add(p);
+    await finished(p, `chunk ${i}`).finally(() => workers.delete(p));
+    encoded.push(i);
+  }
+}
+async function uploader() {
+  while (!stopped && (drawing || encoded.length)) {
+    if (!encoded.length) {
+      await new Promise((r) => setTimeout(r, 200));
+      continue;
+    }
+    await upload(encoded.shift());
+  }
+}
 try {
-  await Promise.all([rendered, ...Array.from({ length: 2 }, async () => {
-    while (!stopped && next < manifest.count) await upload(next++);
-  })]);
+  const uploads = Array.from({ length: 3 }, uploader);
+  await Promise.all(Array.from({ length: Number(v.jobs) }, worker)).finally(() => { drawing = false; });
+  await Promise.all(uploads);
   if (stopped || manifest.ready !== manifest.count) throw Error("programme preparation interrupted");
-  // Keep the existing live programme until the renderer exited successfully
-  // and every remote chunk has closed and been atomically renamed.
+  // Keep the existing live programme until every remote chunk has closed and been atomically renamed.
   manifest.complete = true;
   await publish();
   await writeFile(join(v.work, "done.json"), JSON.stringify(manifest));
-  console.log("programme complete", id);
-} finally {
+  console.log(`programme complete ${id} in ${((performance.now() - started) / 1000).toFixed(0)}s`);
+} catch (error) {
   abort();
-  for (const path of pipes) if (await lstat(path).then(s => s.isFIFO(), () => false)) await unlink(path);
+  throw error;
 }

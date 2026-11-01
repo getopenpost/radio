@@ -86,19 +86,21 @@ export function createSky(seed = 1) {
   }
 
   /** Draw the sky into the frame. */
-  function draw(canvas, { time, dt, light, sunProgress, moonProgress, moonAge, overcast, wind, date, scroll }) {
+  function draw(canvas, { time, dt, light, sunProgress, moonProgress, moonAge, overcast, wind, date, scroll, ghost = false }) {
     const sunPos = sunProgress != null ? arc(sunProgress) : null;
     const low = sunProgress != null ? 1 - Math.sin(Math.PI * clamp01(sunProgress)) : 0;
     const glow = sunPos && overcast < 0.8 ? { x: sunPos.x, y: sunPos.y, r: 34 + 60 * low } : null;
     const key = glow ? `${glow.x},${glow.y},${Math.round(glow.r / 4)}` : 'none';
-    if (key !== cacheKey) {
-      buildGradient(glow);
-      cacheKey = key;
+    if (!ghost) {
+      if (key !== cacheKey) {
+        buildGradient(glow);
+        cacheKey = key;
+      }
+      canvas.index.set(cache);
     }
-    canvas.index.set(cache);
 
     const dark = clamp01((0.55 - light) / 0.45) * (1 - overcast * 0.85);
-    if (dark > 0) {
+    if (dark > 0 && !ghost) {
       for (const s of stars) {
         if (s.rank > dark) continue;
         if (Math.sin(time * s.rate + s.phase) < -0.6) continue;
@@ -112,8 +114,8 @@ export function createSky(seed = 1) {
       }
     }
 
-    if (moonProgress != null && light < 0.75) drawMoon(canvas, arc(moonProgress, 135), moonAge, light, overcast);
-    if (sunPos && overcast < 0.95) canvas.disc(sunPos.x, sunPos.y, 12, S.sun, 1 - overcast * 0.6);
+    if (!ghost && moonProgress != null && light < 0.75) drawMoon(canvas, arc(moonProgress, 135), moonAge, light, overcast);
+    if (!ghost && sunPos && overcast < 0.95) canvas.disc(sunPos.x, sunPos.y, 12, S.sun, 1 - overcast * 0.6);
 
     // How many clouds are out follows the cover; each joins or leaves only
     // while off screen, so none pops in. They drift and scroll very slowly.
@@ -123,7 +125,7 @@ export function createSky(seed = 1) {
       const raw = c.x0 - time * c.speed * (0.5 + wind) - scroll * 0.012;
       const x = Math.round((((raw % span) + span) % span) - c.w - 20);
       if (c.shown === null || x <= -c.w || x >= WIDTH) c.shown = c.rank * 16 < want;
-      if (c.shown) canvas.draw(c, x, c.y);
+      if (c.shown && !ghost) canvas.draw(c, x, c.y);
     }
 
     drawEvents(canvas, { time, dt, date, light });
@@ -216,6 +218,11 @@ export function createSky(seed = 1) {
     },
     get event() {
       return event;
+    },
+    snapshot: () => ({ event, shown: clouds.map((c) => c.shown) }),
+    restore(state) {
+      event = state.event;
+      clouds.forEach((c, i) => (c.shown = state.shown[i]));
     },
   };
 }

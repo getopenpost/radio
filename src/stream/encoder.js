@@ -17,16 +17,21 @@ export const CHAR_WIDTH = TEXT_SIZE * 0.6;
 const escapePath = (p) => p.replaceAll('\\', '\\\\').replaceAll(':', '\\:').replaceAll("'", "\\'");
 
 /** Upscale and text overlays, shared with the stills tool. */
-export function pictureFilters({ nowPlayingFile, scale = 3 }) {
+export function pictureFilters({ nowPlayingFile, titles, scale = 3 }) {
   const mono = escapePath(join(assetsDir, 'fonts', 'GeistMono-Medium.ttf'));
   const SCALE = scale;
   const text = `fontcolor=0xf4f1ea:fontsize=${TEXT_SIZE * SCALE}`;
+  const place = `x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`;
+  // A chunk knows its titles in advance, so nothing re-reads a file every frame.
+  const nowPlaying = titles
+    ? titles.map((t) => `drawtext=fontfile='${mono}':textfile='${escapePath(t.file)}':${text}:${place}:enable='between(n,${t.from},${t.to - 1})'`)
+    : [`drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:${place}`];
   return [
     `scale=${WIDTH * SCALE}:${HEIGHT * SCALE}:flags=neighbor`,
     // Brand chip (top left): the address right of the pixel logo, centred on the chip.
     `drawtext=fontfile='${mono}':text='${BRAND_TEXT}':${text}:x=${BRAND.textX * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
     // Now-playing pill: text after the note icon; the pill width comes from the scene.
-    `drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
+    ...nowPlaying,
   ].join(',');
 }
 
@@ -79,6 +84,22 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
     // 160 kbps is Twitch's ceiling for audio.
     '-c:a', 'aac', '-aac_pns', '0', '-aac_is', '0', '-b:a', audioBitrate, '-ar', '48000',
     ...outputArgs(outputs),
+  ];
+}
+
+/** One chunk of a programme: picture from a pipe, sound already encoded, one thread, so one worker fills one core. */
+export function chunkArgs({ fps, scale, preset, videoBitrate, titles, audio, offset, output }) {
+  const gop = fps * 2;
+  return [
+    '-hide_banner', '-loglevel', 'error', '-nostats', '-filter_complex_threads', '1',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-thread_queue_size', '8', '-i', 'pipe:0',
+    '-f', 'aac', '-i', audio,
+    '-filter_complex', `[0:v]${pictureFilters({ titles, scale })},format=yuv420p[v]`, '-map', '[v]', '-map', '1:a',
+    '-c:v', 'libx264', '-threads', '1', '-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high',
+    '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', `${parseInt(videoBitrate) * 2}k`,
+    '-g', String(gop), '-keyint_min', String(gop), '-sc_threshold', '0',
+    '-c:a', 'copy', '-output_ts_offset', String(offset), '-muxdelay', '0', '-muxpreload', '0',
+    '-f', 'mpegts', '-mpegts_flags', '+initial_discontinuity', '-y', output,
   ];
 }
 

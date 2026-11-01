@@ -23,6 +23,7 @@ import { createScene, HEIGHT, WIDTH } from './scene/index.js';
 import { bayer } from './scene/dither.js';
 import { revealCoverage } from './scene/motion.js';
 import { createSource } from './source.js';
+import { createPlan } from './plan.js';
 import { createTour, TOUR_SECONDS } from './tour.js';
 import { createSpectrum } from './spectrum.js';
 
@@ -41,6 +42,7 @@ const { values } = parseArgs({
     'day-minutes': { type: 'string', default: process.env.RGO_MUSIC_DAY_MINUTES ?? '40' },
     ahead: { type: 'string', default: process.env.RGO_MUSIC_AHEAD ?? '10' },
     'loop-ready': { type: 'boolean', default: false },
+    plan: { type: 'string' },
     duration: { type: 'string' },
     tour: { type: 'boolean', default: false },
     clock: { type: 'string' },
@@ -48,7 +50,8 @@ const { values } = parseArgs({
     timezone: { type: 'string', default: process.env.RGO_MUSIC_TIMEZONE ?? 'Europe/Lisbon' },
   },
 });
-if (!values.output.length) {
+const planDir = values.plan;
+if (!values.output.length && !planDir) {
   console.error('set RGO_MUSIC_OUTPUTS or pass --output <file or rtmp url>');
   process.exit(2);
 }
@@ -82,8 +85,10 @@ async function load(track, start) {
   return { track, deck, start, frames: Math.round(track.seconds * SR) };
 }
 
+let nowPlayingText = '';
 async function writeNowPlaying(track) {
   const text = `${track.title} · ${track.styleLabel}`.slice(0, 48);
+  nowPlayingText = text;
   await writeFile(`${nowPlayingFile}.tmp`, text);
   await rename(`${nowPlayingFile}.tmp`, nowPlayingFile);
   return text;
@@ -126,7 +131,9 @@ await writeNowPlaying(current.track).then((text) => {
 console.log(`playing ${current.track.id} "${current.track.title}"`);
 
 const encoderOptions = { outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate, codec: values.encoder };
-let encoder = startEncoder(encoderOptions);
+// Planning decides the whole programme in one quick pass; workers draw it afterwards.
+const plan = planDir ? createPlan(planDir, { fps, clockStart: new Date(values.clock).getTime(), clockSpeed: Number(values['clock-speed']), timeZone: values.timezone, dayMinutes }) : null;
+let encoder = plan ? null : startEncoder(encoderOptions);
 const mix = new Float32Array(spf * 2);
 const gainA = new Float32Array(spf);
 const gainB = new Float32Array(spf);
@@ -205,14 +212,21 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     }
     lastFrame.set(rgb);
   } else {
-    rgb = scene.render({
-      time: t / SR,
-      dt: spf / SR,
-      date: sceneDate(t / SR),
-      beat: Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60)),
-      bands: spectrum.update(mix),
-      pillWidth,
-    });
+    const beat = Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60));
+    const bands = spectrum.update(mix);
+    if (plan) {
+      await plan.record({ bands, beat, pillWidth, text: nowPlayingText, mix, scene: scene.snapshot });
+      const first = scene.render({ time: t / SR, dt: spf / SR, date: sceneDate(t / SR), beat, bands, pillWidth, ghost: frame > 0 });
+      if (frame === 0) await writeFile(join(planDir, 'first.rgb'), first);
+      if (next && t + spf >= current.start + current.frames) {
+        current.deck.close();
+        current = next;
+        next = null;
+      }
+      if (frame % (fps * 600) === 0) console.log(`planned ${(t / SR / 60).toFixed(0)} minutes`);
+      continue;
+    }
+    rgb = scene.render({ time: t / SR, dt: spf / SR, date: sceneDate(t / SR), beat, bands, pillWidth });
   }
   if (firstPicture) {
     if (frame === 0) firstPicture.set(rgb);
@@ -248,6 +262,11 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
 }
 current.deck.close();
 next?.deck.close();
+if (plan) {
+  await plan.finish();
+  console.log(`planned ${(stopAfter / SR).toFixed(0)}s in ${((performance.now() - started) / 1000).toFixed(1)}s`);
+  process.exit(0);
+}
 const encoderCode = await encoder.close();
 if (encoderCode !== 0) throw new Error(`ffmpeg exited ${encoderCode}`);
 console.log(`wrote ${(stopAfter / SR).toFixed(0)}s to ${values.output.join(', ')} in ${((performance.now() - started) / 1000).toFixed(1)}s`);

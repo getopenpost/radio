@@ -111,5 +111,12 @@ export function createWeather(seed = 3) {
     }
   }
 
-  return { draw };
+  return {
+    draw,
+    snapshot: () => ({ pools, splashes }),
+    restore(state) {
+      for (const [kind, list] of Object.entries(state.pools)) pools[kind] = list;
+      splashes.splice(0, splashes.length, ...state.splashes);
+    },
+  };
 }

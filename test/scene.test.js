@@ -101,6 +101,36 @@ test('the scene renders through a year of countries, weather and travel', () => 
   }
 });
 
+test('a worker restored from a snapshot draws the same pixels as an unbroken run', () => {
+  const at = findPlace('meadow', 5e8).a;
+  const date = (f) => new Date(Date.parse('2026-06-21T12:00:00Z') + (f / 60) * 1000);
+  const frame = (scene, f, ghost) => scene.render({ time: f / 60, dt: 1 / 60, date: date(f), beat: f / 30, bands, pillWidth: 120, ghost, steer: { at, weather: clear } });
+  const unbroken = createScene({ seed: 7 });
+  const ghost = createScene({ seed: 7 });
+  for (let f = 0; f < 200; f++) {
+    frame(unbroken, f, false);
+    frame(ghost, f, true);
+  }
+  const worker = createScene({ seed: 7 });
+  worker.restore(JSON.parse(JSON.stringify(ghost.snapshot())));
+  for (let f = 200; f < 260; f++) {
+    const a = Buffer.from(frame(unbroken, f, false));
+    assert.ok(a.equals(frame(worker, f, false)), `frame ${f} differs`);
+  }
+});
+
+test('skipping hidden water changes no pixel, wherever the fox is', () => {
+  const date = new Date('2026-06-21T12:00:00Z');
+  const step = (scene, at) => Buffer.from(scene.render({ time: 3, dt: 0, date, beat: 0, bands, pillWidth: 0, steer: { at, weather: clear } }));
+  const places = ['meadow', 'forest', 'alpine', 'valley', 'lake', 'row', 'sail', 'coast'];
+  for (const [i, place] of places.entries()) {
+    const at = findPlace(place, 5e8 + i * LEG * 9).a;
+    for (const off of [-2500, -700, 0, 900, 2600]) {
+      assert.ok(step(createScene({ seed: 7 }), at + off).equals(step(createScene({ seed: 7, alwaysWater: true }), at + off)), `${place} ${off}`);
+    }
+  }
+});
+
 test('no land hangs in the air at the joins between plates', () => {
   const land = createLandscape();
   const canvas = createCanvas();
