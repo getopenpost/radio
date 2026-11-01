@@ -1,7 +1,6 @@
 // Everything the scene derives from the wall clock: daylight, the sun's and
-// moon's arcs, the moon's phase, the season, the weather, and which activity
-// the fox is doing. All of it is a pure function of time, so the stream
-// looks right after a restart and two renderers agree.
+// moon's arcs, the moon's phase and the weather. All of it is a pure function
+// of time, so the stream looks right after a restart and two renderers agree.
 import { createRng, hashString } from '../../compose/rng.js';
 
 const DAY_MS = 86400000;
@@ -103,60 +102,4 @@ export function weather(date, season, dayMinutes = 0) {
 /** Intensity of one kind of weather right now, blended across block changes. */
 export function weatherAmount(w, kind) {
   return (w.previous === kind ? 1 - w.mix : 0) + (w.current === kind ? w.mix : 0);
-}
-
-// Activities. Time is cut into slots; each slot is a walk, or the fox stops
-// for something. Nights favour the campfire and stargazing.
-const SLOT = 15 * 60000;
-const ACTIVITIES = {
-  day: [[5, 'walk'], [2, 'fish'], [2, 'work'], [2, 'read'], [2, 'fly'], [2, 'gym'], [1, 'river'], [1, 'home']],
-  night: [[5, 'walk'], [2, 'campfire'], [2, 'work'], [1, 'stargaze'], [1, 'fish'], [1, 'fly'], [1, 'river'], [2, 'home']],
-};
-
-const programmes = new Map();
-
-/** A restart-stable day: 1–4 stops, with half its time reserved for walking. */
-export function dayProgramme(cycle, dayMinutes = 40) {
-  const key = `${cycle}:${dayMinutes}`;
-  if (programmes.has(key)) return programmes.get(key);
-  const rng = createRng(hashString(`programme:${key}`));
-  const count = rng.weighted([[1, 1], [5, 2], [9, 3], [9, 4]]);
-  const length = dayMinutes * 60000;
-  const parts = [];
-  let last = null;
-  for (let i = 0; i < count; i++) {
-    const start = cycle * length + i * length / count;
-    const middle = start + length / count / 2;
-    const end = start + length / count;
-    parts.push({ kind: 'walk', start, end: middle });
-    const day = (i + 0.75) / count < 0.5;
-    const choices = day
-      ? [[20, 'read'], [10, 'gym'], [2, 'work'], [2, 'fly'], [3, 'river'], [0.5, 'fish']]
-      : [[10, 'work'], [10, 'fly'], [5, 'campfire'], [2, 'home'], [0.5, 'stargaze'], [0.25, 'fish']];
-    const kind = rng.weighted(choices.filter(([, k]) => k !== last));
-    parts.push({ kind, start: middle, end });
-    last = kind;
-  }
-  if (programmes.size > 4) programmes.clear();
-  programmes.set(key, parts);
-  return parts;
-}
-
-export function activity(date, light, dayMinutes = 0) {
-  if (dayMinutes) {
-    const now = date.getTime();
-    const parts = dayProgramme(Math.floor(now / (dayMinutes * 60000)), dayMinutes);
-    const part = parts.find((p) => now < p.end) ?? parts.at(-1);
-    return { ...part, elapsed: now - part.start, length: part.end - part.start };
-  }
-  const slot = Math.floor(date.getTime() / SLOT);
-  const pickFor = (s, l) => {
-    const rng = createRng(hashString(`activity:${s}`));
-    return rng.weighted(ACTIVITIES[l > 0.4 ? 'day' : 'night']);
-  };
-  let kind = pickFor(slot, light);
-  // Never two stops in a row: the fox walks between activities.
-  if (kind !== 'walk' && pickFor(slot - 1, light) !== 'walk') kind = 'walk';
-  const start = slot * SLOT;
-  return { kind, start, end: start + SLOT, elapsed: date.getTime() - start, length: SLOT };
 }

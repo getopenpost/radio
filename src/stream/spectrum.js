@@ -1,4 +1,4 @@
-// Log-spaced spectrum bands for the visualizer, from the exact audio that
+// Log-spaced spectrum bands for the roadside grass, from the exact audio that
 // goes out on the stream.
 import { fft, hann } from '../audio/fft.js';
 

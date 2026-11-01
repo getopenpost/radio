@@ -1,194 +1,291 @@
-// The scene's colours. Everything is drawn as palette slots; each frame the
-// slots are recoloured for the time of day, the season and the weather. So
-// dawn, dusk, fog and a full moon cost nothing per pixel.
+// The scene's colours. Everything is drawn as palette slots: a material (grass,
+// pine, roof tile, fox fur) in a ramp of tones, at a depth. Each frame one light
+// model recolours every slot for the sun, the moon, the weather and the haze, so
+// dawn, dusk, night and fog cost nothing per pixel, and a pixel painted once
+// stays correct under any sky.
 //
-// The picture follows the real sun: OpenPost's light scheme by day (warm
-// paper and ink), its dark Dither scheme by night (warm charcoal), blended
-// through dawn and dusk, with the orange-brown signal at hue 45 throughout.
-// Both keep the same depth order (sky lightest, foreground darkest) so the
-// landscape never washes into one grey while the light changes.
+// Depth order is the rule that keeps the picture readable: distant land sinks
+// towards the colour of the horizon, near land keeps its own colour, and at
+// night the same order survives as blue-green tones with small warm windows.
 
-const NAMES = [
-  'sky0', 'sky1', 'sky2', 'sunGlow', 'sun', 'moon', 'moonDark', 'star', 'cloud', 'cloudShade',
-  'far0', 'far1', 'peak', 'glacier', 'sea0', 'sea1',
-  'hill0', 'hill1', 'pine0', 'pine1', 'leaf0', 'leaf1', 'blossom', 'snowcap', 'trunk', 'roof', 'wall', 'window', 'windowOff',
-  'ground0', 'ground1', 'path', 'pathEdge', 'flower',
-  'water0', 'water1', 'waterHi',
-  'grass', 'grassTip',
-  'fur', 'furDark', 'cream', 'outline', 'blush', 'bag', 'bunny', 'bunnyDark', 'bear', 'bearDark', 'ink', 'paper', 'screen', 'cat', 'logo',
-  'fire0', 'fire1', 'fire2', 'glow0', 'glow1', 'smoke', 'lampLight',
-  'rain', 'snow', 'leafFall', 'light', 'banner', 'pill', 'hat', 'straw',
-  'knit', 'knitDark', 'raincoat', 'raincoatDark', 'wallShade', 'roofShade', 'door', 'metal', 'metalDark', 'brass', 'interior', 'interiorShade', 'floor', 'roofSnow',
-  'page', 'pageFade',
-  'uiBack', 'uiPaper', 'uiChrome', 'uiBorder', 'uiInk', 'uiMuted', 'uiAccent', 'uiCode', 'uiRail', 'uiToken', 'uiTeal', 'uiGold', 'uiSelected', 'uiImage', 'uiImageDark',
-];
+/** sRGB bytes from '#rrggbb'. */
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+import { createRequire } from 'node:module';
+import { PLATE_PALETTES } from './plates.js';
+
+const art = createRequire(import.meta.url)('./sprites.json');
+
+// Light to dark. Muted on purpose: the look is a dry autumn afternoon, and even
+// the strongest orange should sit inside the landscape rather than glow.
+const WORLD = {
+  grass: ['#b2a56a', '#99905a', '#7e7c4b', '#646640'],
+  dry: ['#c6ae6d', '#a9965a', '#8c834e', '#6f6a43'],
+  spring: ['#adaa6c', '#92965d', '#78824f', '#5f6c43'],
+  pine: ['#646a4a', '#4f573d', '#3c4531', '#2c3327'],
+  leaf: ['#8f9057', '#747648', '#5a5f3b', '#454a30'],
+  amber: ['#e6a64c', '#d6812f', '#b85c24', '#8a421d'],
+  rust: ['#d0703a', '#b24f29', '#8d3b22', '#672c1e'],
+  gold: ['#e3c462', '#cca245', '#a67e33', '#7a5d2a'],
+  blossom: ['#f3e2df', '#e9c6c8', '#d3a3ad', '#ab8390'],
+  bark: ['#7d644c', '#5c4939', '#40332a'],
+  rock: ['#b6b0a1', '#979184', '#767167', '#57544d'],
+  snow: ['#fbfaf4', '#e9eaea', '#cdd4db', '#a9b4c2'],
+  soil: ['#a48e6a', '#826e52', '#5e4e3c'],
+};
+// Depth 0 is the near meadow, 1 the hills, 2 the forested ridges.
+const DEPTHS = [Object.keys(WORLD), Object.keys(WORLD), Object.keys(WORLD)];
+const HAZE = [0.03, 0.36, 0.56];
+
+const ACTOR_NIGHT = 0.5; // how much of an actor's colour survives the dark
+
+const NAMES = [];
+const add = (name) => NAMES.push(name) - 1;
+const SKY = ['sky0', 'sky1', 'sky2', 'sky3', 'sky4', 'sunGlow', 'sun', 'moon', 'moonDark', 'star', 'cloud', 'cloudLit', 'cloudShade', 'smoke', 'rain', 'flake', 'firefly', 'spark'];
+const FLAT = ['far0', 'far1', 'far2', 'ridge0', 'ridge1', 'ridge2', 'peak0', 'peak1', 'peak2', 'peakSnow0', 'peakSnow1', 'peakSnow2', 'peakSnow3', 'peakDark0', 'peakDark1'];
+const WATER = ['water0', 'water1', 'water2', 'water3', 'waterHi', 'waterDeep', 'puddle', 'foam'];
+const LAMPS = ['windowA', 'windowB', 'windowC', 'lamp', 'glass', 'pill', 'logo', 'white', 'ink', 'steel0', 'steel1', 'wood'];
+for (const n of [...SKY, ...FLAT, ...WATER, ...LAMPS]) add(n);
+
+/** Named slots: S.sky0, S.fur1 and so on. */
 export const S = Object.fromEntries(NAMES.map((n, i) => [n, i]));
-export const SLOTS = NAMES.length;
-export const CLEAR = 255;
 
-/** sRGB bytes from '#rrggbb' or 'oklch(L C H)' (OpenPost defines its signal colours in OKLCH). */
-function rgb(value) {
-  if (value.startsWith('#')) return [1, 3, 5].map((i) => parseInt(value.slice(i, i + 2), 16));
-  const [L, C, H] = value.match(/[\d.]+/g).map(Number);
-  const a = C * Math.cos((H * Math.PI) / 180);
-  const b = C * Math.sin((H * Math.PI) / 180);
-  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  const linear = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
-  return linear.map((v) => {
-    const c = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.max(0, v) ** (1 / 2.4) - 0.055;
-    return Math.max(0, Math.min(255, Math.round(c * 255)));
-  });
+const entries = new Map(); // slot -> { color, kind, haze }
+const RAMPS = {};
+for (const [depth, materials] of DEPTHS.entries()) {
+  RAMPS[depth] = {};
+  for (const material of materials) {
+    RAMPS[depth][material] = WORLD[material].map((hex, i) => {
+      const slot = add(`${material}${i}@${depth}`);
+      entries.set(slot, { color: rgb(hex), kind: 'world', haze: HAZE[depth] });
+      return slot;
+    });
+  }
 }
-const table = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, rgb(v)]));
-
-// Emissive screen colours. The landscape follows the sun; a lit display
-// keeps its contrast instead of inheriting rain, moonlight or golden hour.
-const SCREEN = table({
-  uiBack: '#26312f', uiPaper: '#f1f1ec', uiChrome: '#e1e4dd', uiBorder: '#87948e',
-  uiInk: '#303b38', uiMuted: '#74827d', uiAccent: '#c16a36', uiCode: '#222b2b',
-  uiRail: '#192221', uiToken: '#d1d9cd', uiTeal: '#8abeb3', uiGold: '#d6b982',
-  uiSelected: '#d8e5df', uiImage: '#bcd1c3', uiImageDark: '#647e74',
-});
-
-const DAY = table({
-  sky0: '#e8e2d6', sky1: '#f1ede4', sky2: '#f6f1e6', sunGlow: '#f7ead4', sun: '#f2b36b', moon: '#f1ede4', moonDark: '#e3ddd1', star: '#f6f1e6',
-  cloud: '#fbf9f4', cloudShade: '#ddd6ca',
-  far0: '#d7cfc2', far1: '#c9c0b2', peak: '#d7cfc2', glacier: '#f6f3ed', sea0: '#c5cbc8', sea1: '#aab3b1',
-  hill0: '#b8af9f', hill1: '#a39a8b', pine0: '#6e715a', pine1: '#565a46', leaf0: '#7d855f', leaf1: '#636b4a', blossom: '#7d855f', snowcap: '#6e715a',
-  trunk: '#5a4b3f', roof: '#7c3a07', wall: '#e9e4da', window: '#7a7266', windowOff: '#7a7266',
-  ground0: '#d3cab9', ground1: '#bcb2a1', path: '#e6dfd2', pathEdge: '#9b9081', flower: '#bcb2a1',
-  water0: '#c3c9c6', water1: '#a7b0ae', waterHi: '#fbf9f4',
-  grass: '#2b2623', grassTip: '#5c544b',
-  fur: 'oklch(0.6 0.14 45)', furDark: 'oklch(0.46 0.12 45)', cream: '#f7ecdc', outline: 'oklch(0.3 0.07 45)', blush: 'oklch(0.68 0.12 30)', bag: 'oklch(0.36 0.06 55)',
-  bunny: '#dcd5ca', bunnyDark: '#a59b8d', bear: '#6b5242', bearDark: '#4a372b', ink: '#302b28', paper: '#fbf9f4', screen: '#fff4e0', cat: '#3a3330', logo: 'oklch(0.76 0.14 45)',
-  fire0: '#e0702a', fire1: '#f2a548', fire2: '#fbe3a0', glow0: '#d3cab9', glow1: '#d3cab9', smoke: '#b5ac9e', lampLight: '#efe9de',
-  rain: '#a19788', snow: '#ffffff', leafFall: '#b45309', light: '#ffffff', banner: '#fbf9f4', pill: '#1c1917',
-  hat: '#4a433d', straw: '#c9a25a',
-  page: '#fbf7ec', pageFade: '#bcae98',
-  knit: 'oklch(0.52 0.07 200)', knitDark: 'oklch(0.42 0.06 200)', raincoat: 'oklch(0.84 0.14 92)', raincoatDark: 'oklch(0.7 0.13 85)',
-  wallShade: '#d6cfc3', roofShade: 'oklch(0.36 0.09 40)', door: '#6b5242', metal: '#8f8a84', metalDark: '#5f5a55', brass: 'oklch(0.7 0.1 80)',
-  interior: '#e2d9ca', interiorShade: '#cfc4b3', floor: '#a88f74', roofSnow: '#7c3a07',
-});
-
-const NIGHT = table({
-  sky0: '#26211e', sky1: '#2d2723', sky2: '#3b332d', sunGlow: '#3b332d', sun: '#3b332d', moon: '#ece7df', moonDark: '#3a332e', star: '#fff6e5',
-  cloud: '#3a332e', cloudShade: '#302a26',
-  far0: '#352e29', far1: '#2d2723', peak: '#352e29', glacier: '#4f4842', sea0: '#2c3030', sea1: '#232726',
-  hill0: '#2a2420', hill1: '#231e1b', pine0: '#1e1d18', pine1: '#181713', leaf0: '#221e18', leaf1: '#1b1814', blossom: '#221e18', snowcap: '#1e1d18',
-  trunk: '#16120f', roof: '#2c1c13', wall: '#2c2622', window: '#fdb36b', windowOff: '#2c2622',
-  ground0: '#231e1a', ground1: '#1c1815', path: '#302924', pathEdge: '#17130f', flower: '#1c1815',
-  water0: '#262b2b', water1: '#1c2020', waterHi: '#7c7b71',
-  grass: '#110e0c', grassTip: '#2f2823',
-  fur: 'oklch(0.56 0.11 45)', furDark: 'oklch(0.42 0.09 45)', cream: '#a79a89', outline: 'oklch(0.2 0.04 45)', blush: 'oklch(0.5 0.09 30)', bag: 'oklch(0.26 0.04 55)',
-  bunny: '#7a7268', bunnyDark: '#4f4841', bear: '#3e3029', bearDark: '#2a201b', ink: '#0a0807', paper: '#9a9086', screen: '#ffe8c4', cat: '#5a524b', logo: 'oklch(0.76 0.14 45)',
-  fire0: '#fd7d3a', fire1: '#ffb35c', fire2: '#fff0c4', glow0: '#3a2618', glow1: '#6a3f22', smoke: '#3a332e', lampLight: '#ffd9a0',
-  rain: '#4a433d', snow: '#d8d1c7', leafFall: '#4a2f1f', light: '#fff6e5', banner: '#c9c1b6', pill: '#0c0a09',
-  hat: '#4a443f', straw: '#8a6f40',
-  page: '#8f7a5f', pageFade: '#6f5c47',
-  knit: 'oklch(0.38 0.05 200)', knitDark: 'oklch(0.3 0.04 200)', raincoat: 'oklch(0.62 0.1 90)', raincoatDark: 'oklch(0.5 0.09 85)',
-  wallShade: '#120f0d', roofShade: '#0b0908', door: '#2a201b', metal: '#4f4a45', metalDark: '#34302c', brass: 'oklch(0.5 0.07 80)',
-  interior: '#4a3a2c', interiorShade: '#3a2d22', floor: '#33261c', roofSnow: '#0e0c0a',
-});
-
-// Sunrise and sunset: the sky warms and the low sun turns orange.
-const GOLDEN = table({
-  sky0: '#e6d3bf', sky1: '#efc9a3', sky2: '#f1a96b', sunGlow: '#f4b678', sun: '#e8692a', cloud: '#f3c79c', cloudShade: '#d39a72',
-  far0: '#d6b394', far1: '#c49c7d', sea0: '#c9b6a6', sea1: '#a8968a', waterHi: '#f6c99a',
-});
-
-// Seasons recolour the vegetation and the ground. Day and night pairs.
-const SEASONS = {
-  spring: {
-    day: table({ leaf0: '#8a9567', leaf1: '#6f7a52', blossom: '#f4e6e0', flower: '#f1ece2', grassTip: '#5e6448' }),
-    night: table({ blossom: '#2a2421', flower: '#1d1916' }),
-  },
-  summer: {
-    day: table({ leaf0: '#717b4e', leaf1: '#5b643f', flower: '#d9963f', grassTip: '#4f5338' }),
-    night: table({}),
-  },
-  autumn: {
-    day: table({ leaf0: '#c4691c', leaf1: '#9c4c12', blossom: '#d99a3e', pine0: '#64624e', ground0: '#cfc1a8', flower: '#c4a582', grassTip: '#6e5a40' }),
-    night: table({ leaf0: '#332013', leaf1: '#28190f', blossom: '#332013' }),
-  },
-  winter: {
-    day: table({
-      peak: '#fdfcf9', snowcap: '#fdfcf9', pine0: '#5a5a50', pine1: '#45463e', leaf0: '#6b6157', leaf1: '#584f47', blossom: '#fdfcf9',
-      ground0: '#f3f0ea', ground1: '#e1dcd3', path: '#e7e2d9', pathEdge: '#c4bdb1', flower: '#e1dcd3',
-      hill0: '#d9d4cb', hill1: '#c6c0b6', water0: '#e4e8e6', water1: '#cdd3d1', waterHi: '#ffffff', grassTip: '#d9d4cb',
-      roofSnow: '#fdfcf9',
-    }),
-    night: table({
-      peak: '#4c4640', snowcap: '#403a35', ground0: '#3b3632', ground1: '#332e2a', path: '#37322d', hill0: '#302b27', hill1: '#292420',
-      water0: '#38332e', water1: '#2e2a26', grassTip: '#3b3632', roofSnow: '#4c4640',
-    }),
-  },
+// The painted sheets run hotter than the reference; settle them into its dry palette.
+const mute = ([r, g, b]) => {
+  const v = r * 0.3 + g * 0.56 + b * 0.14;
+  return [v + (r - v) * 0.8, v + (g - v) * 0.82 + 2, v + (b - v) * 0.8];
 };
 
-// How far each slot sits in depth, for fog and haze (0 near, 1 far).
-const DEPTH = { far0: 0.85, far1: 0.85, peak: 0.85, glacier: 0.85, sea0: 0.8, sea1: 0.8, hill0: 0.55, hill1: 0.55, pine0: 0.5, pine1: 0.5, leaf0: 0.5, leaf1: 0.5, blossom: 0.5, snowcap: 0.5, trunk: 0.45, roof: 0.45, wall: 0.45, cloud: 0.3, cloudShade: 0.3, ground0: 0.2, ground1: 0.2, path: 0.2, pathEdge: 0.2, flower: 0.2, water0: 0.2, water1: 0.2 };
-const SKY_SLOTS = new Set(['sky0', 'sky1', 'sky2', 'sunGlow', 'cloud', 'cloudShade']);
-// Light sources and the interface keep their colour whatever the weather.
-const UNLIT = new Set(['window', 'screen', 'fire0', 'fire1', 'fire2', 'lampLight', 'logo', 'pill', 'interior', 'interiorShade', 'floor']);
-
-const mixInto = (out, a, b, t) => {
-  out[0] = a[0] + (b[0] - a[0]) * t;
-  out[1] = a[1] + (b[1] - a[1]) * t;
-  out[2] = a[2] + (b[2] - a[2]) * t;
-  return out;
+// Sprite colours: world art exists at each depth so haze can settle on it; actors once.
+const SPRITE_BASE = NAMES.length;
+for (const [depth, haze] of HAZE.entries()) {
+  for (const [i, hex] of art.world.entries()) {
+    add(`art${i}@${depth}`);
+    entries.set(SPRITE_BASE + depth * art.world.length + i, { color: mute(rgb(hex)), kind: 'world', haze });
+  }
+}
+// Outlines sit in the dark brown of the fox, not black; strong colours step back into the land.
+const soften = ([r, g, b]) => {
+  const v = r * 0.3 + g * 0.56 + b * 0.14;
+  if (v < 46) return [r + 34, g + 20, b + 12];
+  return [v + (r - v) * 0.82, v + (g - v) * 0.84, v + (b - v) * 0.8];
 };
+const ACTOR_BASE = NAMES.length;
+for (const [i, hex] of art.actor.entries()) {
+  add(`actor${i}`);
+  entries.set(ACTOR_BASE + i, { color: soften(rgb(hex)), kind: 'actor', haze: 0 });
+}
+// The painted snow runs blue; the reference's light stays warm even in its shadows.
+const warmBlue = ([r, g, b]) => {
+  const over = Math.max(0, b - r) * 0.55;
+  return [r + over * 0.5, g + over * 0.2, b - over * 0.6];
+};
+// The reference's depth comes from its near colours being far stronger and darker
+// than its far ones. Saturation and contrast fall away with each family's distance.
+const grade = (saturation, contrast, gain, olive) => ([r, g, b]) => {
+  const v = r * 0.3 + g * 0.56 + b * 0.14;
+  const lifted = (x) => (v + (x - v) * saturation - 128) * contrast + 128;
+  return [lifted(r) * gain, lifted(g) * gain * olive, lifted(b) * gain];
+};
+const PLATE_LOOK = {
+  plates: { look: grade(0.86, 0.92, 1.03, 0.99), haze: 0.14 },
+  near: { look: grade(0.9, 1.03, 1, 0.97), haze: 0.02 },
+  front: { look: grade(0.88, 1.08, 0.93, 0.97), haze: 0 },
+};
+const PLATE_BASE = {};
+for (const [family, palette] of Object.entries(PLATE_PALETTES)) {
+  PLATE_BASE[family] = NAMES.length;
+  const { look, haze } = PLATE_LOOK[family];
+  for (const [i, hex] of palette.entries()) {
+    const slot = add(`${family}${i}`);
+    entries.set(slot, { color: look(warmBlue(rgb(hex))), kind: 'world', haze });
+  }
+}
+/** The slot of a plate colour. */
+export const plateSlot = (family, colour) => PLATE_BASE[family] + colour;
+
+/** The actor colour nearest to a hex colour, so drawn limbs share the painted fox's tones. */
+export function actorSlot(hex) {
+  const want = rgb(hex);
+  let best = 0;
+  let distance = Infinity;
+  for (const [i, value] of art.actor.entries()) {
+    const c = rgb(value);
+    const d = (c[0] - want[0]) ** 2 + (c[1] - want[1]) ** 2 + (c[2] - want[2]) ** 2;
+    if (d < distance) [distance, best] = [d, i];
+  }
+  return ACTOR_BASE + best;
+}
+
+/** The slot of a sprite colour. */
+export const artSlot = (family, colour, depth = 0) => (family === 'actor' ? ACTOR_BASE + colour : SPRITE_BASE + depth * art.world.length + colour);
+const PATH_TONES = ['#f4e6cc', '#ead7b6', '#d3bc98', '#a98f6d'];
+for (const [i, hex] of PATH_TONES.entries()) {
+  const slot = add(`path${i}`);
+  S[`path${i}`] = slot;
+  entries.set(slot, { color: rgb(hex), kind: 'world', haze: 0.02 });
+}
+for (let i = 0; i < 4; i++) S[`snow${i}`] = RAMPS[0].snow[i];
+export const SLOTS = NAMES.length;
+export const CLEAR = 65535;
+
+/** Slots of a material's tones at a depth, falling back to the nearest depth that has it. */
+export function ramp(material, depth = 0) {
+  for (let d = depth; d >= 0; d--) if (RAMPS[d][material]) return RAMPS[d][material];
+  throw new Error(`no material ${material}`);
+}
+
+// Flat distant tones: painted once, recoloured from the sky each frame.
+const FAR = {
+  far0: 0.78, far1: 0.7, far2: 0.62, // furthest soft ranges, as a mix towards the land tone
+  ridge0: 0.6, ridge1: 0.5, ridge2: 0.4,
+};
+const PEAK = {
+  peak0: ['#a7a7a4', 0.5], peak1: ['#8d8f92', 0.5], peak2: ['#747a84', 0.5], peakDark0: ['#646b78', 0.5], peakDark1: ['#535a68', 0.5],
+  peakSnow0: ['#fbf8f0', 0.28], peakSnow1: ['#e7e6e6', 0.32], peakSnow2: ['#ccd0d9', 0.36], peakSnow3: ['#aeb6c6', 0.4],
+};
+const LAND_FAR = rgb('#8d8c7a');
+
+const KEYS = {
+  noon: { sky: ['#e2d6c4', '#efdfc6', '#f5e3c4', '#f8e0b9', '#f9dbae'], glow: '#fbdfae', sun: '#f6b877', cloud: '#f3d6ab', lit: '#f5deb9', shade: '#eccb9c' },
+  gold: { sky: ['#e3d3bf', '#f2dcc0', '#f9deb9', '#fcd8a6', '#fccf95'], glow: '#fbd9a6', sun: '#f4a55c', cloud: '#f7cf9c', lit: '#f9d9ac', shade: '#f0c28e' },
+  night: { sky: ['#0d1626', '#111e30', '#172738', '#1e3242', '#293f4e'], glow: '#233646', sun: '#233646', cloud: '#26364a', lit: '#3a4c60', shade: '#1b2739' },
+  grey: { sky: ['#a9adaa', '#b4b7b3', '#bfc1bc', '#c8c9c3', '#cfcfc8'], glow: '#d5d4cc', sun: '#dcdbd2', cloud: '#c4c5c0', lit: '#d4d4cd', shade: '#9fa3a2' },
+};
+for (const k of Object.values(KEYS)) {
+  k.sky = k.sky.map(rgb);
+  for (const f of ['glow', 'sun', 'cloud', 'lit', 'shade']) k[f] = rgb(k[f]);
+}
+
+const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const luma = (c) => c[0] * 0.3 + c[1] * 0.56 + c[2] * 0.14;
 
 /**
  * Fill `out` (SLOTS * 3 bytes) for the current conditions.
  * @param {object} c
  * @param {number} c.light 0 night .. 1 day
  * @param {number} c.warmth 0..1, strongest at sunrise and sunset
- * @param {string} c.season
- * @param {number} c.overcast 0..1 cloud cover
+ * @param {number} c.overcast 0..1
  * @param {number} c.rain 0..1
  * @param {number} c.fog 0..1
  * @param {number} c.moonlight 0..1, a high full moon at night
+ * @param {number} [c.wet] 0..1 how much the path holds rain
+ * @param {number} [c.time] seconds, turns the water shimmer
  */
-export function computePalette(out, { light, warmth, season, overcast, rain, fog, moonlight }) {
-  const seasonDay = SEASONS[season].day;
-  const seasonNight = SEASONS[season].night;
-  const c = [0, 0, 0];
-  const fogColor = [0, 0, 0];
-  mixInto(fogColor, NIGHT.sky1, DAY.sky1, light);
-  for (let i = 0; i < SLOTS; i++) {
-    const name = NAMES[i];
-    if (SCREEN[name]) {
-      out.set(SCREEN[name], i * 3);
-      continue;
+export function computePalette(out, { light, warmth, overcast, rain, fog, moonlight, wet = 0, time = 0 }) {
+  const gold = warmth * (1 - overcast * 0.75);
+  const dayKey = (pick) => mix3(pick(KEYS.noon), pick(KEYS.gold), gold);
+  const skyKey = (pick) => {
+    // Dusk passes through the warm key on its way down to night.
+    const lit = mix3(pick(KEYS.night), dayKey(pick), light);
+    const greyed = mix3(pick(KEYS.night), pick(KEYS.grey), Math.max(light, 0.04));
+    return mix3(lit, greyed, overcast * 0.9);
+  };
+  const skies = [0, 1, 2, 3, 4].map((i) => skyKey((k) => k.sky[i]));
+  const horizon = skies[4];
+  const fogColor = mix3(skies[3], [255 * 0.82, 255 * 0.82, 255 * 0.8], 0.25 * light);
+
+  const set = (slot, c) => {
+    const i = slot * 3;
+    for (let k = 0; k < 3; k++) out[i + k] = c[k] < 0 ? 0 : c[k] > 255 ? 255 : c[k] + 0.5;
+  };
+
+  // Daylight tint and the night's blue-green cast.
+  const sunTint = mix3([1, 1, 1], [1.05, 0.95, 0.8], gold);
+  const dull = overcast * 0.42 + rain * 0.2;
+  const moon = moonlight * (1 - light);
+  function lit(c, kind) {
+    let day = [c[0] * sunTint[0], c[1] * sunTint[1], c[2] * sunTint[2]];
+    if (dull > 0) {
+      // Bad weather greys the land; the characters stay themselves.
+      const amount = kind === 'actor' ? dull * 0.25 : dull;
+      const g = luma(day);
+      day = mix3(day, [g * 0.97, g * 0.98, g * 1.0], amount);
+      const dim = 1 - amount * 0.18;
+      day = [day[0] * dim, day[1] * dim, day[2] * dim];
     }
-    const day = seasonDay[name] ?? DAY[name];
-    const night = seasonNight[name] ?? NIGHT[name];
-    mixInto(c, night, day, light);
-    const gold = GOLDEN[name];
-    if (gold && warmth > 0) mixInto(c, c, gold, warmth * 0.85 * (1 - overcast * 0.7));
-    // Overcast skies flatten and dim the colours a little.
-    const dull = overcast * 0.45 + rain * 0.25;
-    if (dull > 0 && !UNLIT.has(name)) {
-      const g = c[0] * 0.3 + c[1] * 0.55 + c[2] * 0.15;
-      mixInto(c, c, [g * 0.98, g * 0.97, g * 0.96], dull * 0.6);
-      const dim = 1 - rain * 0.12 * light - (SKY_SLOTS.has(name) ? overcast * 0.06 * light : 0);
-      c[0] *= dim;
-      c[1] *= dim;
-      c[2] *= dim;
-    }
-    const depth = DEPTH[name];
-    if (depth && fog > 0) mixInto(c, c, fogColor, fog * depth * 0.8);
-    // A bright moon lifts the night landscape.
-    if (moonlight > 0 && light < 1 && !UNLIT.has(name) && name !== 'star' && name !== 'moon') {
-      const lift = 1 + moonlight * (1 - light) * 0.45;
-      c[0] = c[0] * lift + moonlight * (1 - light) * 3;
-      c[1] = c[1] * lift + moonlight * (1 - light) * 3;
-      c[2] = c[2] * lift + moonlight * (1 - light) * 4;
-    }
-    out[i * 3] = Math.max(0, Math.min(255, Math.round(c[0])));
-    out[i * 3 + 1] = Math.max(0, Math.min(255, Math.round(c[1])));
-    out[i * 3 + 2] = Math.max(0, Math.min(255, Math.round(c[2])));
+    if (light >= 1) return day;
+    const v = luma(c);
+    const keep = kind === 'actor' ? ACTOR_NIGHT : 0.2 + moon * 0.1;
+    const cast = kind === 'actor' ? 0.42 : 0.33 + moon * 0.14;
+    const night = [c[0] * keep * 0.5 + v * cast * 0.34, c[1] * keep * 0.5 + v * cast * 0.5, c[2] * keep * 0.5 + v * cast * 0.72];
+    return mix3(night, day, light);
+  }
+
+  [S.sky0, S.sky1, S.sky2, S.sky3, S.sky4].forEach((slot, i) => set(slot, skies[i]));
+  set(S.sunGlow, mix3(skyKey((k) => k.glow), horizon, overcast * 0.8));
+  set(S.sun, skyKey((k) => k.sun));
+  set(S.moon, rgb('#f1ecdd'));
+  set(S.moonDark, mix3(skies[1], skies[0], 0.5));
+  set(S.star, rgb('#f7f1df'));
+  set(S.cloud, skyKey((k) => k.cloud));
+  set(S.cloudLit, skyKey((k) => k.lit));
+  set(S.cloudShade, skyKey((k) => k.shade));
+  set(S.smoke, mix3(skies[3], lit(rgb('#d9d6cc'), 'world'), 0.65));
+  set(S.rain, mix3(skies[1], [120, 135, 150], 0.5 + 0.2 * (1 - light)));
+  set(S.flake, mix3([206, 216, 228], [255, 254, 250], light));
+  set(S.firefly, rgb('#f4e58f'));
+  set(S.spark, rgb('#fbdb8a'));
+
+  // Distant land: tones of the sky itself, darker with each range forward.
+  const land = lit(LAND_FAR, 'world');
+  for (const [name, t] of Object.entries(FAR)) set(S[name], mix3(land, horizon, t));
+  for (const [name, [hex, haze]] of Object.entries(PEAK)) set(S[name], mix3(lit(rgb(hex), 'world'), horizon, haze));
+
+  // Water mirrors the sky, deeper towards the viewer; it shimmers by trading
+  // tones, which moves no pixel and so cannot crawl.
+  const deep = lit(rgb('#5f7f86'), 'world');
+  const a = 0.5 + 0.5 * Math.sin(time * 1.4);
+  const w0 = mix3(skies[3], deep, 0.12);
+  const w1 = mix3(skies[2], deep, 0.3);
+  const w2 = mix3(skies[1], deep, 0.5);
+  const w3 = mix3(skies[0], deep, 0.74);
+  set(S.water0, mix3(w0, w1, a * 0.45));
+  set(S.water1, mix3(w1, w2, (1 - a) * 0.45));
+  set(S.water2, mix3(w2, w3, a * 0.4));
+  set(S.water3, w3);
+  set(S.waterDeep, mix3(w3, lit(rgb('#3c5258'), 'world'), 0.6));
+  set(S.waterHi, mix3(skyKey((k) => k.lit), horizon, 0.15));
+  set(S.foam, mix3(lit(rgb('#f4f1e6'), 'world'), horizon, 0.1));
+  // The puddle slot is plain path when dry and a piece of sky when wet.
+  const path = lit(rgb(PATH_TONES[1]), 'world');
+  set(S.puddle, mix3(path, mix3(skies[2], deep, 0.3), wet));
+
+  // Windows come on one group at a time as the light goes.
+  const dark = (from, to) => Math.max(0, Math.min(1, (from - light) / (from - to)));
+  const off = lit(rgb('#4a4d4e'), 'world');
+  const warm = rgb('#ffc266');
+  set(S.windowA, mix3(off, warm, dark(0.7, 0.45)));
+  set(S.windowB, mix3(off, rgb('#ffb257'), dark(0.5, 0.3)));
+  set(S.windowC, mix3(off, rgb('#ffd38a'), dark(0.3, 0.12)));
+  set(S.lamp, mix3(lit(rgb('#d6cdb2'), 'world'), rgb('#ffdc9c'), dark(0.5, 0.25)));
+  set(S.glass, mix3(off, skies[3], 0.6));
+  set(S.pill, rgb('#171412'));
+  set(S.logo, rgb('#ff9a62'));
+  set(S.white, rgb('#ffffff'));
+
+  set(S.ink, lit(rgb('#231915'), 'actor'));
+  set(S.steel0, lit(rgb('#7d8084'), 'actor'));
+  set(S.steel1, lit(rgb('#44474c'), 'actor'));
+  set(S.wood, lit(rgb('#6e4a32'), 'actor'));
+  for (const [slot, e] of entries) {
+    let c = lit(e.color, e.kind);
+    const haze = e.haze * (e.kind === 'world' ? 1 + fog * 1.3 : 0);
+    if (haze > 0) c = mix3(c, horizon, Math.min(1, haze));
+    if (fog > 0 && e.kind === 'world') c = mix3(c, fogColor, fog * (e.haze > 0.3 ? 0.62 : e.haze > 0.1 ? 0.42 : 0.14));
+    set(slot, c);
   }
   return out;
 }

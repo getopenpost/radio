@@ -1,48 +1,104 @@
-// Still and slow water seen from the side: the bank and sky above mirrored
-// into it, broken up by ripples and fading with depth through the dither, a
-// gradient from the far edge to the near one, highlight dashes drifting with
-// the current, rings when it rains, and ice with cracks in winter.
-import { band, bayer } from './dither.js';
+// Open water, drawn as swell. Lines of waves run from the horizon to the viewer,
+// each a sum of slow sine waves in world space, so crests really travel, lift and
+// pass under the boat. Near lines are taller, further apart and quicker. Each
+// crest catches the sky; the trough behind it falls into shade through dither.
+import { bayer } from './dither.js';
+import { HEIGHT, WIDTH } from './canvas.js';
+import { HORIZON } from './landscape.js';
+import { hash } from './nature.js';
 import { S } from './palette.js';
 
-// What water mirrors: the sky, hills, trees and buildings, not bare ground.
-const MIRRORS = new Uint8Array(256);
-for (const n of ['sky0', 'sky1', 'sky2', 'sunGlow', 'sun', 'moon', 'cloud', 'cloudShade', 'far0', 'far1', 'hill0', 'hill1', 'pine0', 'pine1', 'leaf0', 'leaf1', 'blossom', 'snowcap', 'trunk', 'roof', 'wall', 'window', 'windowOff', 'glacier', 'peak']) MIRRORS[S[n]] = 1;
+const TOP = HORIZON + 1;
+const LINES = Array.from({ length: 26 }, (_, i) => {
+  const t = i / 25;
+  return {
+    y: TOP + (HEIGHT - TOP + 10) * t ** 1.7, // perspective: lines crowd towards the horizon
+    t,
+    size: 0.5 + t * 7, // wave height in pixels
+    long: 60 + t * 190, // wavelength
+    speed: 0.5 + t * 1.3,
+    seed: i * 37,
+    rate: 0.03 + t ** 1.5 * 1.05, // how fast the boat passes this line
+  };
+});
+const BANDS = [S.water0, S.water1, S.water2, S.water3, S.waterDeep];
 
-/**
- * Fill water between rows `top` (the far waterline) and `bottom`, from
- * `left(y)` to `right(y)` on each row. Call after the scenery above the
- * waterline is drawn, so there is something to reflect.
- */
-export function drawWater(canvas, { top, bottom, left, right, time, rain = 0, winter = false, current = 6 }) {
-  const h = bottom - top;
-  for (let y = top; y < bottom; y++) {
-    const d = y - top;
-    const depth = d / h;
-    const x0 = Math.max(0, Math.round(left(y)));
-    const x1 = Math.min(639, Math.round(right(y)));
-    for (let x = x0; x <= x1; x++) {
-      const th = bayer(x, y);
-      let c = band(depth, 0.15, 0.95) > th ? S.water1 : S.water0;
-      if (winter) {
-        // Ice: pale, with a few cracks.
-        c = band(depth, 0.3, 1) * 0.6 > th ? S.water1 : S.water0;
-        if (((x * 7 + y * 3) % 53 === 0 || (x * 3 - y * 5 + 400) % 61 === 0) && d > 2) c = S.pathEdge;
-      } else {
-        // A mirror of what is above, wobbling and thinning with depth.
-        const wob = Math.round(Math.sin(d * 0.9 + time * 1.6 + x * 0.04) * (0.5 + depth * 1.5));
-        const src = canvas.get(x + wob, top - 1 - d);
-        if (MIRRORS[src] && (1 - depth / 0.55) * 0.8 > th) c = src;
-        // Long thin streaks of light drifting with the current, a few per row.
-        if (d % 6 === 3 && (x + Math.floor(time * (current + (d % 4))) + d * 29) % (70 + d * 2) < 6) c = S.waterHi;
-        if (rain > 0.15) {
-          const k = Math.floor(time * 3 + (x * 13 + y * 7) % 11);
-          if ((x * 31 + y * 17 + k * 101) % 997 < rain * 4) c = S.waterHi;
+/** Height of a line at a world column. */
+function surge(line, wx, time) {
+  const a = (wx + line.seed * 9) / line.long;
+  const b = time * line.speed;
+  return Math.sin(a * 6.283 + b) * 0.6 + Math.sin(a * 2.7 * 6.283 - b * 0.7 + line.seed) * 0.28 + Math.sin(a * 0.43 * 6.283 + b * 0.4) * 0.5;
+}
+
+/** How the sea lifts and tips something floating at a screen column, near the viewer. */
+export function swellAt(ground, time, x = WIDTH / 2) {
+  const line = LINES[21];
+  const wx = x + ground * line.rate;
+  return { lift: surge(line, wx, time) * 2.2, tilt: surge(line, wx + 26, time) - surge(line, wx - 26, time) };
+}
+
+export function createWater() {
+  function draw(canvas, { ground, time, body, light, overcast, rough = 1 }) {
+    const { index } = canvas;
+    // The ground colour of the sea, darkening towards the viewer.
+    for (let y = TOP; y < HEIGHT; y++) {
+      const t = (y - TOP) / (HEIGHT - TOP);
+      const d = Math.min(3.999, t ** 0.8 * 4);
+      const k = Math.floor(d);
+      const f = d - k;
+      const out = y * WIDTH;
+      for (let x = 0; x < WIDTH; x++) index[out + x] = f > bayer(x, y) * 0.55 + hash(x, y, 901) * 0.45 ? BANDS[k + 1] : BANDS[k];
+    }
+    // Swell, back to front. A line paints over the sea behind it, so nearer waves hide further ones.
+    for (const line of LINES) {
+      const shift = ground * line.rate;
+      const height = line.size * rough;
+      const depth = Math.min(3, Math.floor(line.t * 4));
+      const body0 = BANDS[depth + 1];
+      const lit = BANDS[Math.max(0, depth - 1)];
+      const reach = Math.max(1, Math.round(height * 1.6));
+      for (let x = 0; x < WIDTH; x++) {
+        const wx = x + shift;
+        const h = surge(line, wx, time);
+        const crest = Math.round(line.y - h * height);
+        if (crest >= HEIGHT) continue;
+        // Crest light, then the wave's back falling away in dither.
+        // Light breaks up along a crest, in dashes, instead of drawing a contour line.
+        const dash = hash(Math.floor(wx / (3 + line.t * 9)), line.seed, 903);
+        if (crest >= TOP && h > 0.15 + dash * 0.75) index[crest * WIDTH + x] = h > 0.95 ? S.foam : dash < 0.45 ? S.waterHi : lit;
+        for (let k = 1; k <= reach; k++) {
+          const y = crest + k;
+          if (y < TOP || y >= HEIGHT) continue;
+          if (k / reach * 0.9 + 0.1 > bayer(Math.floor(wx), y)) index[y * WIDTH + x] = k < reach * 0.35 && h > 0 ? lit : body0;
         }
       }
-      canvas.set(x, y, c);
+    }
+    if (!body || overcast > 0.75) return;
+    // The light lies on the faces of the waves, in broken dashes that widen towards the viewer.
+    for (let y = TOP + 1; y < HEIGHT; y++) {
+      const t = (y - TOP) / (HEIGHT - TOP);
+      const half = 8 + t * 58;
+      for (let x = Math.max(0, Math.round(body.x - half)); x < Math.min(WIDTH, body.x + half); x++) {
+        const v = index[y * WIDTH + x];
+        if (v !== S.waterHi && v !== BANDS[0] && v !== BANDS[1]) continue;
+        const edge = 1 - Math.abs(x - body.x) / half;
+        if (hash((x + Math.floor(time * 3 + y * 3)) >> 1, y, Math.floor(time * 3)) < edge * 0.8) index[y * WIDTH + x] = light > 0.3 ? S.sunGlow : S.moon;
+      }
     }
   }
-  // The far waterline: a thin dark edge where the water meets the bank.
-  for (let x = Math.max(0, Math.round(left(top))); x <= Math.min(639, Math.round(right(top))); x++) canvas.set(x, top, S.water1);
+
+  /** Foam churned up behind a boat, thinning with distance and drifting in the swell. */
+  function wake(canvas, x, y, time, ground) {
+    for (let i = 0; i < 80; i++) {
+      const dx = i * 1.8;
+      const spread = 1 + dx * 0.07;
+      for (const side of [-1, 1]) {
+        const px = Math.round(x - dx);
+        const py = Math.round(y + side * spread + Math.sin(i * 0.4 + time * 2.4) * 1.1);
+        if (hash((px + Math.floor(ground)) >> 2, side, 910) < 0.7 - i / 110) canvas.set(px, py, S.foam);
+      }
+    }
+  }
+
+  return { draw, wake };
 }

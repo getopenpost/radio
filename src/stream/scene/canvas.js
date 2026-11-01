@@ -2,6 +2,7 @@
 import { bayer } from './dither.js';
 import { CLEAR } from './palette.js';
 
+// One pixel grid for everything. The output is a whole-number enlargement of it.
 export const WIDTH = 640;
 export const HEIGHT = 360;
 
@@ -9,7 +10,7 @@ export const HEIGHT = 360;
 export function sprite(rows, map) {
   const h = rows.length;
   const w = Math.max(...rows.map((r) => r.length));
-  const data = new Uint8Array(w * h).fill(CLEAR);
+  const data = new Uint16Array(w * h).fill(CLEAR);
   rows.forEach((r, y) => [...r].forEach((ch, x) => (data[y * w + x] = ch in map ? map[ch] : CLEAR)));
   return { w, h, data };
 }
@@ -18,13 +19,13 @@ export function sprite(rows, map) {
 export function maskSprite(mask, slot) {
   const h = mask.length;
   const w = mask[0]?.length ?? 0;
-  const data = new Uint8Array(w * h).fill(CLEAR);
+  const data = new Uint16Array(w * h).fill(CLEAR);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y][x]) data[y * w + x] = slot;
   return { w, h, data };
 }
 
 export function createCanvas() {
-  const index = new Uint8Array(WIDTH * HEIGHT);
+  const index = new Uint16Array(WIDTH * HEIGHT);
 
   // Coordinates are floored: a fractional index into a typed array is silently ignored.
   const set = (x, y, c) => {
@@ -91,27 +92,5 @@ export function createCanvas() {
     }
   }
 
-  /**
-   * A dithered pool of light around (cx, cy): pixels whose slot is in `over`
-   * turn into the glow slots, densest in the middle. `squash` flattens it.
-   */
-  function glow(cx, cy, r, strength, slots, over, squash = 1) {
-    if (strength <= 0.01) return;
-    const [outer, inner] = slots;
-    for (let y = Math.max(0, Math.floor(cy - r * squash)); y <= Math.min(HEIGHT - 1, Math.ceil(cy + r * squash)); y++) {
-      const dy = (y - cy) / squash;
-      for (let x = Math.max(0, Math.floor(cx - r)); x <= Math.min(WIDTH - 1, Math.ceil(cx + r)); x++) {
-        const d = Math.sqrt((x - cx) ** 2 + dy * dy) / r;
-        if (d >= 1) continue;
-        const i = y * WIDTH + x;
-        if (!over[index[i]]) continue;
-        const t = (1 - d) * (1 - d) * strength;
-        const b = bayer(x, y);
-        if (t * 2.2 > b + 0.9 && inner != null) index[i] = inner;
-        else if (t * 1.6 > b) index[i] = outer;
-      }
-    }
-  }
-
-  return { index, set, get, rect, draw, line, disc, glow };
+  return { index, set, get, rect, draw, line, disc };
 }

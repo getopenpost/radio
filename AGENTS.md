@@ -60,20 +60,37 @@ Project-specific rules. The shared global instructions still apply.
 - A fatal encoder output error must close both input pipes, so FFmpeg can
   finish joining its reader threads. Propagate its actual exit code before
   marking a programme complete.
-- The scene (`src/stream/scene`) draws palette slots at 640x360; colours are
-  set per frame in `palette.js` for light, season and weather, so new art
-  should use slots rather than fixed colours. The live programme uses a
-  40-minute world day, with the real calendar supplying the season. Use
-  `--day-minutes 0` for the real sun. Both use OpenPost's light scheme by day
-  and its dark scheme by night. New art must read
-  on both, and day and night palettes must keep the same depth order (sky
-  lightest, foreground darkest) or dusk washes the landscape out. Dither as OpenPost does: two
-  neighbouring slots with a 4x4 Bayer band between solid ends, anchored to the
-  layer that moves.
-- Sky, season, weather, region and activity derive from the wall clock
-  (`clock.js`), so a restart shows the same world. Motion may keep state.
-- The normal programme reserves half each world day for walking and chooses
-  1–4 stops. Weather may replace an outdoor stop with work under shelter.
+- The scene (`src/stream/scene`) draws on one 640x360 pixel grid. The look is
+  fine dither, matching `assets/scene/reference.png`, not chunky pixels. Output
+  is a whole-number enlargement (`--scale 3` is 1080p, 2 is 720p). Never scale a
+  sprite at runtime: mixed pixel sizes read as a knockoff. A smaller object gets
+  its own art, or a larger block in the sheet table.
+- All colour goes through one light model in `palette.js`. Day and night keep
+  the same depth order, sky lightest and near land darkest.
+- The land is painted, not coded. Long plates in `assets/scene/plates` (hills),
+  `near` (meadow, trees) and `front` (bottom plants), with flat magenta for
+  anything see-through, go through `node scripts/build-plates.js` into
+  `plates.bin`, with one palette per family so depth is graded in `palette.js`
+  (`PLATE_LOOK`). One set per season, same layout. Joins bend both plates to a
+  shared skyline, then cut along the path where they differ least and drop anything
+  left stranded; never dissolve in noise, which leaves tree tops hanging in the sky.
+  Procedural trees and hills never reached the
+  reference; ask an image model for a continuation of the reference instead.
+- Characters come from grid sheets (flat magenta, white cell lines) through
+  `node scripts/build-sprites.js` into `sprites.json`. Its `SHEETS` table sets
+  each sheet's block size, which fixes the sprite's size on screen. Both scripts
+  need ffmpeg; commit their output.
+- Houses are rare but present: villages live inside plates 6 and 7 and a farm in
+  near plate 4, so one passes every few minutes rather than never or constantly.
+- The fox moves right at least 95% of the time. Never add a stop that breaks
+  this: stops are the workout (every third leg, under 40 s: pull-ups at the
+  bar, dips at the rails ahead of it, back for muscle-ups, on past the rails for
+  push-ups) and a 5-second telescope look. Travel is walking, bicycle, rowing, sailing and broom. Friends
+  pass without stopping. The only text on screen is the two top chips.
+- Country, season and events are laid out by distance in `journey.js`; sky and
+  weather come from the wall clock in `clock.js`. A season is a place, so the
+  fox walks into winter and distant layers show it first. Landscape chunks must
+  stay pure functions of position, with no per-frame or call-order randomness.
 - The live sender runs on the VPS. The NAS is storage only. Prepare H.264/AAC
   programmes on a workstation with `src/cli/program.js`; `src/stream/relay.js`
   sends them with stream copy and a bounded current-plus-ten-chunk cache.
@@ -90,38 +107,39 @@ Project-specific rules. The shared global instructions still apply.
   cold cache leaves a multi-minute ingest gap, and YouTube answers any gap by
   looping its buffered window on air.
   Publish audio before the catalog with `scripts/publish-nas-library.sh`.
-
 - The relay must shift PCR, PTS and DTS together onto one continuous transport
   clock before feeding repeated programme chunks to FFmpeg. Raw timestamp resets
   at the eight-hour wrap provoke FFmpeg's 33-bit wrap correction. Keep the
   repeated-wrap regression and verify served YouTube audio against the source;
   encoder liveness alone does not prove clean playback.
+- A timestamp discontinuity at a programme wrap gave FFmpeg different offsets for
+  audio and video, 26.5 hours apart, and the broadcast sounded broken from then on.
+  Treat any `timestamp discontinuity` line in the relay journal as an incident.
+  The relay needs real headroom: at 128 MB and 50% CPU it hit the memory limit
+  79,344 times and was throttled 811 times, and every stall is a gap in the ingest.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.
   Drain waits must remove their close handlers; racing a pending lifetime
   promise per video frame retains handlers for the entire broadcast.
-- After changing book content, font widths, or the default book panel size,
-  run `node scripts/build-book-layout.js` and commit `content/book-pages.json`.
-  The live scene loads this prepared layout instead of paginating the shelf.
-- The Converge mark appears only as the logo in the brand chip; keep its
-  geometry exact (`convergeMask`). The host character is the fox in
-  `character.js`.
-- Activities live in `src/stream/scene/acts/`, one file each, registered in
-  `acts/index.js`. They return the fox's pose and may walk it through their
-  set by asking for ground speed (indoors, the gym, the river); keep every
-  stop's set reading clearly at 640x360 and check it with the tour.
-- The fox stays horizontally centred during travel. Frame a stationary set
-  with `spec.frameAt`, a point in that set's coordinates. Camera framing uses
-  native-grid translation at 640x360; integer upscaling belongs in the encoder.
-  Do not resize the finished frame, which makes pixel widths uneven.
-- Poses that plant hands
-  on a bar or the floor leave the default arms off (`arms: false`) and draw
-  them with `chars.arm` (two-bone IK); rotate bodies with `angle`/`pivot`.
-  The head is half the fox: in near-horizontal poses keep it up with `nod`,
-  or the figure reads as a blob.
-- What the fox sees (screen, book, water, telescope) opens in a `pov.js`
-  panel in the sky above it. Queue views in `overlays`, above world weather;
-  use `motion.js` for their short dithered reveals and exits.
+- The Converge mark appears only in the brand chip. The sound meter lives in the
+  now-playing chip, under the title, and draws from the same `bands` as the audio. `logo.js` rasterises one
+  quadrant on whole pixels and mirrors it so the gaps stay open.
+- Walking is frame-by-frame sprite animation, about 75 pixels tall. Anything tied
+  to an object is built in `fox.js` from one still painted body plus limbs worked
+  out from their end points: feet on pedals, hands on an oar or bar. The body is the
+  same pixels every frame, so nothing shimmers. Never rotate a sprite or rig a whole
+  body. Image models never redraw a face the same way twice, so `HEADS` in the build
+  script pastes one master head into every walking frame, and `DRESSED` puts each
+  outfit's head on the hop, gym and rowing sheets.
+- `build-sprites.js` flattens painted fur (`flatten`): mottling lands somewhere else on
+  every frame and reads as flicker. Keying must not touch reds: the broom scarf once
+  vanished because the magenta test matched it.
+- Getting on or off anything is one short hop (`hop` in `index.js`). A parked bicycle
+  is the ridden one drawn without its rider, so no pixel of it moves. Never draw a
+  mount frame that has its own bicycle or fox in it: that is how the doubled bike
+  and doubled fox happened.
+- The road is level on purpose. Only the backgrounds roll; a tilted road needs tilted vehicles.
+- The fox stays horizontally centred.
 - Several outputs share one encode through tee with a fifo per output; keep
   `-flags +global_header` or flv outputs lose their codec headers.
 
@@ -129,8 +147,7 @@ Project-specific rules. The shared global instructions still apply.
 
 `npm test`, then a short render (`npm run compose -- --style <s> --seed 1 --render tmp/x.wav`)
 and a stream preview (`npm run stream -- --output tmp/p.mp4 --duration 60`) for
-changes in those areas. For scene changes, look at stills across the day and
-year (`npm run scene -- --at <iso> --at <iso>`); `--clock` and
-`--clock-speed` on the stream preview start it at a chosen time, and
-`npm run stream -- --tour` renders the scripted tour in
-`src/stream/tour.js` (extend it when adding scene features).
+changes in those areas. For scene changes, look at stills across places, seasons
+and weather (`npm run scene -- --at <iso> --place lake --season winter --weather snow`);
+`npm run stream -- --tour` renders the scripted tour in `src/stream/tour.js`
+(extend it when adding scene features).

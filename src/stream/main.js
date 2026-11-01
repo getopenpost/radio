@@ -4,7 +4,7 @@
 // Usage:
 //   RGO_MUSIC_OUTPUTS="rtmp://a.rtmp.youtube.com/live2/<key> rtmp://live.twitch.tv/app/<key>" npm run stream
 //   npm run stream -- --output tmp/preview.mp4 --duration 120   (renders a file as fast as possible)
-//   npm run stream -- --output tmp/tour.mp4 --tour   (a thirteen-minute fast-forward through every scene)
+//   npm run stream -- --output tmp/tour.mp4 --tour   (a fast-forward through every kind of place and travel)
 // --output can repeat; RGO_MUSIC_OUTPUTS takes several separated by whitespace.
 // Options: --library <dir> | --library-url <url>, --fps 30, --preset veryfast,
 //          --bitrate 4500k, --scale 3 (1080p; 2 = 720p), --state <dir>,
@@ -135,7 +135,7 @@ const clockStart = values.clock ? new Date(values.clock).getTime() : null;
 const clockSpeed = Number(values['clock-speed']);
 // Live streams follow the wall clock; previews can start anywhere and run fast.
 const sceneDate = (seconds) => (clockStart == null ? new Date() : new Date(clockStart + seconds * 1000 * clockSpeed));
-// Tour mode: the script picks date and stops, and runs the scene faster between them.
+// Tour mode: the script picks the place, date and weather.
 const tour = values.tour ? createTour() : null;
 let tourTime = 0;
 let tourScene = -1;
@@ -190,7 +190,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   }
   let rgb;
   if (tour) {
-    const step = tour(t / SR, scene.state());
+    const step = tour(t / SR);
     if (step.scene !== tourScene) {
       tourScene = step.scene;
       cutFrom.set(lastFrame);
@@ -198,7 +198,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     }
     const dt = (spf / SR) * step.rate;
     tourTime += dt;
-    rgb = scene.render({ time: tourTime, dt, date: step.date, beat: (tourTime * active.track.bpm) / 60, bpm: active.track.bpm, bands: spectrum.update(mix), pillWidth, steer: step.steer });
+    rgb = scene.render({ time: tourTime, dt, date: step.date, beat: (tourTime * active.track.bpm) / 60, bands: spectrum.update(mix), pillWidth, steer: step.steer });
     // A jump in time dissolves through the Bayer pattern from the last picture.
     if (step.cut != null) {
       for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x, y) >= revealCoverage(x, WIDTH, step.cut, 24)) cutFrom.copy(rgb, o, o, o + 3);
@@ -210,10 +210,8 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
       dt: spf / SR,
       date: sceneDate(t / SR),
       beat: Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60)),
-      bpm: active.track.bpm,
       bands: spectrum.update(mix),
       pillWidth,
-      trackId: active.track.id,
     });
   }
   if (firstPicture) {

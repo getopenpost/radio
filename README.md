@@ -20,7 +20,7 @@ npm run compose -- --style melodic --seed 42 --render out.wav # render it
 npm run library -- --count 40                               # build 40 mastered tracks in parallel
 npm run stream -- --output preview.mp4 --duration 120       # preview the stream as a file
 npm run scene -- --at 2026-01-12T17:40                      # still of the scene at a time (tmp/scene)
-npm run stream -- --tour --output tour.mp4                  # 13-minute fast-forward through every scene
+npm run stream -- --tour --output tour.mp4                  # fast-forward through every place and kind of travel
 npm run audition -- --styles melodic --seeds 1,2            # score excerpts with earshot (needs uv)
 npm test
 ```
@@ -110,50 +110,15 @@ now start in phase with each note.
   until about 60% of the library has played, and late nights lean calmer.
 - **Mixer**: equal-power crossfades across the outgoing outro and the incoming
   intro (6-24 s).
-- **Scene** (`src/stream/scene`): a 640x360 landscape with a 40-minute world day: OpenPost's light scheme (warm paper and ink) by day, its dark Dither
-  scheme (warm charcoal) by night, blended through dawn and dusk. It is drawn
-  in palette slots and dithered the way OpenPost's Dither material is: two
-  neighbouring colours with a 4x4 Bayer band between solid ends. A fox with a
-  postbag walks it one step per beat, in the middle of the frame. The wall clock anchors the programme: the sun
-  rises on the right and sets on the left, the moon keeps its real phase, and
-  calendar seasons recolour and rebuild the land (snow, autumn trees, blossom,
-  fireflies), weather comes and goes (cloud, rain, fog, snow, wind), and every
-  world day the walk crosses into new country (hills, alpine, forest, village,
-  coast, highlands). Each day chooses 1–4 stops:
-  - cleaning a lake from a pier: a look under the water follows the hook
-    down to discarded boots, bottles and cans, which it reels in and puts
-    in a collection sack;
-  - working in its studio: it walks in, the front wall dissolves through the
-    dither, and it sits at the desk with headphones and laptop, then leaves
-    by the far door. Its screen shows a desktop with overlapping windows:
-    code, mail, chat, scrolling websites, and a study app with notes beside
-    a rotating dithered globe (land from Natural Earth, public domain).
-    A connected work session ties the pointer to file changes, browser
-    navigation, sending messages and taking notes. It rests during typing
-    and reading; miniature code uses varied syntax and indentation;
-  - on cold days, curling up at home in an armchair by the fire with a book
-    and cocoa, the cat asleep on the rug and the fireplace centred in view;
-  - a workout in a calisthenics park, with the park centred at native pixel
-    scale: pull-ups, dips, push-ups, freestanding handstand push-ups on
-    parallettes, and muscle-ups. Hands stay planted on bars and
-    floor, with straight arms in a full hang and muscle-up support;
-    it counts reps, picks up and tilts its bottle for a sip, and sometimes
-    a friend trains alongside;
-  - rowing across a wide river past ducks, leaving the boat at the far jetty;
-  - a campfire where friends join, reading on a bench (we read over its
-    shoulder, following a quiet reading guide and printed page turns,
-    with brief pauses for a chat), or stargazing, where a round view opens in the sky on what the
-    telescope sees (the moon at its real phase, Saturn, Jupiter, a galaxy);
-  - flying: it unfolds a letter from its bag into a paper plane and flies
-    over the hills in an aviator cap (on a broom around Halloween).
-
-  On the way, friends pass by and wave, or stop for a short chat in speech
-  bubbles about their projects; in the rain everyone has an umbrella or a
-  raincoat, and in winter a knitted beanie and scarf. Creeks cross the path
-  under little footbridges, light aircraft tow encouraging banners (some about
-  the hour, the weekday, the month or the season), the sea glitters along a
-  path under a low sun or the moon, birds and shooting stars go by, and four visualizer looks (grass, dithered bars, dot
-  matrix, ridge) change with the track. A frame takes about 2 ms to draw.
+- **Scene** (`src/stream/scene`): a 640x360 dithered landscape in parallax, built
+  from long painted plates and recoloured each frame by one light model. A fox with
+  a postbag travels right and is in motion at least 95% of the time: it walks,
+  finds a bicycle, rows lakes, sails coasts and rides a broom, stopping only for
+  a quick workout or a telescope look. Friends pass the other way without
+  stopping. The wall clock drives a 40-minute world day and the weather (cloud,
+  rain, fog, snow, wind); distance drives the country (meadow, valley, lake,
+  alpine, forest, coast) and the season, so the fox walks into the snow. The
+  only text is the two top chips.
 - **Encoder**: one ffmpeg process upscales with nearest neighbour (2x for
   720p, 3x for 1080p pixel art), draws the `openpo.st/radio` chip (top left) and now-playing text
   (Geist Mono), and encodes H.264 + AAC once for every output. Several
@@ -246,12 +211,9 @@ and preservation of AAC frames. A healthy sender status is not playback proof:
 verify a capture of YouTube's served audio against the programme after changes.
 
 The normal programme completes dawn/day/dusk/night every **40 real
-minutes**, independent of a viewer's timezone. The preparation date selects
-the season. Each world day chooses 1–4 activities, alternating stops with
-walking. The schedule reserves 50% for walking; reading, work and flying
-are the main stops. Fishing and telescope visits are rare. Rain can move
-an outdoor stop into the studio. `--day-minutes 0` retains real solar time
-for direct rendering; the scripted `--tour` uses its own dates.
+minutes**, independent of a viewer's timezone. Seasons come round about every
+five hours of travel. `--day-minutes 0` retains real solar time for direct
+rendering; the scripted `--tour` uses its own times.
 
 The original audio library remains on the NAS at
 `/volume1/media/openpost-radio-music` (moved out of the user home in October

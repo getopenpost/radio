@@ -3,13 +3,13 @@
 // amounts, so showers build and ease off instead of switching.
 import { createRng } from '../../compose/rng.js';
 import { HEIGHT, WIDTH } from './canvas.js';
-import { S } from './palette.js';
+import { ramp, S } from './palette.js';
 
-const MAX = { rain: 260, snow: 220, leaves: 12, fireflies: 24 };
+const MAX = { rain: 260, snow: 220, leaves: 14, fireflies: 24, petals: 12 };
 
 export function createWeather(seed = 3) {
   const rng = createRng(seed);
-  const spawn = (kind) => ({ x: rng.float(-40, WIDTH + 40), y: rng.float(-HEIGHT, HEIGHT), z: rng.float(0.4, 1), phase: rng.float(0, 6.28), kind, floor: rng.float(292, HEIGHT) });
+  const spawn = (kind) => ({ x: rng.float(-40, WIDTH + 40), y: rng.float(-HEIGHT, HEIGHT), z: rng.float(0.4, 1), phase: rng.float(0, 6.28), kind, floor: rng.float(300, HEIGHT) });
   const pools = Object.fromEntries(Object.entries(MAX).map(([k, n]) => [k, Array.from({ length: n }, () => spawn(k))]));
   const splashes = [];
 
@@ -17,7 +17,8 @@ export function createWeather(seed = 3) {
    * @param {object} w amounts in [0, 1]: rain, snow, leaves, fireflies; wind in [0, 1]
    * @param {number} scroll ground speed in px/s, so near particles drift with the walk
    */
-  function draw(canvas, { dt, time, rain, snow, leaves, fireflies, wind, scroll }) {
+  function draw(canvas, { dt, time, rain, snow, leaves, fireflies, wind, scroll, petals = 0 }) {
+    const leafTones = [ramp('amber', 0)[1], ramp('rust', 0)[1], ramp('gold', 0)[1]];
     const drift = -scroll * 0.4;
     // Rain: thin streaks slanted by the wind; splashes where they land.
     const rainCount = Math.round(MAX.rain * rain);
@@ -29,7 +30,7 @@ export function createWeather(seed = 3) {
         if (p.z > 0.7 && splashes.length < 60) splashes.push({ x: p.x, y: p.floor, age: 0 });
         p.y = rng.float(-40, -4);
         p.x = rng.float(-20, WIDTH + 60);
-        p.floor = rng.float(292, HEIGHT);
+        p.floor = rng.float(300, HEIGHT);
       }
       const x = Math.round(p.x);
       const y = Math.round(p.y);
@@ -60,11 +61,11 @@ export function createWeather(seed = 3) {
       if (p.x < -10) p.x += WIDTH + 20;
       const x = Math.round(p.x);
       const y = Math.round(p.y);
-      canvas.set(x, y, S.snow);
-      if (p.z > 0.85) {
-        canvas.set(x + 1, y, S.snow);
-        canvas.set(x, y + 1, S.snow);
-        canvas.set(x + 1, y + 1, S.snow);
+      canvas.set(x, y, S.flake);
+      if (p.z > 0.8) {
+        canvas.set(x + 1, y, S.flake);
+        canvas.set(x, y + 1, S.flake);
+        canvas.set(x + 1, y + 1, S.flake);
       }
     }
 
@@ -81,7 +82,7 @@ export function createWeather(seed = 3) {
       const x = Math.round(p.x);
       const y = Math.round(p.y);
       const flip = Math.sin(time * 5 + p.phase) > 0;
-      const c = i % 3 ? S.leafFall : S.leaf0;
+      const c = leafTones[i % 3];
       canvas.rect(x, y, flip ? 3 : 2, flip ? 2 : 3, c);
     }
 
@@ -92,8 +93,21 @@ export function createWeather(seed = 3) {
       p.x += (Math.sin(time * 0.5 + p.phase) * 6 + drift * 0.6) * dt;
       if (p.x < -10) p.x += WIDTH + 20;
       if (p.x > WIDTH + 10) p.x -= WIDTH + 20;
-      const y = 250 + ((p.phase * 37) % 50) + Math.sin(time * 0.7 + p.phase * 3) * 6;
-      if (Math.sin(time * 1.3 + p.phase * 5) > 0.35) canvas.set(Math.round(p.x), Math.round(y), S.light);
+      const y = 255 + ((p.phase * 37) % 50) + Math.sin(time * 0.7 + p.phase * 3) * 6;
+      if (Math.sin(time * 1.3 + p.phase * 5) > 0.35) canvas.set(Math.round(p.x), Math.round(y), S.firefly);
+    }
+
+    // Blossom drifting down the wind in spring.
+    const petalCount = Math.round(MAX.petals * petals);
+    for (let i = 0; i < petalCount; i++) {
+      const p = pools.petals[i];
+      p.x += (-22 - 40 * wind * p.z + drift) * dt;
+      p.y += (9 + Math.sin(time * 1.7 + p.phase) * 12) * dt;
+      if (p.x < -10 || p.y > p.floor || p.y < 170) {
+        p.x = WIDTH + rng.float(5, 200);
+        p.y = rng.float(170, 280);
+      }
+      canvas.set(Math.round(p.x), Math.round(p.y), ramp('blossom', 0)[0]);
     }
   }
 
