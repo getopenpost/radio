@@ -43,5 +43,7 @@ for n in $(seq 0 $(( warm - 1 ))); do
     ssh -oBatchMode=yes "$vps" "sudo -n tee $cache/$id/$file.partial >/dev/null && sudo -n mv $cache/$id/$file.partial $cache/$id/$file && printf ready | sudo -n tee $cache/$id/$file.ready >/dev/null"
 done
 
+# Fetched as root; the relay must own them to prune and refill this folder.
+ssh -oBatchMode=yes "$vps" "sudo -n chown -R openpost-radio:openpost-radio $cache/$id"
 echo "warmed $(( warm - missing ))/$warm chunks already present, fetched $missing"
 echo "now restart: ssh $vps 'sudo systemctl restart openpost-radio'"
