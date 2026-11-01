@@ -239,6 +239,12 @@ put stream keys in source, command arguments, or logs. The unit has a
 `/var/lib/openpost-radio` records output bytes, playback time and format;
 measure actual cgroup CPU and memory separately from these limits.
 
+The relay shifts the chunks' PCR, PTS and DTS onto one continuous clock,
+including at the eight-hour programme wrap. Encoded media bytes stay unchanged.
+`test/relay-timestamps.test.js` checks repeated wraps, synchronized audio/video,
+and preservation of AAC frames. A healthy sender status is not playback proof:
+verify a capture of YouTube's served audio against the programme after changes.
+
 The normal programme completes dawn/day/dusk/night every **40 real
 minutes**, independent of a viewer's timezone. The preparation date selects
 the season. Each world day chooses 1–4 activities, alternating stops with

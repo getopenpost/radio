@@ -90,6 +90,12 @@ Project-specific rules. The shared global instructions still apply.
   cold cache leaves a multi-minute ingest gap, and YouTube answers any gap by
   looping its buffered window on air.
   Publish audio before the catalog with `scripts/publish-nas-library.sh`.
+
+- The relay must shift PCR, PTS and DTS together onto one continuous transport
+  clock before feeding repeated programme chunks to FFmpeg. Raw timestamp resets
+  at the eight-hour wrap provoke FFmpeg's 33-bit wrap correction. Keep the
+  repeated-wrap regression and verify served YouTube audio against the source;
+  encoder liveness alone does not prove clean playback.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.
   Drain waits must remove their close handlers; racing a pending lifetime
