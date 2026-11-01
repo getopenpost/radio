@@ -7,32 +7,49 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 import { assetsDir } from '../paths.js';
+import { TEXT_H, TEXT_SIZE, TEXT_W } from './chip.js';
 import { BRAND, BRAND_TEXT, HEIGHT, WIDTH } from './scene/index.js';
 
 // Text is sized in scene pixels, so it lines up at any output scale.
 // Geist Mono advances 0.6 em, so 10 scene-pixel text is 6 scene pixels per character.
-const TEXT_SIZE = 10;
-export const CHAR_WIDTH = TEXT_SIZE * 0.6;
+const TEXT_COLOUR = '0xf4f1ea';
+export const FRAME = { width: TEXT_W, height: HEIGHT + TEXT_H };
 
 const escapePath = (p) => p.replaceAll('\\', '\\\\').replaceAll(':', '\\:').replaceAll("'", "\\'");
 
-/** Upscale and text overlays, shared with the stills tool. */
-export function pictureFilters({ nowPlayingFile, titles, scale = 3 }) {
+/**
+ * The picture: one raw frame carries the scene and, in rows below it, the title
+ * layer, so the two can never drift apart. The scene is enlarged; the title stays
+ * at output size and is laid over it through its own brightness as alpha.
+ */
+export function pictureGraph({ scale = 3, fps = 60 }) {
   const mono = escapePath(join(assetsDir, 'fonts', 'GeistMono-Medium.ttf'));
-  const SCALE = scale;
-  const text = `fontcolor=0xf4f1ea:fontsize=${TEXT_SIZE * SCALE}`;
-  const place = `x=w-${16 * SCALE}-tw-${8 * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`;
-  // A chunk knows its titles in advance, so nothing re-reads a file every frame.
-  const nowPlaying = titles
-    ? titles.map((t) => `drawtext=fontfile='${mono}':textfile='${escapePath(t.file)}':${text}:${place}:enable='between(n,${t.from},${t.to - 1})'`)
-    : [`drawtext=fontfile='${mono}':textfile='${escapePath(nowPlayingFile)}':reload=1:${text}:${place}`];
+  const size = TEXT_SIZE * scale;
+  const brand = `drawtext=fontfile='${mono}':text='${BRAND_TEXT}':fontcolor=${TEXT_COLOUR}:fontsize=${size}:x=${BRAND.textX * scale}:y=${(BRAND.y + BRAND.h / 2) * scale}-max_glyph_a/2-2`;
+  const right = (WIDTH - 24) * scale;
+  const top = (BRAND.y + BRAND.h / 2) * scale - TEXT_H / 2;
   return [
-    `scale=${WIDTH * SCALE}:${HEIGHT * SCALE}:flags=neighbor`,
-    // Brand chip (top left): the address right of the pixel logo, centred on the chip.
-    `drawtext=fontfile='${mono}':text='${BRAND_TEXT}':${text}:x=${BRAND.textX * SCALE}:y=${(BRAND.y + BRAND.h / 2) * SCALE}-max_glyph_a/2-2`,
-    // Now-playing pill: text after the note icon; the pill width comes from the scene.
-    ...nowPlaying,
-  ].join(',');
+    `[0:v]split[all][rows]`,
+    `[all]crop=${WIDTH}:${HEIGHT}:0:0,scale=${WIDTH * scale}:${HEIGHT * scale}:flags=neighbor,${brand}[scene]`,
+    `[rows]crop=${TEXT_W}:${TEXT_H}:0:${HEIGHT},format=gray[alpha]`,
+    `color=c=${TEXT_COLOUR}:s=${TEXT_W}x${TEXT_H}:r=${fps},format=rgba[ink]`,
+    `[ink][alpha]alphamerge[title]`,
+    `[scene][title]overlay=x=${right - TEXT_W}:y=${top}:shortest=1[picture]`,
+  ].join(';');
+}
+
+/** Pack a scene frame and its title layer into one raw frame, whose size `FRAME` gives. */
+export function createPacker() {
+  const out = Buffer.alloc(FRAME.width * FRAME.height * 3);
+  return (rgb, layer) => {
+    for (let y = 0; y < HEIGHT; y++) rgb.copy(out, y * FRAME.width * 3, y * WIDTH * 3, (y + 1) * WIDTH * 3);
+    for (let i = 0, o = HEIGHT * FRAME.width * 3; i < layer.length; i++, o += 3) {
+      out[o] = layer[i];
+      out[o + 1] = layer[i];
+      out[o + 2] = layer[i];
+    }
+    return out;
+  };
 }
 
 export const isRtmp = (url) => /^rtmps?:\/\//.test(url);
@@ -60,21 +77,21 @@ function outputArgs(outputs) {
  * @param {string[]} o.outputs RTMP URLs and/or file paths
  * @param {number} [o.scale=3] output = scene size x scale: 3 gives 1080p, 2 gives 720p (half the CPU)
  */
-export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitrate = '4500k', audioBitrate = '160k', preset = 'veryfast', threads = 1, codec = 'libx264', device = '/dev/dri/renderD128' }) {
+export function encoderArgs({ outputs, fps, scale = 3, videoBitrate = '4500k', audioBitrate = '160k', preset = 'veryfast', threads = 1, codec = 'libx264', device = '/dev/dri/renderD128' }) {
   if (!['libx264', 'h264_vaapi', 'h264_videotoolbox'].includes(codec)) throw new Error(`unsupported encoder ${codec}`);
   const hardware = codec !== 'libx264';
   const vaapi = codec === 'h264_vaapi';
-  const filters = `${pictureFilters({ nowPlayingFile, scale })},${vaapi ? 'format=nv12,hwupload' : hardware ? 'format=nv12' : 'format=yuv420p'}`;
+  const graph = `${pictureGraph({ scale, fps })};[picture]${vaapi ? 'format=nv12,hwupload' : hardware ? 'format=nv12' : 'format=yuv420p'}[v]`;
   const gop = fps * 2; // YouTube and Twitch want a keyframe every 2 seconds
   return [
     '-hide_banner', '-loglevel', process.env.RGO_MUSIC_FFMPEG_LOG ?? 'warning', '-nostats', '-progress', 'pipe:4', '-stats_period', '10',
     ...(vaapi ? ['-vaapi_device', device] : []),
     '-filter_complex_threads', '1',
-    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '4', '-i', 'pipe:0',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${FRAME.width}x${FRAME.height}`, '-framerate', String(fps), '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '4', '-i', 'pipe:0',
     // Both raw formats are known. Disable probing so the audio input never
     // waits for seconds of samples while the small video queue is full.
     '-f', 'f32le', '-ar', '48000', '-ac', '2', '-channel_layout', 'stereo', '-probesize', '32', '-analyzeduration', '1', '-thread_queue_size', '128', '-i', 'pipe:3',
-    '-filter_complex', `[0:v]${filters}[v]`, '-map', '[v]', '-map', '1:a',
+    '-filter_complex', graph, '-map', '[v]', '-map', '1:a',
     '-c:v', codec, '-threads', String(threads),
     ...(vaapi ? ['-profile:v', 'high', '-bf', '0', '-async_depth', '1', '-rc_mode', 'CBR'] : hardware ? ['-profile:v', 'high', '-bf', '0', '-realtime', '0', '-allow_sw', '0'] : ['-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high']),
     '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', String(parseInt(videoBitrate) * 2) + 'k',
@@ -88,13 +105,13 @@ export function encoderArgs({ outputs, fps, nowPlayingFile, scale = 3, videoBitr
 }
 
 /** One chunk of a programme: picture from a pipe, sound already encoded, one thread, so one worker fills one core. */
-export function chunkArgs({ fps, scale, preset, videoBitrate, titles, audio, offset, output }) {
+export function chunkArgs({ fps, scale, preset, videoBitrate, audio, offset, output }) {
   const gop = fps * 2;
   return [
     '-hide_banner', '-loglevel', 'error', '-nostats', '-filter_complex_threads', '1',
-    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-framerate', String(fps), '-thread_queue_size', '8', '-i', 'pipe:0',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${FRAME.width}x${FRAME.height}`, '-framerate', String(fps), '-thread_queue_size', '8', '-i', 'pipe:0',
     '-f', 'aac', '-i', audio,
-    '-filter_complex', `[0:v]${pictureFilters({ titles, scale })},format=yuv420p[v]`, '-map', '[v]', '-map', '1:a',
+    '-filter_complex', `${pictureGraph({ scale, fps })};[picture]format=yuv420p[v]`, '-map', '[v]', '-map', '1:a',
     '-c:v', 'libx264', '-threads', '1', '-preset', preset, '-tune', 'zerolatency', '-profile:v', 'high',
     '-b:v', videoBitrate, '-maxrate', videoBitrate, '-bufsize', `${parseInt(videoBitrate) * 2}k`,
     '-g', String(gop), '-keyint_min', String(gop), '-sc_threshold', '0',

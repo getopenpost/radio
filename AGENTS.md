@@ -92,7 +92,8 @@ Project-specific rules. The shared global instructions still apply.
   fox walks into winter and distant layers show it first. Landscape chunks must
   stay pure functions of position, with no per-frame or call-order randomness.
 - The live sender runs on the VPS. The NAS is storage only. Prepare H.264/AAC
-  programmes on a workstation with `src/cli/program.js`; `src/stream/relay.js`
+  programmes on a workstation with `src/cli/program.js`, which plans once and then
+  draws chunks in parallel from scene snapshots (`plan.js`, `chunk.js`); `src/stream/relay.js`
   sends them with stream copy and a bounded current-plus-ten-chunk cache.
   Deployment and encrypted credentials are owned by
   `~/.config/home/modules/services/openpost-radio/default.nix`. The module
@@ -124,20 +125,26 @@ Project-specific rules. The shared global instructions still apply.
 - The Converge mark appears only in the brand chip. The sound meter lives in the
   now-playing chip, under the title, and draws from the same `bands` as the audio. `logo.js` rasterises one
   quadrant on whole pixels and mirrors it so the gaps stay open.
-- Walking is frame-by-frame sprite animation, about 75 pixels tall. Anything tied
-  to an object is built in `fox.js` from one still painted body plus limbs worked
-  out from their end points: feet on pedals, hands on an oar or bar. The body is the
-  same pixels every frame, so nothing shimmers. Never rotate a sprite or rig a whole
-  body. Image models never redraw a face the same way twice, so `HEADS` in the build
-  script pastes one master head into every walking frame, and `DRESSED` puts each
-  outfit's head on the hop, gym and rowing sheets.
+- The fox is painted frame by frame, in everything: walking, pedalling, rowing,
+  sailing, the broom and the workouts. Never replace a painted cycle with computed
+  limbs or a still body: it was tried, and the fox lost all its life. Only bicycle
+  wheels and the bar are drawn in code, because they must not flicker. Image models
+  never redraw a face the same way twice, so `HEADS` in the build script pastes one
+  master head into every frame of a cycle.
+- All sheets show the fox at one size. A sheet's block size in `SHEETS` is what sets
+  it, so compare a new sheet against `walk12` beside it, by the head.
 - `build-sprites.js` flattens painted fur (`flatten`): mottling lands somewhere else on
   every frame and reads as flicker. Keying must not touch reds: the broom scarf once
   vanished because the magenta test matched it.
-- Getting on or off anything is one short hop (`hop` in `index.js`). A parked bicycle
-  is the ridden one drawn without its rider, so no pixel of it moves. Never draw a
-  mount frame that has its own bicycle or fox in it: that is how the doubled bike
-  and doubled fox happened.
+- What a vehicle looks like empty comes from the frames it is ridden in (`moored`,
+  `stillParts`), and the rails are measured once then lifted out of the dip frames
+  (`railsOf`), so climbing aboard changes no pixel of them. Getting on or off is one
+  short hop (`hop` in `index.js`). Hats change in mid-air inside a puff; the workout
+  and the boats are bare-headed. Never draw a mount frame with its own vehicle or fox
+  in it: that is how the doubled bike and doubled fox happened.
+- The now-playing chip is worked out in `chip.js` from the frame number and the list
+  of titles, so any worker can draw any frame. The title layer travels in extra rows
+  under each raw frame and is split off in ffmpeg, so it cannot drift from the picture.
 - The road is level on purpose. Only the backgrounds roll; a tilted road needs tilted vehicles.
 - The fox stays horizontally centred.
 - Several outputs share one encode through tee with a fifo per output; keep

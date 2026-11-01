@@ -6,11 +6,12 @@
 //   --season spring|summer|autumn|winter picks where in the year to look.
 //   --weather clear|cloudy|rain|snow|fog|windy forces the weather.
 import { spawnSync } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { CHAR_WIDTH, pictureFilters } from '../stream/encoder.js';
-import { createScene, HEIGHT, WIDTH } from '../stream/scene/index.js';
+import { chipAt, createChipText, pillFor } from '../stream/chip.js';
+import { createPacker, FRAME, pictureGraph } from '../stream/encoder.js';
+import { createScene } from '../stream/scene/index.js';
 import { distanceAt, findPlace, YEAR } from '../stream/scene/journey.js';
 
 const { values } = parseArgs({
@@ -25,10 +26,10 @@ const { values } = parseArgs({
   },
 });
 await mkdir(values.out, { recursive: true });
-const nowPlaying = join(values.out, 'nowplaying.txt');
 const title = 'Glass Lantern · melodic house';
-await writeFile(nowPlaying, title);
-const pillWidth = Math.round(26 + title.length * CHAR_WIDTH);
+const pillWidth = pillFor(title);
+const chipText = createChipText(3);
+const pack = createPacker();
 const fps = 30;
 for (const at of values.at) {
   const scene = createScene({ seed: 7, timeZone: values.timezone });
@@ -49,6 +50,6 @@ for (const at of values.at) {
   }
   const ms = (performance.now() - t0) / (frames + 1);
   const file = join(values.out, `${at.replaceAll(':', '-')}.png`);
-  spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${WIDTH}x${HEIGHT}`, '-i', '-', '-vf', pictureFilters({ nowPlayingFile: nowPlaying, scale: 3 }), '-frames:v', '1', file], { input: rgb });
+  spawnSync('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', `${FRAME.width}x${FRAME.height}`, '-i', '-', '-filter_complex', pictureGraph({ scale: 3, fps }), '-map', '[picture]', '-frames:v', '1', file], { input: pack(rgb, chipText.draw(chipAt([{ from: 0, text: title }], 0, fps))) });
   console.log(`${file}  ${JSON.stringify(scene.state())}  ${ms.toFixed(2)} ms/frame`);
 }

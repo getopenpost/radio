@@ -131,6 +131,19 @@ test('skipping hidden water changes no pixel, wherever the fox is', () => {
   }
 });
 
+test('the chip eases to a new width and settles on the new title', async () => {
+  const { chipAt, pillFor } = await import('../src/stream/chip.js');
+  const titles = [{ from: 0, text: 'Short' }, { from: 600, text: 'A much longer title · melodic house' }];
+  assert.equal(chipAt(titles, 599, 60).pill, pillFor('Short'));
+  assert.equal(chipAt(titles, 600, 60).pill, pillFor('Short'));
+  const widths = Array.from({ length: 80 }, (_, i) => chipAt(titles, 600 + i, 60).pill);
+  assert.ok(widths.every((w, i) => i === 0 || (w >= widths[i - 1] && w - widths[i - 1] <= 5)), 'no jump in width');
+  assert.equal(chipAt(titles, 800, 60).pill, pillFor(titles[1].text));
+  assert.equal(chipAt(titles, 800, 60).old, null);
+  const { createChipText } = await import('../src/stream/chip.js');
+  assert.ok(createChipText(3).draw({ text: 'Long Shoreline · 100% house', old: null, t: 9 }).some((v) => v > 200), 'the title has ink');
+});
+
 test('no land hangs in the air at the joins between plates', () => {
   const land = createLandscape();
   const canvas = createCanvas();
@@ -168,7 +181,7 @@ test('the gym runs bar, rails, back to the bar, then past the rails, inside its 
   const route = [];
   for (let t = 0; t < WORKOUT_SECONDS; t += 0.05) {
     const stage = workoutAt(t);
-    if (stage.name !== route.at(-1)?.name && stage.name !== 'stand') route.push(stage);
+    if (stage.name !== route.at(-1)?.name) route.push(stage);
   }
   const lifts = route.filter((s) => ['pull', 'dip', 'muscle', 'push'].includes(s.name));
   assert.deepEqual(lifts.map((s) => s.name), ['pull', 'dip', 'muscle', 'push']);

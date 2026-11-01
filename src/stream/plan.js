@@ -9,7 +9,7 @@ import { join } from 'node:path';
 
 export const CHUNK_SECONDS = 240;
 const BANDS = 64;
-export const RECORD = BANDS + 6; // bytes per frame: bands, beat, pill width
+export const RECORD = BANDS + 4; // bytes per frame: bands, beat
 const AAC_FRAME = 1024;
 const SAMPLE_RATE = 48000;
 
@@ -19,25 +19,22 @@ export function createPlan(dir, { fps, clockStart, clockSpeed, timeZone, dayMinu
   const chunkFrames = fps * CHUNK_SECONDS;
   const audio = spawn('ffmpeg', ['-v', 'error', '-f', 'f32le', '-ar', String(SAMPLE_RATE), '-ac', '2', '-channel_layout', 'stereo', '-i', 'pipe:0', '-c:a', 'aac', '-aac_pns', '0', '-aac_is', '0', '-b:a', audioBitrate, '-f', 'adts', '-y', join(dir, 'audio.aac')], { stdio: ['pipe', 'ignore', 'inherit'] });
   const records = Buffer.alloc(chunkFrames * RECORD);
-  const titles = [];
   let frames = 0;
 
   return {
     /** One frame's worth of picture facts and sound. */
-    async record({ bands, beat, pillWidth, text, mix, scene }) {
+    async record({ bands, beat, mix, scene }) {
       const chunk = Math.floor(frames / chunkFrames);
       const at = frames % chunkFrames;
       if (at === 0) writeFileSync(`${fileOf(dir, 'state', chunk)}.json`, JSON.stringify(scene()));
-      if (titles.at(-1)?.text !== text) titles.push({ from: frames, text });
       const o = at * RECORD;
       for (let i = 0; i < BANDS; i++) records[o + i] = Math.round(bands[i] * 255);
       records.writeFloatLE(beat, o + BANDS);
-      records.writeUInt16LE(pillWidth, o + BANDS + 4);
       frames++;
       if (frames % chunkFrames === 0) writeFileSync(`${fileOf(dir, 'frames', chunk)}.bin`, records);
       if (!audio.stdin.write(Buffer.from(mix.buffer, mix.byteOffset, mix.byteLength))) await once(audio.stdin, 'drain');
     },
-    async finish() {
+    async finish(titles) {
       audio.stdin.end();
       await once(audio, 'close');
       if (audio.exitCode !== 0) throw new Error(`audio encoder exited ${audio.exitCode}`);

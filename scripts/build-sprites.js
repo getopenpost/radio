@@ -12,9 +12,11 @@ const ROOT = new URL('../assets/scene/', import.meta.url).pathname;
 const SHEETS = {
   'fox/walk12': [6, 2, 4, 'actor'], 'fox/walk12-rain': [6, 2, 4, 'actor'], 'fox/walk12-snow': [6, 2, 4, 'actor'],
   'fox/idle-moves': [6, 2, 4, 'actor'], 'fox/gestures': [4, 2, 5, 'actor'],
-  'fox/boat': [3, 2, 4, 'actor'],
+  'fox/pedal': [4, 2, 4.3, 'actor'], 'fox/ride': [4, 2, 5.5, 'actor'],
+  'fox/row': [6, 2, 3, 'actor'], 'fox/sail': [4, 2, 2.95, 'actor'],
   'fox/broom': [3, 2, 4, 'actor'], 'fox/friends': [4, 2, 5, 'actor'], 'fox/props': [3, 1, 9, 'actor'],
-  'fox/ride': [4, 2, 4.8, 'actor'], 'fox/gym': [4, 2, 5, 'actor'], 'fox/hop': [4, 2, 4.45, 'actor'],
+  'fox/gym': [4, 2, 5, 'actor'], 'fox/hop': [4, 2, 4.45, 'actor'],
+  'fox/pullup': [6, 3, 2.4, 'actor'], 'fox/dip': [6, 1, 4.2, 'actor'], 'fox/pushup': [6, 1, 3.5, 'actor'],
 };
 // One clean head per outfit, in sheet pixels from the cell corner. It is matched and
 // pasted into every listed frame, so eyes and face are the same pixels throughout.
@@ -23,16 +25,16 @@ const HEADS = {
   'fox/walk12': { master: 0, box: [150, 30, 345, 205], frames: every(12) },
   'fox/walk12-rain': { master: 0, box: [150, 20, 345, 205], frames: every(12) },
   'fox/walk12-snow': { master: 0, box: [108, 15, 345, 205], frames: every(12) },
+  'fox/pedal': { master: 0, box: [185, 50, 385, 240], frames: every(8) },
+  'fox/row': { master: 0, box: [120, 60, 245, 175], frames: every(12) },
   'fox/broom': { master: 0, box: [150, 50, 440, 255], frames: [0, 1, 2, 3] },
 };
-// Sailing frames share the moored boat's hull: [cell box].
-const STEADY = { 'fox/boat': [20, 300, 420, 430] };
-// The bare-headed sheets again in the fox's other outfits: the outfit's head is pasted over each frame.
-const DRESSED = [
-  ['fox/hop', 'hop-snow', 'fox/walk12-snow', [0, 1, 2, 3, 4, 5, 6, 7]], ['fox/hop', 'hop-rain', 'fox/walk12-rain', [0, 1, 2, 3, 4, 5, 6, 7]],
-  ['fox/gym', 'gym-snow', 'fox/walk12-snow', [1, 2, 5, 7]], ['fox/gym', 'gym-rain', 'fox/walk12-rain', [1, 2, 5, 7]],
-  ['fox/ride', 'ride-snow', 'fox/walk12-snow', [3]], ['fox/ride', 'ride-rain', 'fox/walk12-rain', [3]],
-];
+// Frames that share a fixed object are shifted so that object never moves: [cell box].
+const STEADY = { 'fox/row': [10, 225, 350, 340], 'fox/sail': [20, 300, 420, 430], 'fox/pedal': [120, 280, 410, 400], 'fox/dip': [20, 575, 345, 628] };
+// Workout sheets record the row of their painted bar, so the frame can be hung on the real one.
+const BARRED = new Set(['fox/pullup', 'fox/dip']);
+// The hop again in the fox's other outfits: the outfit's head is pasted over each frame.
+const DRESSED = [['fox/hop', 'hop-snow', 'fox/walk12-snow', [0, 1, 2, 3, 4, 5, 6, 7]], ['fox/hop', 'hop-rain', 'fox/walk12-rain', [0, 1, 2, 3, 4, 5, 6, 7]]];
 
 function load(name) {
   const file = `${ROOT}${name}.png`;
@@ -184,8 +186,8 @@ function cut(name, [cols, rows, f], dress) {
   if (dress) for (const i of dress.frames) wear(grids[i], heads[dress.head]);
   if (name === 'fox/gestures' || name === 'fox/idle-moves') alignToWalk(grids);
   if (STEADY[name]) {
-    const patch = patchOf(grids[5], STEADY[name], f);
-    for (const g of grids.slice(4)) {
+    const patch = patchOf(grids[0], STEADY[name], f);
+    for (const g of grids) {
       const { dx, dy } = bestOffset(g, patch, 6);
       g.sx = -dx;
       g.sy = dy;
@@ -210,9 +212,25 @@ function cut(name, [cols, rows, f], dress) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data[y * w + x] = grid[(y + y0) * W + x + x0];
     // Anchor: offset of the sprite's left edge from the cell's centre, and of its bottom from the cell's floor.
     const out = { w, h, ox: x0 - Math.floor(W / 2) + sx, oy: H - 1 - y1 + sy, data };
+    if (BARRED.has(name)) out.bar = barRow(out);
     return out;
   }).filter(Boolean);
   return { f, sprites };
+}
+
+/** The row of a frame's painted bar above the cell floor: the row with the most unwarm pixels. */
+function barRow(s) {
+  let best = 0;
+  let row = 0;
+  for (let y = 0; y < s.h; y++) {
+    let n = 0;
+    for (let x = 0; x < s.w; x++) {
+      const c = s.data[y * s.w + x];
+      if (c >= 0 && (c >> 16) - (c & 255) < 60) n++;
+    }
+    if (n > best) [best, row] = [n, y];
+  }
+  return s.h - 1 - row + s.oy;
 }
 
 const dist = (a, b) => (a < 0 || b < 0 ? (a === b ? 0 : 3000) : Math.abs((a >> 16) - (b >> 16)) + Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) + Math.abs((a & 255) - (b & 255)));
@@ -372,6 +390,96 @@ function flatten(data, w, h, palette) {
   }
 }
 
+/** The pixels that stay put across a sheet's frames, in cell coordinates. */
+function stillParts(sprites, need, keep = () => true) {
+  const seen = new Map();
+  for (const s of sprites) {
+    for (let y = 0; y < s.h; y++) {
+      for (let x = 0; x < s.w; x++) {
+        const c = s.data[y * s.w + x];
+        if (c < 0) continue;
+        const key = (x + s.ox + 1000) * 4096 + (y - s.h + 1 - s.oy + 2000);
+        if (!seen.has(key)) seen.set(key, []);
+        seen.get(key).push(c);
+      }
+    }
+  }
+  const cells = [];
+  for (const [key, colours] of seen) {
+    let best = null;
+    let count = 0;
+    for (const c of colours) {
+      const n = colours.filter((o) => dist(c, o) < 42).length;
+      if (n > count) [best, count] = [c, n];
+    }
+    const x = Math.floor(key / 4096) - 1000;
+    const y = (key % 4096) - 2000;
+    if (count >= need && keep(best, x, y)) cells.push({ x, y, c: best });
+  }
+  return spriteFrom(cells);
+}
+
+function spriteFrom(cells) {
+  const x0 = Math.min(...cells.map((p) => p.x));
+  const x1 = Math.max(...cells.map((p) => p.x));
+  const y0 = Math.min(...cells.map((p) => p.y));
+  const y1 = Math.max(...cells.map((p) => p.y));
+  const w = x1 - x0 + 1;
+  const h = y1 - y0 + 1;
+  const data = new Int32Array(w * h).fill(-1);
+  for (const p of cells) data[(p.y - y0) * w + p.x - x0] = p.c;
+  keepLargest(data, w, h);
+  return { w, h, ox: x0, oy: -y1, data };
+}
+
+const unwarm = (c) => (c >> 16) - (c & 255) < 75;
+const orange = (c) => c >> 16 > 165 && ((c >> 8) & 255) < 130 && (c & 255) < 95;
+
+/**
+ * The rails, measured from the first frame and drawn once, then lifted out of every
+ * dip frame: painted rails wobble from frame to frame and these must not move.
+ */
+function railsOf(sprites) {
+  const first = sprites[0];
+  const at = (x, y) => first.data[y * first.w + x];
+  const rowCount = Array.from({ length: first.h }, (_, y) => {
+    let n = 0;
+    for (let x = 0; x < first.w; x++) if (at(x, y) >= 0 && unwarm(at(x, y))) n++;
+    return n;
+  });
+  const rows = rowCount.flatMap((n, y) => (n > first.w * 0.6 ? [y] : []));
+  const below = rows.at(-1) + 1;
+  const columns = [];
+  for (let x = 0; x < first.w; x++) {
+    let n = 0;
+    for (let y = below; y < first.h; y++) if (at(x, y) >= 0 && unwarm(at(x, y))) n++;
+    if (n > (first.h - below) * 0.75) columns.push(x);
+  }
+  const cells = [];
+  const middle = (list) => list.sort((p, q) => p - q)[list.length >> 1];
+  const base = first.h - 1 + first.oy; // rows from the top of the frame to the cell floor
+  for (const y of rows) {
+    const colour = middle(Array.from({ length: first.w }, (_, x) => at(x, y)).filter((c) => c >= 0 && unwarm(c)));
+    for (let x = columns[0] - 3; x <= columns.at(-1) + 3; x++) cells.push({ x: x + first.ox, y: y - base, c: colour });
+  }
+  for (const x of columns) {
+    const colour = middle(Array.from({ length: first.h - below }, (_, k) => at(x, below + k)).filter((c) => c >= 0 && unwarm(c)));
+    for (let y = below; y <= first.h - 1; y++) cells.push({ x: x + first.ox, y: y - base, c: colour });
+  }
+  const rail = new Set(cells.map((p) => `${p.x},${p.y}`));
+  const near = (x, y) => [0, -1, 1].some((dx) => [0, -1, 1].some((dy) => rail.has(`${x + dx},${y + dy}`)));
+  for (const s of sprites) {
+    const floor = s.h - 1 + s.oy;
+    for (let y = 0; y < s.h; y++) {
+      for (let x = 0; x < s.w; x++) {
+        const c = s.data[y * s.w + x];
+        if (c >= 0 && unwarm(c) && near(x + s.ox, y - floor)) s.data[y * s.w + x] = -1;
+      }
+    }
+  }
+  return spriteFrom(cells);
+}
+
 const families = { world: [], actor: [] };
 const out = { sheets: {} };
 for (const [name, spec] of Object.entries(SHEETS)) {
@@ -387,6 +495,19 @@ for (const [name, spec] of Object.entries(SHEETS)) {
   out.sheets[short] = { family, sprites };
   families[family].push(...sprites);
 }
+// What a vehicle looks like with nobody on it is taken from the frames it is ridden in,
+// so climbing aboard changes no pixel of it.
+const luma0 = (c) => (c >> 16) * 0.3 + ((c >> 8) & 255) * 0.56 + (c & 255) * 0.14;
+const ROW_RIM = -31; // the top of the hull in the rowing frames, from the cell floor
+const SAIL_RIM = -32;
+const SAIL_FROM = -3; // left of this the fox sits; right of it is rig
+const SAIL_MAST = 22;
+out.sheets.moored = { family: 'actor', sprites: [
+  stillParts(out.sheets.row.sprites, 4, (c, x, y) => y >= ROW_RIM || Math.abs(x) > 44),
+  stillParts(out.sheets.sail.sprites.slice(0, 1), 1, (c, x, y) => y >= SAIL_RIM || x >= SAIL_MAST || (y >= SAIL_RIM - 7 && x < -56) || (x >= SAIL_MAST + (SAIL_FROM - SAIL_MAST) * (y + 135) / 103 && luma0(c) > 170)),
+] };
+out.sheets.rails = { family: 'actor', sprites: [railsOf(out.sheets.dip.sprites)] };
+families.actor.push(...out.sheets.moored.sprites, ...out.sheets.rails.sprites);
 for (const [from, short, head, frames] of DRESSED) {
   const { sprites } = cut(from, SHEETS[from], { head, frames });
   out.sheets[short] = { family: 'actor', sprites };

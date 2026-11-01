@@ -3,7 +3,7 @@
 // countryside. It walks, picks up a bicycle, rows a lake, sails a coast, rides a
 // broom, and pauses only for a quick workout or a look through a telescope. The
 // wall clock drives the sun, moon and weather; distance drives country and season.
-import { BOAT, IDLE, LOOK, RAILS, SCOPE_SECONDS, STRIDE, WALK_FRAMES, WORKOUT_SECONDS, workoutAt } from './acts.js';
+import { BROOM, IDLE, LOOK, PEDAL_FRAMES, RAILS, ROW_FRAMES, SAIL_FRAMES, SCOPE_SECONDS, STRIDE, WALK_FRAMES, WORKOUT_REACH, WORKOUT_SECONDS, workoutAt } from './acts.js';
 import { createCanvas, HEIGHT, maskSprite, WIDTH } from './canvas.js';
 import { sky as skyAt, weather as weatherAt, weatherAmount } from './clock.js';
 import { bayer, clamp01 } from './dither.js';
@@ -20,15 +20,18 @@ import { createWeather } from './weather.js';
 export { HEIGHT, WIDTH };
 
 /** Where the brand chip (top left) sits, so the encoder can place its text. Both chips share its height. */
-export const BRAND = { x: 16, y: 12, w: 130, h: 26, textX: 47 };
+export const BRAND = { x: 16, y: 12, w: 124, h: 26, textX: 41 };
 export const BRAND_TEXT = 'openpo.st/radio';
 
 const FOX_X = WIDTH / 2;
 const ACCEL = 34; // px/s² when changing pace
-const LOGO = maskSprite(convergeMask(20, 2), S.logo);
+const LOGO = maskSprite(convergeMask(14, 2), S.logo);
 const NOTE = maskSprite(['..xx', '..x.', '..x.', 'xxx.', 'xx..'].map((r) => [...r].map((ch) => ch === 'x')), S.logo);
-const BAR = 90; // pull-up bar height above the road
-const RAIL = 50; // dip rail height
+const BAR = 104; // pull-up bar height above the road
+const DIP = 58; // dip rail height
+const AXLE = [-30, 37]; // wheel centres from the middle of a riding frame
+const PARKED_SHIFT = 3; // moves the parked bicycle's art onto those same wheels
+const JUMP_RAILS = 34; // how high the hop onto the rails goes
 const HEAD_ROWS = 40; // top rows of a frame that hold the head
 const NECK = 34; // rows of a walk frame above the floor that stay the frame's own
 
@@ -48,7 +51,6 @@ const FRIEND_CELL = 2300;
 const HOP = 40; // ground pixels spent hopping onto a boat
 const MOUNT = 34; // the same for a bicycle or a broom
 const BROOM_DOWN = 170; // ground pixels spent climbing off the road or coming back to it
-const BROOM_ALONE = 5;
 const METER = 13; // rows the sound meter adds to the now-playing chip
 const SCOPE_OFFSET = 56;
 
@@ -110,31 +112,33 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     }
   }
 
-  /** The gym: one bar and, a little further on, two rails, always the same pixels. */
+  /** The bar. The painted frames hang on it by their recorded bar row. */
   function drawBar(x) {
-    for (const dx of [-30, 28]) {
-      canvas.rect(x + dx - 1, PATH_Y - 2 - BAR, 4, BAR + 2, S.ink);
-      canvas.rect(x + dx, PATH_Y - 2 - BAR, 2, BAR + 2, S.steel1);
+    for (const dx of [-54, 52]) {
+      canvas.rect(x + dx - 1, PATH_Y - 4 - BAR, 5, BAR + 2, S.steel1);
+      canvas.rect(x + dx, PATH_Y - 4 - BAR, 2, BAR + 2, S.steel0);
     }
-    canvas.rect(x - 34, PATH_Y - 3 - BAR, 68, 3, S.ink);
-    canvas.rect(x - 34, PATH_Y - 2 - BAR, 68, 1, S.steel0);
+    canvas.rect(x - 60, PATH_Y - 4 - BAR, 120, 2, S.steel0);
+    canvas.rect(x - 60, PATH_Y - 2 - BAR, 120, 2, S.steel1);
   }
-  function drawRail(x, y) {
-    for (const dx of [-24, 22]) {
-      canvas.rect(x + dx - 1, y, 4, PATH_Y - y, S.ink);
-      canvas.rect(x + dx, y, 2, PATH_Y - y, S.wood);
-    }
-    canvas.rect(x - 28, y - 1, 56, 3, S.ink);
-    canvas.rect(x - 28, y, 56, 1, S.steel0);
+  /** Where a frame from the dip sheet sits, so its rails stand on the road. */
+  const railY = () => PATH_Y + sprite('rails', 0).oy;
+
+  function parkedBike(x) {
+    fox.wheel(x + AXLE[0], PATH_Y - WHEEL, 0.4);
+    fox.wheel(x + AXLE[1], PATH_Y - WHEEL, 1.1);
+    frame(canvas, 'ride', 0, x + PARKED_SHIFT, PATH_Y - WHEEL + 3 + sprite('ride', 0).oy);
   }
 
   /** A hop on or off something: one short jump, the same for every vehicle. */
   function hop(p, fromY, toY, outfit, dismount = false) {
     const frames = dismount ? [3, 4, 5, 6, 7] : [1, 2, 3, 4, 5, 6];
     const i = frames[Math.min(frames.length - 1, Math.floor(p * frames.length))];
-    const sheet = `hop${outfit}`;
+    // The hat comes off in mid-air, in a puff, wherever the next pose has none.
+    const sheet = (dismount ? p > 0.5 : p < 0.5) ? `hop${outfit}` : 'hop';
     const y = fromY + (toY - fromY) * p - Math.sin(Math.PI * p) * 16;
     frame(canvas, sheet, i, FOX_X, Math.round(y) + sprite(sheet, i).oy);
+    if (outfit && Math.abs(p - 0.5) < 0.25) fox.puff(FOX_X + 6, y - 58, (p - 0.25) / 0.5);
   }
 
   /** The body in a standing pose with its feet on the road. */
@@ -235,7 +239,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     };
     if (ghost) {
       weatherFx.draw(GHOST_CANVAS, weather);
-      if (pillWidth > 0) meter(pillWidth, bands, dt);
+      if (pillWidth > 0) meter(bands, dt);
       return null;
     }
 
@@ -260,23 +264,24 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     for (const e of eventsIn(ground - 400, ground + 400)) {
       if (e.kind === 'workout') {
         drawBar(at(e.a));
-        drawRail(at(e.a + RAILS), PATH_Y - RAIL - 4);
+        frame(canvas, 'rails', 0, at(e.a + RAILS), railY());
       } else if (e.kind === 'scope') {
         frame(canvas, 'props', 0, at(e.a) + SCOPE_OFFSET, PATH_Y + 3);
       } else if (e.kind === 'bike') {
-        if (ground < e.a + MOUNT) fox.bike(at(e.a + MOUNT), PATH_Y, 0.4);
-        if (ground >= e.b - MOUNT) fox.bike(at(e.b - MOUNT), PATH_Y, 0.4);
+        if (ground < e.a + MOUNT) parkedBike(at(e.a + MOUNT));
+        if (ground >= e.b - MOUNT) parkedBike(at(e.b - MOUNT));
       } else if (e.kind === 'row' || e.kind === 'sail') {
-        const hull = e.kind === 'row' ? BOAT.moored : BOAT.sailMoored;
+        // The empty boat is cut from the frames it is ridden in, so nothing changes as the fox sits.
+        const hull = e.kind === 'row' ? 0 : 1;
         for (const d of [e.a + HOP, e.b - HOP]) {
           if (d === e.a + HOP ? ground >= d : ground < d) continue;
-          frame(canvas, 'boat', hull, at(d), HULL_Y + seesaw(at(d)));
+          frame(canvas, 'moored', hull, at(d), HULL_Y + seesaw(at(d)));
         }
       } else if (e.kind === 'broom') {
         // It waits at knee height, on the line the fox will ride it.
-        const hover = PATH_Y - 3 + Math.round(Math.sin(time * 1.6) * 1.4) + sprite('broom', BROOM_ALONE).oy;
-        if (ground < e.a + MOUNT) frame(canvas, 'broom', BROOM_ALONE, at(e.a + MOUNT) + 4, hover);
-        if (ground >= e.b - MOUNT) frame(canvas, 'broom', BROOM_ALONE, at(e.b - MOUNT) + 4, hover);
+        const hover = PATH_Y - 3 + Math.round(Math.sin(time * 1.6) * 1.4) + sprite('broom', BROOM.alone).oy;
+        if (ground < e.a + MOUNT) frame(canvas, 'broom', BROOM.alone, at(e.a + MOUNT) + 4, hover);
+        if (ground >= e.b - MOUNT) frame(canvas, 'broom', BROOM.alone, at(e.b - MOUNT) + 4, hover);
       }
     }
 
@@ -298,7 +303,12 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     let drawn = false;
     if (hold) {
       if (hold.event.kind === 'workout') {
-        drawn = workout(workoutAt(hold.t), hold.event, outfit, at);
+        workout(workoutAt(hold.t));
+        if (outfit) {
+          fox.puff(FOX_X + 6, PATH_Y - 60, hold.t / 0.3);
+          fox.puff(FOX_X + 6, PATH_Y - 60, 1 - (hold.length - hold.t) / 0.3);
+        }
+        drawn = true;
       } else {
         // Eye to the eyepiece. The telescope itself never changes.
         stood('gestures', LOOK, FOX_X, PATH_Y);
@@ -311,7 +321,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
       if (on < 1) hop(clamp01(on), PATH_Y, PATH_Y - 34, outfit);
       else if (off < 1) hop(1 - clamp01(off), PATH_Y - 34, PATH_Y, outfit, true);
       else {
-        fox.ride(FOX_X, feet, ground / WHEEL, ground / 16);
+        const turn = ground / WHEEL;
+        fox.wheel(FOX_X + AXLE[0], feet - WHEEL, turn);
+        fox.wheel(FOX_X + AXLE[1], feet - WHEEL, turn);
+        frame(canvas, 'pedal', Math.floor(mod(ground / 52, 1) * PEDAL_FRAMES), FOX_X, feet - 8);
         fox.puff(FOX_X, PATH_Y - 44, (ground - trip.a - MOUNT) / 22);
       }
       drawn = true;
@@ -321,17 +334,11 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
       const y = HULL_Y + bob;
       if (on < 1 || off < 1) {
         // Stepping aboard or ashore; the near side of the boat passes in front of the legs.
-        if (on < 1) hop(clamp01(on), PATH_Y, y - 40, outfit);
-        else hop(1 - clamp01(off), y - 40, PATH_Y, outfit, true);
-        const d = on < 1 ? trip.a + HOP : trip.b - HOP;
-        if (kind === 'row') fox.hullFront(at(d), y);
+        if (on < 1) hop(clamp01(on), PATH_Y, y - 26, outfit);
+        else hop(1 - clamp01(off), y - 26, PATH_Y, outfit, true);
       } else {
-        const tilt = Math.round(swellAt(ground, time).tilt * 1.2);
-        if (kind === 'row') {
-          fox.row(FOX_X, y, ground / 12, (bx, by) => splash(bx, Math.max(by, WATERLINE - 4), time), outfit);
-        } else {
-          frame(canvas, 'boat', BOAT.sailing, FOX_X, y, { tilt });
-        }
+        if (kind === 'row') frame(canvas, 'row', Math.floor(mod(ground / 90, 1) * ROW_FRAMES), FOX_X, y);
+        else frame(canvas, 'sail', Math.floor(mod(time * 1.2, SAIL_FRAMES)), FOX_X, y);
         water.wake(canvas, FOX_X - 54, WATERLINE + 8 + bob, time, ground);
       }
       drawn = true;
@@ -345,8 +352,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
         const edge = Math.min(ground - trip.a - MOUNT, trip.b - MOUNT - ground);
         const lift = Math.min(1, edge / BROOM_DOWN);
         const y = Math.round(PATH_Y - 3 - lift * lift * (3 - 2 * lift) * 78 + Math.sin(time * 1.6) * 1.4);
-        const s = sprite('broom', 0);
-        frame(canvas, 'broom', 0, FOX_X, y + s.oy);
+        const f = BROOM.fly[Math.floor(mod(time * 3, 3))];
+        frame(canvas, 'broom', f, FOX_X, y + sprite('broom', 0).oy);
         for (let i = 0; i < 12; i++) {
           const age = mod(time * 0.8 + i / 12, 1);
           const px = Math.round(FOX_X - 54 - age * 90 + Math.sin(i * 7) * 6);
@@ -360,6 +367,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     }
     if (!drawn) {
       if (onLand) shadow(FOX_X, feet + 1, 24);
+      if (outfit) {
+        const gym = eventsIn(ground - WORKOUT_REACH - 14, ground).find((e) => e.kind === 'workout');
+        if (gym) fox.puff(FOX_X + 6, PATH_Y - 60, (ground - gym.a - WORKOUT_REACH) / 14 + 0.5);
+      }
       // The body takes the frame; the head rides a pixel lower on each footfall.
       const s = sprite(walkSheet, step);
       const headRows = s.oy + s.h - NECK;
@@ -384,7 +395,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
 
     // Brand chip (top left) and now-playing pill (top right); ffmpeg draws the text.
     roundedRect(BRAND.x, BRAND.y, BRAND.w, BRAND.h, 7, S.pill);
-    canvas.draw(LOGO, BRAND.x + 5, BRAND.y + 3);
+    canvas.draw(LOGO, BRAND.x + 7, BRAND.y + 6);
     if (pillWidth > 0) {
       roundedRect(WIDTH - 16 - pillWidth, BRAND.y, pillWidth, BRAND.h + METER, 7, S.pill);
       canvas.draw(NOTE, WIDTH - 16 - pillWidth + 9, BRAND.y + 10);
@@ -401,75 +412,44 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     return rgb;
   }
 
-  /** The meter's falling levels, which carry over between frames. */
-  function meter(width, bands, dt) {
-    const count = Math.floor((width - 16) / 3);
-    if (levels.length !== count) levels = new Array(count).fill(0);
-    for (let i = 0; i < count; i++) {
-      // Low notes on the left, spread as the ear hears them.
-      const at = Math.min(bands.length - 1, Math.floor(((i / count) ** 1.6) * bands.length));
-      const level = clamp01(bands[at] ?? 0);
+  /** The meter's falling levels, one per band, which carry over between frames. */
+  function meter(bands, dt) {
+    if (levels.length !== bands.length) levels = new Array(bands.length).fill(0);
+    for (let i = 0; i < levels.length; i++) {
+      const level = clamp01(bands[i]);
       levels[i] = level > levels[i] ? level : Math.max(level, levels[i] - dt * 1.8);
     }
   }
 
   /** The sound, as a row of level bars along the bottom of the now-playing chip. */
   function drawMeter(left, width, bands, dt) {
-    meter(width, bands, dt);
+    meter(bands, dt);
+    const count = Math.floor((width - 16) / 3);
     const floor = BRAND.y + BRAND.h + METER - 4;
-    levels.forEach((level, i) => {
+    for (let i = 0; i < count; i++) {
+      // Low notes on the left, spread as the ear hears them.
+      const level = levels[Math.min(levels.length - 1, Math.floor(((i / count) ** 1.6) * levels.length))];
       const h = Math.round(level * (METER + 1));
       canvas.rect(left + 8 + i * 3, floor - h, 2, h + 1, S.logo);
-    });
+    }
   }
 
-  /** The gym routine. Hands stay on their bars; only the shoulders travel. */
-  function workout({ name, p, reps, back }, e, outfit, at) {
-    const ease = (t) => 0.5 - Math.cos(Math.PI * t) / 2;
-    const rep = (n) => ease(Math.abs((((p * n) % 1) * 2) - 1)); // 1 at both ends of a rep, 0 in the middle
-    const barY = PATH_Y - 2 - BAR;
-    const railY = PATH_Y - RAIL - 4;
-    const gym = `gym${outfit}`;
-    switch (name) {
-      case 'walk': {
-        const stride = Math.floor(mod(ground / STRIDE, 1) * WALK_FRAMES);
-        const f = back ? WALK_FRAMES - 1 - stride : stride;
-        shadow(FOX_X, PATH_Y + 1, 24);
-        frame(canvas, `walk12${outfit}`, f, FOX_X, PATH_Y, { flip: back });
-        break;
-      }
-      case 'stand': stood(gym, 2, FOX_X); break;
-      case 'turn': stood('gym', 3, FOX_X); break;
-      case 'crouch': stood(gym, 5, FOX_X); break;
-      case 'reach': stood(gym, 6, FOX_X, PATH_Y - Math.round(ease(p) * (BAR - 78))); break;
-      case 'pull': fox.hang(FOX_X, barY, 33 - (1 - rep(reps)) * 21, outfit); break;
-      case 'muscle': fox.hang(FOX_X, barY, 33 - (1 - rep(reps)) * 62, outfit); break;
-      case 'drop': stood(gym, 7, FOX_X, PATH_Y - Math.round((1 - p) ** 2 * (BAR - 78))); break;
-      case 'mount': stood(gym, 6, FOX_X, PATH_Y - Math.round(ease(p) * 14)); break;
-      case 'dip': fox.hang(FOX_X, railY, -24 + (1 - rep(reps)) * 17, outfit); break;
-      case 'dismount': stood(gym, 7, FOX_X, PATH_Y - Math.round((1 - p) ** 2 * 14)); break;
-      case 'down': stood(gym, 5, FOX_X, PATH_Y); break;
-      case 'push': {
-        // The toes stay put; the chest rises and sinks on one straight arm.
-        const tilt = Math.round(-11 + (1 - rep(reps)) * 15);
-        frame(canvas, gym, 1, FOX_X, PATH_Y + sprite(gym, 1).oy, { tilt, clipY: PATH_Y + 1 });
-        fox.arm(FOX_X + 8, PATH_Y - 26 + Math.round(tilt * 0.6), FOX_X + 7, PATH_Y - 1, 1, false);
-        break;
-      }
-      case 'up': stood(gym, 5, FOX_X, PATH_Y); break;
-      default: stood(gym, 2, FOX_X);
+  /** The gym routine: painted frames, hung on the real bar and rails. The hat stays off for it. */
+  function workout({ name, sheet, frame: f, back, lift }) {
+    if (name === 'walk') {
+      const stride = Math.floor(mod(ground / STRIDE, 1) * WALK_FRAMES);
+      shadow(FOX_X, PATH_Y + 1, 24);
+      frame(canvas, 'walk12', back ? WALK_FRAMES - 1 - stride : stride, FOX_X, PATH_Y, { flip: back });
+      return;
     }
-    // The rail is in front of the body, so the fox sits between its two sides.
-    if (name === 'dip') drawRail(at(e.a + RAILS), railY);
-    return true;
-  }
-
-  /** Water thrown up where the oar blade bites. */
-  function splash(x, y, time) {
-    for (let i = 0; i < 6; i++) {
-      const a = hash(i, Math.floor(time * 8), 811);
-      canvas.set(Math.round(x + (a - 0.5) * 12), Math.round(y - hash(i, Math.floor(time * 8), 812) * 5), S.foam);
-    }
+    const s = sprite(sheet, f);
+    if (sheet === 'pullup') return frame(canvas, sheet, f, FOX_X, PATH_Y - 3 - BAR + s.bar);
+    if (sheet === 'dip') return frame(canvas, sheet, f, FOX_X, railY());
+    if (sheet === 'pushup') return frame(canvas, sheet, f, FOX_X, PATH_Y + sprite('pushup', 0).oy);
+    const hang = BAR + 5 - sprite('gym', 6).h - sprite('gym', 6).oy * 0;
+    const height = sheet === 'hop' && f !== 3 ? JUMP_RAILS : sheet === 'gym' ? hang : Math.min(hang, JUMP_RAILS);
+    if (lift === 0) shadow(FOX_X, PATH_Y + 1, 24);
+    frame(canvas, sheet, f, FOX_X, PATH_Y + s.oy - Math.round(lift * height));
   }
 
   /** Slow banks of mist lying between the hills, in dither over the painted land. */

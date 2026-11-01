@@ -18,7 +18,8 @@ import { createRng } from '../compose/rng.js';
 import { cacheDir, libraryDir } from '../paths.js';
 import { openDeck } from './deck.js';
 import { createDirector } from './director.js';
-import { CHAR_WIDTH, isRtmp, startEncoder } from './encoder.js';
+import { chipAt, createChipText } from './chip.js';
+import { createPacker, isRtmp, startEncoder } from './encoder.js';
 import { createScene, HEIGHT, WIDTH } from './scene/index.js';
 import { bayer } from './scene/dither.js';
 import { revealCoverage } from './scene/motion.js';
@@ -66,7 +67,6 @@ const realtime = values.output.some(isRtmp);
 const stopAfter = values.duration ? Number(values.duration) * SR : values.tour ? TOUR_SECONDS * SR : Infinity;
 
 await mkdir(values.state, { recursive: true });
-const nowPlayingFile = join(values.state, 'nowplaying.txt');
 const historyFile = join(values.state, 'history.json');
 const queueFile = join(values.state, 'queue.json');
 const history = await readFile(historyFile, 'utf8').then(JSON.parse, () => []);
@@ -85,14 +85,7 @@ async function load(track, start) {
   return { track, deck, start, frames: Math.round(track.seconds * SR) };
 }
 
-let nowPlayingText = '';
-async function writeNowPlaying(track) {
-  const text = `${track.title} · ${track.styleLabel}`.slice(0, 48);
-  nowPlayingText = text;
-  await writeFile(`${nowPlayingFile}.tmp`, text);
-  await rename(`${nowPlayingFile}.tmp`, nowPlayingFile);
-  return text;
-}
+const titleOf = (track) => `${track.title} · ${track.styleLabel}`.slice(0, 48);
 
 const savedQueue = await readFile(queueFile, 'utf8').then(JSON.parse, () => []);
 const queue = savedQueue.map((t) => catalog.find((c) => c.id === t.id)).filter(Boolean).slice(0, ahead);
@@ -123,17 +116,17 @@ function fillQueue() {
 }
 await fillQueue();
 let shown = null;
-let pillWidth = 0;
-await writeNowPlaying(current.track).then((text) => {
-  shown = current.track.id;
-  pillWidth = Math.round(26 + text.length * CHAR_WIDTH);
-});
+// Every title with the frame it starts on: the chip is worked out from these.
+const titles = [{ from: 0, text: titleOf(current.track) }];
+shown = current.track.id;
 console.log(`playing ${current.track.id} "${current.track.title}"`);
 
-const encoderOptions = { outputs: values.output, fps, nowPlayingFile, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate, codec: values.encoder };
+const encoderOptions = { outputs: values.output, fps, scale: Number(values.scale), preset: values.preset, videoBitrate: values.bitrate, codec: values.encoder };
 // Planning decides the whole programme in one quick pass; workers draw it afterwards.
 const plan = planDir ? createPlan(planDir, { fps, clockStart: new Date(values.clock).getTime(), clockSpeed: Number(values['clock-speed']), timeZone: values.timezone, dayMinutes }) : null;
 let encoder = plan ? null : startEncoder(encoderOptions);
+const chipText = plan ? null : createChipText(Number(values.scale));
+const pack = plan ? null : createPacker();
 const mix = new Float32Array(spf * 2);
 const gainA = new Float32Array(spf);
 const gainB = new Float32Array(spf);
@@ -191,10 +184,11 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
   const active = next && t >= next.start + overlap / 2 ? next : current;
   if (active.track.id !== shown) {
     shown = active.track.id;
-    const text = await writeNowPlaying(active.track);
-    pillWidth = Math.round(26 + text.length * CHAR_WIDTH);
+    titles.push({ from: frame, text: titleOf(active.track) });
     console.log(`now playing ${active.track.id} "${active.track.title}"`);
   }
+  const chip = chipAt(titles, frame, fps);
+  const pillWidth = chip.pill;
   let rgb;
   if (tour) {
     const step = tour(t / SR);
@@ -215,7 +209,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     const beat = Math.max(0, ((t - active.start) / SR) * (active.track.bpm / 60));
     const bands = spectrum.update(mix);
     if (plan) {
-      await plan.record({ bands, beat, pillWidth, text: nowPlayingText, mix, scene: scene.snapshot });
+      await plan.record({ bands, beat, mix, scene: scene.snapshot });
       const first = scene.render({ time: t / SR, dt: spf / SR, date: sceneDate(t / SR), beat, bands, pillWidth, ghost: frame > 0 });
       if (frame === 0) await writeFile(join(planDir, 'first.rgb'), first);
       if (next && t + spf >= current.start + current.frames) {
@@ -233,7 +227,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
     const into = 1 - (stopAfter - t) / (0.36 * SR);
     if (into > 0) for (let y = 0, o = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++, o += 3) if (bayer(x, y) < revealCoverage(x, WIDTH, into, 24)) firstPicture.copy(rgb, o, o, o + 3);
   }
-  await encoder.frame(rgb, mix);
+  await encoder.frame(pack(rgb, chipText.draw(chip)), mix);
   if (frame % (fps * 10) === 0) {
     const status = { at: Date.now(), revision: process.env.RGO_MUSIC_REVISION ?? null, track: active.track.id, ahead: queue.length, encoderAlive: encoder.alive, encoded: { ...encoder.stats }, scene: scene.state() };
     await writeFile(join(values.state, 'status.json.tmp'), JSON.stringify(status));
@@ -263,7 +257,7 @@ for (let frame = 0, t = 0; t < stopAfter; frame++, t += spf) {
 current.deck.close();
 next?.deck.close();
 if (plan) {
-  await plan.finish();
+  await plan.finish(titles);
   console.log(`planned ${(stopAfter / SR).toFixed(0)}s in ${((performance.now() - started) / 1000).toFixed(1)}s`);
   process.exit(0);
 }
