@@ -41,3 +41,24 @@ test("programme restarts keep both media clocks continuous across repeated wraps
     assert.deepEqual(audio(Buffer.concat(segments)), Buffer.concat(Array.from({ length: 6 }, () => audio(readFileSync(base)))));
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("a sender session outlasting the 33-bit transport clock stays continuous", () => {
+  const dir = mkdtempSync(join(tmpdir(), "relay-overflow-"));
+  try {
+    const base = join(dir, "base.ts");
+    ffmpeg(["-f", "lavfi", "-i", "testsrc2=s=64x64:r=30:d=2", "-f", "lavfi", "-i", "sine=frequency=997:sample_rate=48000:duration=2", "-c:v", "libx264", "-preset", "ultrafast", "-g", "30", "-bf", "2", "-c:a", "aac", "-mpegts_flags", "+initial_discontinuity", base]);
+    // Three segments straddling the moment the clock passes 2^33 ticks, about 26.5 hours in.
+    const edge = 2 ** 33 / 90000 - 3;
+    const stream = Buffer.concat([0, 2, 4].map((ordinal) => shiftTransportTimestamps(readFileSync(base), edge + ordinal)));
+    const output = join(dir, "output.flv");
+    const result = ffmpeg(["-f", "mpegts", "-i", "pipe:0", "-c", "copy", output], stream);
+    assert.doesNotMatch(result.stderr.toString(), /timestamp discontinuity|out of order/);
+    const probe = spawnSync("ffprobe", ["-v", "error", "-show_packets", "-of", "json", output], { maxBuffer: 8 * 1024 * 1024 });
+    const packets = JSON.parse(probe.stdout).packets;
+    for (const type of ["audio", "video"]) {
+      const times = packets.filter((p) => p.codec_type === type).map((p) => Number(p.dts_time));
+      assert.ok(times.at(-1) > 5.9 && times.at(-1) < 6.2, `${type} ends at ${times.at(-1)}`);
+      assert.ok(times.every((t, i) => i === 0 || (t - times[i - 1] >= 0 && t - times[i - 1] < 0.1)));
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
