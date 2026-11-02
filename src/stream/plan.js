@@ -32,7 +32,10 @@ export function createPlan(dir, { fps, clockStart, clockSpeed, timeZone, dayMinu
       records.writeFloatLE(beat, o + BANDS);
       frames++;
       if (frames % chunkFrames === 0) writeFileSync(`${fileOf(dir, 'frames', chunk)}.bin`, records);
-      if (!audio.stdin.write(Buffer.from(mix.buffer, mix.byteOffset, mix.byteLength))) await once(audio.stdin, 'drain');
+      // The caller reuses mix on the next frame. A queued pipe write must own
+      // its samples until FFmpeg consumes them, even when write returns true.
+      const pcm = Buffer.from(new Uint8Array(mix.buffer, mix.byteOffset, mix.byteLength));
+      if (!audio.stdin.write(pcm)) await once(audio.stdin, 'drain');
     },
     async finish(titles) {
       audio.stdin.end();
