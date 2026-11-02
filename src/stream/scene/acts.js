@@ -1,10 +1,25 @@
 // The fox's frames, read from the animation sheets. Walking uses painted poses
 // advanced by distance, so stride and ground agree; pedalling and rowing
 // follow distance in the same way. The workout is a timed run through its sheets.
-export const STRIDE = 46; // ground pixels per full walk cycle
-// Eight painted poses in row-major order cover both steps of a full cycle.
-export function walkFrame(distance) {
-  return Math.floor(((distance % STRIDE + STRIDE) % STRIDE) / STRIDE * 8);
+import { walkCycleOf } from './nature.js';
+
+export const STRIDE = 46; // ground pixels between friends' footfalls and footprints
+/**
+ * The walking pose for a distance. A sheet's poses are laid out by where the planted
+ * heel sits (`walk` in sprites.json): advancing through them with the ground keeps that
+ * foot still on the road. The second half of the cycle is the first with the legs swapped.
+ */
+export function walkFrame(distance, sheet = 'walk12') {
+  const { stride, steps } = walkCycleOf(sheet);
+  const p = ((distance % stride) + stride) % stride;
+  const half = stride / 2;
+  const second = p >= half ? 1 : 0;
+  const d = p - second * half;
+  let best = 0;
+  for (let i = 1; i < steps.length; i++) if (Math.abs(steps[i] - d) < Math.abs(steps[best] - d)) best = i;
+  // Nearer the next step's start than any pose of this one: it has already landed.
+  if (half - d < Math.abs(steps[best] - d)) return ((second + 1) % 2) * steps.length;
+  return second * steps.length + best;
 }
 export const PEDAL_FRAMES = 8;
 export const ROW_FRAMES = 12;

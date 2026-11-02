@@ -56,6 +56,9 @@ function sheet(name) {
   return decoded.get(name);
 }
 
+/** A walking sheet's cycle: its stride on the road and where each pose's planted heel sits. */
+export const walkCycleOf = (name) => atlas.sheets[name].walk;
+
 export const sprite = (name, i) => {
   const set = sheet(name);
   return set[((i % set.length) + set.length) % set.length];

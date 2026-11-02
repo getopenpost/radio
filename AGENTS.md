@@ -133,10 +133,17 @@ Project-specific rules. The shared global instructions still apply.
   never redraw a face the same way twice, so `HEADS` in the build script pastes one
   master head into every frame of a cycle.
 - All sheets show the fox at one size. A sheet's block size in `SHEETS` is what sets
-  it, so compare a new sheet against `walk8` beside it, by the head.
-  The eight walking poses cover two compact steps. Preserve the painted body's
-  2-4 pixel rise and fall; registering the head to a fixed height makes it rigid.
-  Walking outfits in `DRESSED` reuse that same painted body and its paw contacts.
+  it, so compare a new sheet against `walk12` beside it, by the head.
+- Walking is the twelve painted `walk12` poses, rebuilt by `composeWalk` and
+  `walkCycle` in the build script. Every pose gets the master pose's head, torso, bag
+  and tail, moved by its own painted bob, and keeps only its own legs and near arm:
+  redrawn fur and bags were the walk's flicker. The image model painted the near leg
+  in front at every step, so the second step is the first with the legs' shading
+  swapped (`swapLegs`); without it the fox limps. Poses are placed by where their
+  planted heel sits, and `walkFrame` steps through them with the ground, so that
+  foot stays on the road. A new walking sheet must survive these steps, so check
+  it in `test/fox-walk.test.js` rather than repainting the whole cycle; a fully
+  repainted cycle (`walk8`) lost the fox's face and was rejected.
 - `build-sprites.js` flattens painted fur (`flatten`): mottling lands somewhere else on
   every frame and reads as flicker. Keying must not touch reds: the broom scarf once
   vanished because the magenta test matched it.

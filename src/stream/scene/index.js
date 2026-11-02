@@ -300,8 +300,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
 
     // --- The fox. ---
     const outfit = rain > 0.3 ? '-rain' : c.winter > 0.5 ? '-snow' : '';
-    const walkSheet = `walk8${outfit}`;
-    const step = walkFrame(ground);
+    const walkSheet = `walk12${outfit}`;
+    const step = walkFrame(ground, walkSheet);
     let drawn = false;
     if (hold) {
       if (hold.event.kind === 'workout') {
@@ -424,8 +424,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
   /** The gym routine: painted frames, hung on the real bar and rails. The hat stays off for it. */
   function workout({ name, sheet, frame: f, back, lift }) {
     if (name === 'walk') {
-      const stride = walkFrame(back ? -ground : ground);
-      groundedFrame('walk8', stride, FOX_X, PATH_Y, PATH_Y, { flip: back });
+      const stride = walkFrame(back ? -ground : ground, 'walk12');
+      groundedFrame('walk12', stride, FOX_X, PATH_Y, PATH_Y, { flip: back });
       return;
     }
     const s = sprite(sheet, f);

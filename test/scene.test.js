@@ -275,7 +275,7 @@ test('every sprite is stored at native size and stays on the single grid', async
       assert.ok(s.h <= 260 && s.w <= 260, `${name} ${s.w}x${s.h} is out of proportion`);
     }
   }
-  assert.ok(art.sheets.walk8.sprites.length === 8 && Math.abs(art.sheets.walk8.sprites[0].h - 75) < 5, 'the fox stays about 72 pixels tall');
+  assert.ok(art.sheets.walk12.sprites.length === 14 && Math.abs(art.sheets.walk12.sprites[0].h - 75) < 5, 'the fox stays about 72 pixels tall');
 });
 
 test('the logo keeps open gaps between its petals, symmetric at chip size', () => {

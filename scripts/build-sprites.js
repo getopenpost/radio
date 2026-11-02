@@ -10,7 +10,7 @@ const ROOT = new URL('../assets/scene/', import.meta.url).pathname;
 // name: [columns, rows, block (sheet pixels per art pixel), family].
 // The block is what fixes a sprite's size on screen; the fox is 72 pixels tall in every sheet.
 const SHEETS = {
-  'fox/walk8': [4, 2, 4.5, 'actor'], 'fox/walk8-rain': [4, 2, 4.5, 'actor'], 'fox/walk8-snow': [4, 2, 4.5, 'actor'],
+  'fox/walk12': [6, 2, 4, 'actor'], 'fox/walk12-rain': [6, 2, 4, 'actor'], 'fox/walk12-snow': [6, 2, 4, 'actor'],
   'fox/idle-moves': [6, 2, 4, 'actor'], 'fox/gestures': [4, 2, 5, 'actor'],
   'fox/pedal': [4, 2, 4.3, 'actor'], 'fox/ride': [4, 2, 5.5, 'actor'],
   'fox/row': [6, 2, 3, 'actor'], 'fox/sail': [4, 2, 2.95, 'actor'],
@@ -22,9 +22,9 @@ const SHEETS = {
 // pasted into every listed frame, so eyes and face are the same pixels throughout.
 const every = (n) => Array.from({ length: n }, (_, i) => i);
 const HEADS = {
-  'fox/walk8': { master: 0, box: [160, 65, 365, 260], frames: every(8) },
-  'fox/walk8-rain': { master: 0, box: [145, 65, 365, 290], frames: every(8) },
-  'fox/walk8-snow': { master: 0, box: [145, 65, 365, 280], frames: every(8) },
+  'fox/walk12': { master: 0, box: [150, 30, 345, 205], frames: every(12) },
+  'fox/walk12-rain': { master: 0, box: [150, 20, 345, 205], frames: every(12) },
+  'fox/walk12-snow': { master: 0, box: [108, 15, 345, 205], frames: every(12) },
   'fox/pedal': { master: 0, box: [185, 50, 385, 240], frames: every(8) },
   'fox/row': { master: 0, box: [120, 60, 245, 175], frames: every(12) },
   'fox/broom': { master: 0, box: [150, 50, 440, 255], frames: [0, 1, 2, 3] },
@@ -36,11 +36,15 @@ const BARRED = new Set(['fox/pullup', 'fox/dip']);
 // Costumes follow the same painted body and supporting paws. A newly generated
 // outfit must never introduce a different gait or lose the body's rise and fall.
 const DRESSED = [
-  ['fox/walk8', 'walk8-rain', 'fox/walk8-rain', every(8)],
-  ['fox/walk8', 'walk8-snow', 'fox/walk8-snow', every(8)],
-  ['fox/hop', 'hop-snow', 'fox/walk8-snow', every(8)],
-  ['fox/hop', 'hop-rain', 'fox/walk8-rain', every(8)],
+  ['fox/hop', 'hop-snow', 'fox/walk12-snow', every(8)],
+  ['fox/hop', 'hop-rain', 'fox/walk12-rain', every(8)],
 ];
+// Walking: each painted frame keeps its own legs and swinging near arm, and everything
+// else (head, torso, bag, tail) is the master frame's pixels, moved with the frame's own
+// head. The painted bob survives; the redrawn fur, bag and tail that flickered do not.
+const WALKING = /^fox\/walk12/;
+const LEGS = 19; // rows above the floor that belong to the legs; the tail starts above them
+const ARM = { x0: 19, x1: 40, h0: 20, h1: 38 }; // the near arm, from the cell centre and floor
 
 function load(name) {
   const file = `${ROOT}${name}.png`;
@@ -174,7 +178,7 @@ function keepLargest(px, W, H) {
 function cut(name, [cols, rows, f], dress) {
   const img = load(name);
   const list = cells(img, cols, rows);
-  const grids = list.map((cell) => {
+  let grids = list.map((cell) => {
     const { px, py } = fit(img, cell, f);
     const W = Math.floor((cell.x1 - cell.x0 - px) / f);
     const H = Math.floor((cell.y1 - cell.y0 - py) / f);
@@ -189,6 +193,11 @@ function cut(name, [cols, rows, f], dress) {
     return { W, H, grid, sx: 0, sy: 0 };
   });
   if (HEADS[name]) lockHeads(grids, HEADS[name], f, name);
+  let walk = null;
+  if (WALKING.test(name)) {
+    composeWalk(grids);
+    ({ grids, walk } = walkCycle(grids));
+  }
   if (dress) for (const i of dress.frames) wear(grids[i], heads[dress.head]);
   if (name === 'fox/gestures' || name === 'fox/idle-moves') alignToWalk(grids);
   if (STEADY[name]) {
@@ -197,8 +206,11 @@ function cut(name, [cols, rows, f], dress) {
       const { dx, dy } = bestOffset(g, patch, 6);
       g.sx = -dx;
       g.sy = dy;
+      g.steady = { dx, dy };
     }
+    if (name === 'fox/sail') stillSailor(grids);
   }
+  let first = null;
   const sprites = grids.map(({ W, H, grid, sx, sy }) => {
     if (!grid.some((c) => c >= 0)) return null;
     keepLargest(grid, W, H);
@@ -220,11 +232,13 @@ function cut(name, [cols, rows, f], dress) {
     const out = { w, h, ox: x0 - Math.floor(W / 2) + sx, oy: H - 1 - y1 + sy, data };
     // The supporting paw stays on the road; the painted torso height supplies
     // the walk's rise and fall, rather than locking the head in place.
-    if (name.startsWith('fox/walk8')) out.oy = 2;
+    // Every sailing frame shares the first frame's hull, so they share its footing too.
+    if (name === 'fox/sail' && first) { out.ox = first.ox; out.oy = first.oy; }
+    if (name === 'fox/sail') first ??= out;
     if (BARRED.has(name)) out.bar = barRow(out);
     return out;
   }).filter(Boolean);
-  return { f, sprites };
+  return { f, sprites, walk };
 }
 
 /** The row of a frame's painted bar above the cell floor: the row with the most unwarm pixels. */
@@ -267,21 +281,207 @@ function bestOffset(g, patch, reach) {
   return best;
 }
 
+/**
+ * Sailing: only the sail should move. The fox and everything left of the mast below
+ * the fox's ears are the first frame's pixels in every pose, so the sailor stops shimmering.
+ */
+function stillSailor(grids) {
+  const m = grids[0];
+  let mast = 0, longest = 0;
+  for (let x = 0; x < m.W; x++) {
+    let run = 0, best = 0;
+    for (let y = 0; y < m.H; y++) { run = m.grid[y * m.W + x] >= 0 ? run + 1 : 0; best = Math.max(best, run); }
+    if (best > longest) [longest, mast] = [best, x];
+  }
+  let ears = m.H;
+  for (let y = 0; y < m.H && ears === m.H; y++) for (let x = 0; x < mast - 4; x++) if (m.grid[y * m.W + x] >= 0 && isOrange(m.grid[y * m.W + x])) { ears = y; break; }
+  const hull = floorRow(m) - 33; // the hull, right across, is as still as the sailor
+  for (const g of grids.slice(1)) {
+    const { dx, dy } = g.steady;
+    for (let y = ears - 2; y < m.H; y++) {
+      for (let x = 0; x < (y >= hull ? m.W : mast - 1); x++) {
+        const gx = x + dx, gy = y + dy;
+        if (gx >= 0 && gy >= 0 && gx < g.W && gy < g.H) g.grid[gy * g.W + gx] = m.grid[y * m.W + x];
+      }
+    }
+  }
+}
+
+/** The lowest painted row of a grid: where its feet meet the floor. */
+function floorRow(g) {
+  for (let y = g.H - 1; y >= 0; y--) for (let x = 0; x < g.W; x++) if (g.grid[y * g.W + x] >= 0) return y;
+  return g.H - 1;
+}
+
+/** Rebuild every walking frame from the master's upper body and the frame's own legs and arm. */
+function composeWalk(grids) {
+  const m = grids[0];
+  for (const g of grids.slice(1)) {
+    const { dx, dy } = g.head ?? { dx: 0, dy: 0 };
+    const floor = floorRow(g);
+    const cx = Math.floor(g.W / 2);
+    const out = new Int32Array(g.W * g.H).fill(-1);
+    for (let y = 0; y < g.H; y++) {
+      for (let x = 0; x < g.W; x++) {
+        const h = floor - y;
+        const xc = x - cx;
+        const own = g.grid[y * g.W + x];
+        const mx = x - dx + Math.floor(m.W / 2) - cx;
+        const my = y - dy;
+        const mine = mx >= 0 && my >= 0 && mx < m.W && my < m.H ? m.grid[my * m.W + mx] : -1;
+        const legs = h < LEGS;
+        const arm = xc >= ARM.x0 && xc <= ARM.x1 && h >= ARM.h0 && h <= ARM.h1;
+        // Where the body lifted off its legs, the frame's own hip fills the gap.
+        const seam = h < LEGS + 3 && mine < 0 && xc > -14;
+        out[y * g.W + x] = legs || arm || seam ? own : mine;
+      }
+    }
+    g.grid = out;
+  }
+}
+
+const rgbOf = (c) => [c >> 16, (c >> 8) & 255, c & 255];
+const pack = ([r, g, b]) => (r << 16) | (g << 8) | b;
+const isInk = (c) => { const [r, g, b] = rgbOf(c); return r * 0.3 + g * 0.56 + b * 0.14 < 22; };
+const isOrange = (c) => { const [r, g] = rgbOf(c); return r > 160 && g > 45; }; // the far leg never goes above 146 red
+const isDark = (c) => c >= 0 && !isInk(c) && !isOrange(c);
+const NEAR_THIGH = { light: 0xf0601b, mid: 0xe75516, shade: 0xd74408 };
+const FAR_LEG = { light: 0x8b2502, mid: 0x662100 };
+const BOOT = 0x751f00;
+
+/**
+ * Which leg each leg pixel belongs to. The near leg is the one with an orange thigh;
+ * its boot is the dark run directly under that thigh. Everything else dark is the far leg.
+ */
+function legOwners(g, floor) {
+  const owner = new Int8Array(g.W * g.H); // 1 near, 2 far
+  for (let x = 0; x < g.W; x++) {
+    let below = 0; // what the last coloured run belonged to, scanning down the column
+    for (let y = floor - LEGS + 1; y <= floor; y++) {
+      const c = g.grid[y * g.W + x];
+      if (c < 0) { below = 0; continue; }
+      if (isOrange(c)) { owner[y * g.W + x] = 1; below = 1; }
+      else if (isInk(c)) owner[y * g.W + x] = below || 0;
+      else { owner[y * g.W + x] = below === 1 ? 1 : 2; if (below !== 1) below = 2; }
+    }
+  }
+  // A boot's toe reaches forward past its own shin; it still belongs to that boot.
+  for (let y = floor - LEGS + 1; y <= floor; y++) {
+    for (let x = 1; x < g.W; x++) {
+      const i = y * g.W + x;
+      if (owner[i] === 2 && owner[i - 1] === 1 && isDark(g.grid[i - 1]) && isDark(g.grid[i])) owner[i] = 1;
+    }
+  }
+  // The far leg is one connected shape. Small dark scraps elsewhere are the near boot's heel.
+  const label = new Int32Array(g.W * g.H).fill(-1);
+  const sizes = [];
+  for (let i = 0; i < owner.length; i++) {
+    if (owner[i] !== 2 || label[i] >= 0 || isInk(g.grid[i])) continue;
+    const id = sizes.length;
+    const stack = [i];
+    label[i] = id;
+    let n = 0;
+    while (stack.length) {
+      const p = stack.pop();
+      n++;
+      const x = p % g.W;
+      for (const q of [p - 1, p + 1, p - g.W, p + g.W]) {
+        if (q < 0 || q >= owner.length || Math.abs((q % g.W) - x) > 1) continue;
+        if (owner[q] === 2 && label[q] < 0 && !isInk(g.grid[q])) { label[q] = id; stack.push(q); }
+      }
+    }
+    sizes.push(n);
+  }
+  const far = sizes.indexOf(Math.max(...sizes));
+  for (let i = 0; i < owner.length; i++) if (label[i] >= 0 && label[i] !== far) owner[i] = 1;
+  return owner;
+}
+
+/** The same pose with the other leg leading: near and far legs trade their shading. */
+function swapLegs(g) {
+  const floor = floorRow(g);
+  const owner = legOwners(g, floor);
+  const out = { ...g, grid: Int32Array.from(g.grid) };
+  // The far leg's boot is the part of it near its foot: its lowest pixels, lifted or not.
+  let footY = -1, footX = 0, n = 0;
+  for (let y = floor; y > floor - LEGS && footY < 0; y--) for (let x = 0; x < g.W; x++) if (owner[y * g.W + x] === 2 && !isInk(g.grid[y * g.W + x])) footY = y;
+  for (let x = 0; x < g.W; x++) for (let y = footY; y > footY - 3; y--) if (y >= 0 && owner[y * g.W + x] === 2) { footX += x; n++; }
+  footX = n ? footX / n : 0;
+  const isBoot = (x, y) => footY - y < 8 && Math.abs(x - footX) < 11;
+  for (let y = floor - LEGS + 1; y <= floor; y++) {
+    for (let x = 0; x < g.W; x++) {
+      const i = y * g.W + x;
+      const c = g.grid[i];
+      if (c < 0 || isInk(c)) continue;
+      const [r] = rgbOf(c);
+      if (owner[i] === 1 && isOrange(c)) out.grid[i] = r >= 0xee ? FAR_LEG.light : FAR_LEG.mid;
+      else if (owner[i] === 2) {
+        const boot = isBoot(x, y);
+        out.grid[i] = boot ? BOOT : r >= 0x88 ? NEAR_THIGH.light : r >= 0x6a ? NEAR_THIGH.shade : NEAR_THIGH.mid;
+      }
+    }
+  }
+  return out;
+}
+
+/** The planted foot of a pose: its heel's column, and whether it is the near leg. */
+function plantOf(g) {
+  const floor = floorRow(g);
+  const owner = legOwners(g, floor);
+  const cx = Math.floor(g.W / 2);
+  const runs = [];
+  for (let x = 0; x < g.W; x++) {
+    const on = g.grid[floor * g.W + x] >= 0; // a grazing toe a row up has not landed
+    const r = runs.at(-1);
+    if (on && r && x - r.b <= 1) r.b = x;
+    else if (on) runs.push({ a: x, b: x });
+  }
+  const foot = runs.filter((r) => r.b - r.a >= 3).at(-1); // the front foot carries the weight
+  if (!foot) return null;
+  let near = 0, far = 0;
+  for (let y = floor - 14; y <= floor - 5; y++) for (let x = foot.a; x <= foot.b; x++) {
+    const o = owner[y * g.W + x];
+    if (o === 1 && isOrange(g.grid[y * g.W + x])) near++;
+    else if (o === 2) far++;
+  }
+  return { heel: foot.a - cx, near: near >= far };
+}
+
+/**
+ * Lay the poses out as one two-step cycle. Each pose is placed by where its planted
+ * heel sits, so stepping through them by ground distance keeps that foot fixed on the
+ * road. The second step is the first with the legs swapped.
+ */
+function walkCycle(grids, k = 7) {
+  const samples = grids.map((g) => ({ g, plant: plantOf(g) })).filter((s) => s.plant)
+    .map(({ g, plant }, i) => ({ heel: plant.heel, near: plant.near, i, lead: plant.near ? g : swapLegs(g) }));
+  samples.sort((p, q) => q.heel - p.heel);
+  if (process.env.WALK_DEBUG) console.log('heels', samples.map((s) => `f${s.i}:${s.heel}${s.near ? 'n' : 'f'}`).join(' '));
+  const hi = samples[0].heel;
+  const lo = samples.at(-1).heel;
+  const chosen = [];
+  for (let i = 0; i < k; i++) {
+    const want = hi - ((hi - lo) * i) / (k - 1);
+    const best = samples.filter((s) => !chosen.includes(s)).sort((p, q) => Math.abs(p.heel - want) - Math.abs(q.heel - want))[0];
+    chosen.push(best);
+  }
+  chosen.sort((p, q) => q.heel - p.heel);
+  const half = ((hi - lo) * k) / (k - 1);
+  const steps = chosen.map((s) => hi - s.heel);
+  return { grids: [...chosen.map((s) => s.lead), ...chosen.map((s) => swapLegs(s.lead))], walk: { stride: half * 2, steps } };
+}
+
 let walkHead = null;
 const heads = {};
 function lockHeads(grids, { master, box, frames }, f, name) {
   const patch = patchOf(grids[master], box, f);
   heads[name] = patch;
-  if (box === HEADS['fox/walk8'].box) walkHead = patch;
+  if (box === HEADS['fox/walk12'].box) walkHead = patch;
   for (const i of frames) {
     if (i === master) continue;
     const g = grids[i];
     const { dx, dy } = bestOffset(g, patch, 10);
-    if (name.startsWith('fox/walk8')) {
-      // Remove horizontal registration errors while preserving the vertical
-      // weight transfer already painted into the pose.
-      g.sx = -dx + Math.floor(g.W / 2) - Math.floor(grids[master].W / 2);
-    }
+    g.head = { dx, dy };
     for (let y = patch.y0 + dy; y < patch.y1 + dy; y++) for (let x = patch.x0 + dx; x < patch.x1 + dx; x++) if (x >= 0 && y >= 0 && x < g.W && y < g.H) g.grid[y * g.W + x] = -1;
     for (const p of patch.cells) if (p.x + dx >= 0 && p.y + dy >= 0 && p.x + dx < g.W && p.y + dy < g.H) g.grid[(p.y + dy) * g.W + p.x + dx] = p.c;
   }
@@ -501,12 +701,12 @@ for (const [name, spec] of Object.entries(SHEETS)) {
     console.log('skip', name);
     continue;
   }
-  const { f, sprites } = cut(name, spec);
+  const { f, sprites, walk } = cut(name, spec);
   if (name.startsWith('build/') && !/peaks|clouds/.test(name)) sprites.forEach(markWindows);
   const short = name.split('/')[1];
   console.log(short, 'block', f, 'count', sprites.length, sprites.slice(0, 3).map((s) => `${s.w}x${s.h}`).join(' '));
   const family = spec[3] === 'actor' ? 'actor' : 'world';
-  out.sheets[short] = { family, sprites };
+  out.sheets[short] = walk ? { family, sprites, walk } : { family, sprites };
   families[family].push(...sprites);
 }
 // What a vehicle looks like with nobody on it is taken from the frames it is ridden in,
