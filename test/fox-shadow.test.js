@@ -6,10 +6,22 @@ import { PATH_Y } from '../src/stream/scene/landscape.js';
 import { WORKOUT_SECONDS, workoutAt } from '../src/stream/scene/acts.js';
 import { createCanvas } from '../src/stream/scene/canvas.js';
 import { sprite } from '../src/stream/scene/nature.js';
-import { S } from '../src/stream/scene/palette.js';
+import { computePalette, S, SLOTS } from '../src/stream/scene/palette.js';
 import { drawActorShadow } from '../src/stream/scene/shadow.js';
 
+test('the soft shadow has continuous shading instead of checkerboard holes', () => {
+  const canvas = createCanvas();
+  canvas.index.fill(S.path1);
+  drawActorShadow(canvas, sprite('walk12', 0), 320, PATH_Y, PATH_Y);
+  for (let x = 305; x <= 325; x++) {
+    assert.notEqual(canvas.get(x, PATH_Y + 1), S.path1, `unshaded hole at ${x}`);
+  }
+});
+
 test('height softens the shadow and preserves snow and equipment colours', () => {
+  const palette = new Uint8Array(SLOTS * 3);
+  computePalette(palette, { light: 1, warmth: 0, overcast: 0, rain: 0, fog: 0, moonlight: 0, wet: 0, time: 0 });
+  const luma = (slot) => palette[slot * 3] + palette[slot * 3 + 1] + palette[slot * 3 + 2];
   for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
     const s = sprite(sheet, 0);
     const draw = (height, surface = S.path1) => {
@@ -24,7 +36,7 @@ test('height softens the shadow and preserves snow and equipment colours', () =>
     const core = (c) => {
       let dark = 0;
       for (let y = PATH_Y - 1; y <= PATH_Y + 2; y++) {
-        for (let x = 305; x <= 335; x++) if (c.get(x, y) === S.path3) dark++;
+        for (let x = 305; x <= 335; x++) dark += luma(S.path1) - luma(c.get(x, y));
       }
       return dark;
     };
@@ -32,8 +44,14 @@ test('height softens the shadow and preserves snow and equipment colours', () =>
     assert.deepEqual(draw(0).index, grounded.index, 'repeated frames are deterministic');
     assert.equal(grounded.get(319, PATH_Y), S.steel0, 'shadows stay behind equipment');
     const snow = draw(0, S.snow0);
-    assert.ok(snow.index.includes(S.snow3), 'snow receives a snow-coloured shadow');
-    assert.ok(!snow.index.includes(S.path3), 'no brown dirt patch on snow');
+    let shaded = 0;
+    for (const slot of new Set(snow.index)) {
+      if (slot === S.snow0 || slot === S.steel0) continue;
+      shaded++;
+      assert.ok(luma(slot) < luma(S.snow0), 'snow is shaded');
+      assert.ok(palette[slot * 3 + 2] > palette[slot * 3] * .9, 'snow keeps its pale cool hue instead of turning brown');
+    }
+    assert.ok(shaded > 0, 'snow receives a shadow');
   }
 });
 

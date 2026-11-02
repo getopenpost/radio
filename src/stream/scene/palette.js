@@ -138,6 +138,28 @@ for (const [i, hex] of PATH_TONES.entries()) {
   entries.set(slot, { color: rgb(hex), kind: 'world', haze: 0.02 });
 }
 for (let i = 0; i < 4; i++) S[`snow${i}`] = RAMPS[0].snow[i];
+
+// Shade each road colour rather than replacing its texture with dark speckles.
+// The variants pass through the same sun, weather and night model as the road.
+const groundShades = new Map();
+for (const base of [S.path0, S.path1, S.path2, S.path3, ...RAMPS[0].snow, ...RAMPS[0].bark]) {
+  const entry = entries.get(base);
+  const slots = [base];
+  for (let level = 1; level <= 16; level++) {
+    const slot = add(`groundShadow${base}:${level}`);
+    entries.set(slot, { ...entry, color: entry.color.map((c) => Math.round(c * (1 - .32 * level / 16))) });
+    slots.push(slot);
+  }
+  slots.forEach((slot, level) => groundShades.set(slot, { slots, level }));
+}
+
+/** Shade only ground, retaining the strongest overlapping body/contact shadow. */
+export function groundShadowSlot(slot, amount) {
+  const shade = groundShades.get(slot);
+  if (!shade) return null;
+  return shade.slots[Math.max(shade.level, Math.min(16, Math.max(0, Math.round(amount * 16))))];
+}
+
 export const SLOTS = NAMES.length;
 export const CLEAR = 65535;
 

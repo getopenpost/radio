@@ -268,6 +268,12 @@ function lockHeads(grids, { master, box, frames }, f, name) {
     if (i === master) continue;
     const g = grids[i];
     const { dx, dy } = bestOffset(g, patch, 10);
+    if (name.startsWith('fox/walk12')) {
+      // Keep the whole painted pose registered to its master face. Cell bounds
+      // and matching offsets otherwise make it jitter by one or two art pixels.
+      g.sx = -dx + Math.floor(g.W / 2) - Math.floor(grids[master].W / 2);
+      g.sy = dy + grids[master].H - g.H;
+    }
     for (let y = patch.y0 + dy; y < patch.y1 + dy; y++) for (let x = patch.x0 + dx; x < patch.x1 + dx; x++) if (x >= 0 && y >= 0 && x < g.W && y < g.H) g.grid[y * g.W + x] = -1;
     for (const p of patch.cells) if (p.x + dx >= 0 && p.y + dy >= 0 && p.x + dx < g.W && p.y + dy < g.H) g.grid[(p.y + dy) * g.W + p.x + dx] = p.c;
   }

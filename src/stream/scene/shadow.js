@@ -1,14 +1,8 @@
 // Grounding follows the painted silhouette, including coats and floor exercises.
 // Cache the pose measurements, never motion history, so chunk boundaries agree.
-import { bayer } from './dither.js';
-import { ramp, S } from './palette.js';
+import { groundShadowSlot } from './palette.js';
 
 const shapes = new WeakMap();
-const tones = new Map([
-  ...[S.path0, S.path1, S.path2, S.path3].map((s) => [s, S.path3]),
-  ...ramp('snow', 0).map((s) => [s, S.snow3]),
-  ...ramp('bark', 0).map((s) => [s, ramp('bark', 0)[2]]),
-]);
 
 function shape(s) {
   if (shapes.has(s)) return shapes.get(s);
@@ -42,10 +36,10 @@ export function drawActorShadow(canvas, s, x, y, groundY, { flip = false } = {})
   const depth = 2.5 + Math.min(3, gap * .045);
   const opacity = .58 / (1 + gap / 35);
   const paint = (px, py, amount) => {
-    const tone = tones.get(canvas.get(px, py));
-    if (tone != null && bayer(px, py) < amount) canvas.set(px, py, tone);
+    const tone = groundShadowSlot(canvas.get(px, py), amount);
+    if (tone != null) canvas.set(px, py, tone);
   };
-  // Dither stays anchored to the ground grid, with no per-frame random flicker.
+  // Continuous tone steps preserve the road grain without a checkerboard mask.
   for (let py = Math.floor(groundY + 1 - depth); py <= groundY + 1 + depth; py++) {
     for (let px = Math.floor(center - half); px <= center + half; px++) {
       const radius = ((px - center) / half) ** 2 + ((py - groundY - 1) / depth) ** 2;

@@ -6,7 +6,7 @@
 import { createRng, hashString } from '../../compose/rng.js';
 import { smooth } from './dither.js';
 
-export const WALK_SPEED = 44; // px/s of ground; one stride takes about 1.05 s
+export const WALK_SPEED = 48; // px/s of ground; one stride takes about 0.96 s
 export const LEG = 14000; // a country lasts about five minutes on foot
 const BLEND = 2600;
 export const YEAR = 660000; // ground pixels per trip round the seasons, about four hours

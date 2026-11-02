@@ -10,6 +10,25 @@ import { STRIDE, walkFrame } from '../src/stream/scene/acts.js';
 
 const atlas = JSON.parse(readFileSync(new URL('../src/stream/scene/sprites.json', import.meta.url)));
 
+test('walking keeps the painted face registered instead of jittering between poses', () => {
+  for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
+    const master = sprite(sheet, 0);
+    for (let i = 0; i < 12; i++) {
+      const s = sprite(sheet, i);
+      let same = 0, ink = 0;
+      for (let y = 0; y < 35; y++) for (let x = Math.floor(master.w * .45); x < master.w; x++) {
+        const c = master.data[y * master.w + x];
+        if (c === 255) continue;
+        const sx = master.ox + x - s.ox;
+        const sy = -master.oy - master.h + y + s.oy + s.h;
+        ink++;
+        if (sx >= 0 && sx < s.w && sy >= 0 && sy < s.h && s.data[sy * s.w + sx] === c) same++;
+      }
+      assert.ok(same / ink > .985, `${sheet} frame ${i}: only ${(same / ink * 100).toFixed(1)}% of the face stays registered`);
+    }
+  }
+});
+
 test('greeting a passerby keeps one painted walking body', () => {
   // This stretch has a passerby 90 pixels to the left, clear of the fox's body.
   const at = 500005417.9602512;
