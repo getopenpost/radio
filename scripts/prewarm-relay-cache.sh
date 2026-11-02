@@ -6,7 +6,9 @@
 # YouTube ingest without data for as long as the fill takes (minutes), and
 # YouTube answers a multi-minute gap by looping its buffered window on air.
 # Run this BEFORE the restart: the old programme keeps streaming while the
-# window downloads, and the restart then reconnects in seconds.
+# window downloads, and the restart then reconnects in seconds. Restart within the
+# same four-minute chunk: the running relay deletes other programmes' folders at
+# each chunk boundary, so a slower deploy throws the warmed window away.
 set -euo pipefail
 vps="${RGO_MUSIC_VPS:-rgo-vps}"
 nas="${RGO_MUSIC_NAS:-kraktoos@rgo-nas}"
