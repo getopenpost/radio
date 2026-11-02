@@ -83,9 +83,10 @@ Project-specific rules. The shared global instructions still apply.
 - Houses are rare but present: villages live inside plates 6 and 7 and a farm in
   near plate 4, so one passes every few minutes rather than never or constantly.
 - The fox moves right at least 95% of the time. Never add a stop that breaks
-  this: stops are the workout (every third leg, under 40 s: pull-ups at the
-  bar, dips at the rails ahead of it, back for muscle-ups, on past the rails for
-  push-ups) and a 5-second telescope look. Travel is walking, bicycle, rowing, sailing and broom. Friends
+  this: stops are the workout (every third leg, under 55 s, with controlled reps:
+  pull-ups at the bar, dips at the rails ahead of it, back for muscle-ups, on past
+  the rails for push-ups) and a 5-second telescope look. Travel is walking,
+  bicycle, rowing, sailing and broom. Friends
   pass without stopping. The only text on screen is the two top chips.
 - Country, season and events are laid out by distance in `journey.js`; sky and
   weather come from the wall clock in `clock.js`. A season is a place, so the

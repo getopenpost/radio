@@ -49,21 +49,21 @@ const UP_FROM_FLOOR = [CROUCH, STAND];
 // the rails for 6 push-ups, and away.
 const STAGES = [
   { name: 'ready', x: 0, steps: UP_TO_BAR },
-  { name: 'pull', x: 0, steps: twice(seq('pullup', PULL, 0.058), 20) },
+  { name: 'pull', x: 0, steps: twice(seq('pullup', PULL, 0.1), 20) },
   { name: 'done', x: 0, steps: DOWN_FROM_BAR },
   { name: 'walk', from: 0, to: RAILS },
   { name: 'ready', x: RAILS, steps: UP_TO_RAILS },
-  { name: 'dip', x: RAILS, steps: twice(seq('dip', DIP, 0.075), 5) },
+  { name: 'dip', x: RAILS, steps: twice(seq('dip', DIP, 0.125), 5) },
   { name: 'done', x: RAILS, steps: DOWN_FROM_RAILS },
   { name: 'turn', x: RAILS, steps: [['gym', 3, 0.18]] },
   { name: 'walk', from: RAILS, to: 0 },
   { name: 'turn', x: 0, steps: [['gym', 3, 0.18]] },
   { name: 'ready', x: 0, steps: UP_TO_BAR },
-  { name: 'muscle', x: 0, steps: twice(seq('pullup', MUSCLE, 0.09), 3) },
+  { name: 'muscle', x: 0, steps: twice(seq('pullup', MUSCLE, 0.15), 3) },
   { name: 'done', x: 0, steps: DOWN_FROM_BAR },
   { name: 'walk', from: 0, to: FLOOR },
   { name: 'ready', x: FLOOR, steps: DOWN_TO_FLOOR },
-  { name: 'push', x: FLOOR, steps: twice(seq('pushup', PUSH, 0.06), 6) },
+  { name: 'push', x: FLOOR, steps: twice(seq('pushup', PUSH, 0.125), 6) },
   { name: 'done', x: FLOOR, steps: UP_FROM_FLOOR },
 ];
 const lengthOf = (s) => (s.name === 'walk' ? Math.abs(s.to - s.from) / PACE : s.steps.reduce((sum, step) => sum + step[2], 0));

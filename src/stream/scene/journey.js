@@ -6,10 +6,10 @@
 import { createRng, hashString } from '../../compose/rng.js';
 import { smooth } from './dither.js';
 
-export const WALK_SPEED = 34; // px/s of ground; one stride takes about 1.35 s
-export const LEG = 14000; // a country lasts about seven minutes on foot
+export const WALK_SPEED = 40; // px/s of ground; one stride takes about 1.15 s
+export const LEG = 14000; // a country lasts about six minutes on foot
 const BLEND = 2600;
-export const YEAR = 660000; // ground pixels per trip round the seasons, a bit over five hours
+export const YEAR = 660000; // ground pixels per trip round the seasons, about four and a half hours
 const EPOCH = Date.UTC(2026, 0, 1);
 
 /** How far the fox has come at a moment. A restart resumes in the same country. */
