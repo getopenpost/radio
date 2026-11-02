@@ -48,10 +48,10 @@ test('the fox is moving right at least 95% of the time', () => {
   assert.ok(moving / (moving + held) >= 0.95, `moving ${(moving / (moving + held)).toFixed(3)}`);
 });
 
-test('a workout stays quick and repeats no more than every third leg', () => {
-  assert.ok(WORKOUT_SECONDS < 55, `${WORKOUT_SECONDS}s`);
+test('a workout stays brief and repeats no more than every fifth leg', () => {
+  assert.ok(WORKOUT_SECONDS < 70, `${WORKOUT_SECONDS}s`);
   for (let leg = 900; leg < 1200; leg++) {
-    if (legPlan(leg).events.some((e) => e.kind === 'workout')) assert.equal(leg % 3, 2);
+    if (legPlan(leg).events.some((e) => e.kind === 'workout')) assert.equal(leg % 5, 4);
   }
 });
 
@@ -63,8 +63,8 @@ test('exercise reps allow a controlled lift and lower', () => {
     if (name in duration) duration[name] += dt;
   }
   for (const [name, reps, minimum, maximum] of [
-    ['pull', 20, .9, 1.25], ['dip', 5, .9, 1.25],
-    ['muscle', 3, 1.6, 2.2], ['push', 6, .9, 1.25],
+    ['pull', 20, 1.4, 1.7], ['dip', 5, 1.4, 1.7],
+    ['muscle', 3, 2.5, 2.9], ['push', 6, 1.4, 1.7],
   ]) {
     const seconds = duration[name] / reps;
     assert.ok(seconds >= minimum && seconds <= maximum, `${name}: ${seconds.toFixed(2)} seconds per rep`);
@@ -225,7 +225,7 @@ test('the gym runs bar, rails, back to the bar, then past the rails, inside its 
   assert.deepEqual(lifts.map((s) => s.name), ['pull', 'dip', 'muscle', 'push']);
   assert.deepEqual(lifts.map((s) => s.x), [0, RAILS, 0, WORKOUT_REACH]);
   assert.ok(WORKOUT_REACH > RAILS, 'push-ups happen past the rails');
-  assert.ok(WORKOUT_SECONDS < 55);
+  assert.ok(WORKOUT_SECONDS < 70);
 });
 
 test('a stop holds the ground still, then the fox carries on', () => {

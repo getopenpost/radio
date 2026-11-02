@@ -6,10 +6,10 @@
 import { createRng, hashString } from '../../compose/rng.js';
 import { smooth } from './dither.js';
 
-export const WALK_SPEED = 40; // px/s of ground; one stride takes about 1.15 s
-export const LEG = 14000; // a country lasts about six minutes on foot
+export const WALK_SPEED = 44; // px/s of ground; one stride takes about 1.05 s
+export const LEG = 14000; // a country lasts about five minutes on foot
 const BLEND = 2600;
-export const YEAR = 660000; // ground pixels per trip round the seasons, about four and a half hours
+export const YEAR = 660000; // ground pixels per trip round the seasons, about four hours
 const EPOCH = Date.UTC(2026, 0, 1);
 
 /** How far the fox has come at a moment. A restart resumes in the same country. */
@@ -87,7 +87,7 @@ export const speedOf = (mode) => SPEEDS[mode];
 const plans = new Map();
 /**
  * A leg's events, as distances. Moving events span a..b. Stops sit at one
- * distance and hold the ground still; workouts come every third leg, so the
+ * distance and hold the ground still; workouts come every fifth leg, so the
  * fox stays in motion 95% of the time or better.
  */
 export function legPlan(leg) {
@@ -123,7 +123,7 @@ export function legPlan(leg) {
       free = b + 800;
     }
   }
-  if (((leg % 3) + 3) % 3 === 2 && end - free > 1200) {
+  if (((leg % 5) + 5) % 5 === 4 && end - free > 1200) {
     events.push({ kind: 'workout', a: free + rng.int(300, end - free - 500), id: `workout:${leg}` });
     free = events.at(-1).a + 700;
   }
