@@ -1,8 +1,18 @@
-// The fox's frames, read from the animation sheets. Walking is one cycle of twelve
-// frames advanced by distance, so stride and ground agree; pedalling and rowing
+// The fox's frames, read from the animation sheets. Walking uses painted poses
+// advanced by distance, so stride and ground agree; pedalling and rowing
 // follow distance in the same way. The workout is a timed run through its sheets.
 export const STRIDE = 46; // ground pixels per full walk cycle
-export const WALK_FRAMES = 12;
+// Sheet order jumps between contact and passing poses. Play one stance followed
+// by one recovery; each outfit has its own painted pose order.
+const WALK_CYCLES = {
+  walk12: [9, 0, 11, 10, 6, 1, 2, 8, 1, 7],
+  'walk12-rain': [9, 0, 10, 1, 2, 7, 8, 3, 1, 4],
+  'walk12-snow': [10, 6, 4, 9, 5, 11, 1, 2, 3, 8, 7, 0],
+};
+export function walkFrame(distance, sheet = 'walk12') {
+  const cycle = WALK_CYCLES[sheet];
+  return cycle[Math.floor(((distance % STRIDE + STRIDE) % STRIDE) / STRIDE * cycle.length)];
+}
 export const PEDAL_FRAMES = 8;
 export const ROW_FRAMES = 12;
 export const SAIL_FRAMES = 8;

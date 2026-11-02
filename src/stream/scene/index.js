@@ -3,7 +3,7 @@
 // countryside. It walks, picks up a bicycle, rows a lake, sails a coast, rides a
 // broom, and pauses only for a quick workout or a look through a telescope. The
 // wall clock drives the sun, moon and weather; distance drives country and season.
-import { BROOM, LOOK, PEDAL_FRAMES, RAILS, ROW_FRAMES, SAIL_FRAMES, SCOPE_SECONDS, STRIDE, WALK_FRAMES, WORKOUT_REACH, WORKOUT_SECONDS, workoutAt } from './acts.js';
+import { BROOM, LOOK, PEDAL_FRAMES, RAILS, ROW_FRAMES, SAIL_FRAMES, SCOPE_SECONDS, STRIDE, WORKOUT_REACH, WORKOUT_SECONDS, walkFrame, workoutAt } from './acts.js';
 import { createCanvas, HEIGHT, maskSprite, WIDTH } from './canvas.js';
 import { sky as skyAt, weather as weatherAt, weatherAmount } from './clock.js';
 import { bayer, clamp01 } from './dither.js';
@@ -32,7 +32,6 @@ const DIP = 58; // dip rail height
 const AXLE = [-30, 37]; // wheel centres from the middle of a riding frame
 const PARKED_SHIFT = 3; // moves the parked bicycle's art onto those same wheels
 const JUMP_RAILS = 34; // how high the hop onto the rails goes
-const NECK = 34; // rows of a walk frame above the floor that stay the frame's own
 
 const mod = (a, n) => ((a % n) + n) % n;
 // A tiling sheet of mist density, so drifting fog costs one lookup per pixel.
@@ -297,7 +296,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     // --- The fox. ---
     const outfit = rain > 0.3 ? '-rain' : c.winter > 0.5 ? '-snow' : '';
     const walkSheet = `walk12${outfit}`;
-    const step = Math.floor(mod(ground / STRIDE, 1) * WALK_FRAMES);
+    const step = walkFrame(ground, walkSheet);
     let drawn = false;
     if (hold) {
       if (hold.event.kind === 'workout') {
@@ -369,12 +368,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
         const gym = eventsIn(ground - WORKOUT_REACH - 14, ground).find((e) => e.kind === 'workout');
         if (gym) fox.puff(FOX_X + 6, PATH_Y - 60, (ground - gym.a - WORKOUT_REACH) / 14 + 0.5);
       }
-      // The body takes the frame; the head rides a pixel lower on each footfall.
-      const s = sprite(walkSheet, step);
-      const headRows = s.oy + s.h - NECK;
-      frame(canvas, walkSheet, step, FOX_X, feet, { skip: headRows });
-      const nod = step % 6 < 3 ? 1 : 0;
-      frame(canvas, walkSheet, step, FOX_X, feet + nod, { rows: headRows });
+      frame(canvas, walkSheet, step, FOX_X, feet);
       // The idle sheet contains another whole fox, including its tail and arms.
       // Keep the painted walking pose as their sole owner throughout the stride.
     }
@@ -427,9 +421,9 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
   /** The gym routine: painted frames, hung on the real bar and rails. The hat stays off for it. */
   function workout({ name, sheet, frame: f, back, lift }) {
     if (name === 'walk') {
-      const stride = Math.floor(mod(ground / STRIDE, 1) * WALK_FRAMES);
+      const stride = walkFrame(back ? -ground : ground);
       shadow(FOX_X, PATH_Y + 1, 24);
-      frame(canvas, 'walk12', back ? WALK_FRAMES - 1 - stride : stride, FOX_X, PATH_Y, { flip: back });
+      frame(canvas, 'walk12', stride, FOX_X, PATH_Y, { flip: back });
       return;
     }
     const s = sprite(sheet, f);

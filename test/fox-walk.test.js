@@ -6,7 +6,7 @@ import { sky } from '../src/stream/scene/clock.js';
 import { PATH_Y } from '../src/stream/scene/landscape.js';
 import { sprite } from '../src/stream/scene/nature.js';
 import { artSlot, computePalette, SLOTS } from '../src/stream/scene/palette.js';
-import { STRIDE, WALK_FRAMES } from '../src/stream/scene/acts.js';
+import { STRIDE, walkFrame } from '../src/stream/scene/acts.js';
 
 const atlas = JSON.parse(readFileSync(new URL('../src/stream/scene/sprites.json', import.meta.url)));
 
@@ -16,7 +16,7 @@ test('greeting a passerby keeps one painted walking body', () => {
   const date = new Date('2026-06-21T12:00:00Z');
   const light = sky(date, 'Europe/Lisbon', 0);
   const moonlight = Math.sin(Math.PI * (light.moon ?? 0)) * (1 - Math.abs(light.moonAge - .5) * 2);
-  const stride = Math.floor(((at % STRIDE) + STRIDE) % STRIDE / STRIDE * WALK_FRAMES);
+  const stride = walkFrame(at);
   const painted = sprite('walk12', stride);
   const top = PATH_Y - painted.oy - painted.h + 1;
 
@@ -48,5 +48,22 @@ test('greeting a passerby keeps one painted walking body', () => {
     }
     assert.ok(paintedPixels > 500, 'the fixture covers the painted walking body');
     assert.equal(extraPixels, 0, `${extraPixels} extra fox pixels outside the walking pose at ${time}s`);
+  }
+});
+
+test('each painted walk cycle has one backward foot pass and one forward recovery', () => {
+  for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
+    const tips = Array.from({ length: 120 }, (_, i) => {
+      const s = sprite(sheet, walkFrame(i * STRIDE / 120, sheet));
+      let toe = -Infinity;
+      for (let y = s.h - 3; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+        if (s.data[y * s.w + x] !== 255) toe = Math.max(toe, x + s.ox);
+      }
+      return toe;
+    });
+    assert.ok(Math.max(...tips) - Math.min(...tips) >= 15, `${sheet} must still stride`);
+    const directions = tips.map((x, i) => tips[(i + 1) % tips.length] - x).filter((d) => Math.abs(d) > 1).map(Math.sign);
+    const turns = directions.filter((d, i) => d !== directions[(i + 1) % directions.length]).length;
+    assert.equal(turns, 2, `${sheet} reverses the foot ${turns} times in one stride`);
   }
 });
