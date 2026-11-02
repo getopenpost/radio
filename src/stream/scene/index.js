@@ -14,6 +14,7 @@ import { convergeMask } from './logo.js';
 import { frame, hash, noise2, sprite } from './nature.js';
 import { computePalette, ramp, S, SLOTS } from './palette.js';
 import { arc, createSky } from './sky.js';
+import { drawActorShadow } from './shadow.js';
 import { createWater, swellAt } from './water.js';
 import { createWeather } from './weather.js';
 
@@ -110,6 +111,11 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     }
   }
 
+  function groundedFrame(sheet, i, x, y, groundY = PATH_Y, options = {}) {
+    drawActorShadow(canvas, sprite(sheet, i), x, y, groundY, options);
+    frame(canvas, sheet, i, x, y, options);
+  }
+
   /** The bar. The painted frames hang on it by their recorded bar row. */
   function drawBar(x) {
     for (const dx of [-54, 52]) {
@@ -135,13 +141,13 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     // The hat comes off in mid-air, in a puff, wherever the next pose has none.
     const sheet = (dismount ? p > 0.5 : p < 0.5) ? `hop${outfit}` : 'hop';
     const y = fromY + (toY - fromY) * p - Math.sin(Math.PI * p) * 16;
-    frame(canvas, sheet, i, FOX_X, Math.round(y) + sprite(sheet, i).oy);
+    groundedFrame(sheet, i, FOX_X, Math.round(y) + sprite(sheet, i).oy);
     if (outfit && Math.abs(p - 0.5) < 0.25) fox.puff(FOX_X + 6, y - 58, (p - 0.25) / 0.5);
   }
 
   /** The body in a standing pose with its feet on the road. */
   function stood(sheet, i, x, y = PATH_Y, flip = false) {
-    frame(canvas, sheet, i, x, y + sprite(sheet, i).oy, { flip });
+    groundedFrame(sheet, i, x, y + sprite(sheet, i).oy, y, { flip });
   }
 
   /**
@@ -289,8 +295,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
       const step = Math.floor(mod(-friend.rel / 1.76 / (STRIDE / 2), 1) * 4);
       const x = Math.round(FOX_X + friend.rel);
       const y = roadY(ground + friend.rel) - 4;
-      shadow(x, y, 16);
-      frame(canvas, 'friends', friend.offset + step, x, y);
+      groundedFrame('friends', friend.offset + step, x, y, y);
     }
 
     // --- The fox. ---
@@ -314,10 +319,10 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
     } else if (kind === 'bike') {
       const on = (ground - trip.a) / MOUNT;
       const off = (trip.b - ground) / MOUNT;
-      shadow(FOX_X, feet + 1, 36);
       if (on < 1) hop(clamp01(on), PATH_Y, PATH_Y - 34, outfit);
       else if (off < 1) hop(1 - clamp01(off), PATH_Y - 34, PATH_Y, outfit, true);
       else {
+        shadow(FOX_X, feet + 1, 36);
         const turn = ground / WHEEL;
         fox.wheel(FOX_X + AXLE[0], feet - WHEEL, turn);
         fox.wheel(FOX_X + AXLE[1], feet - WHEEL, turn);
@@ -350,25 +355,23 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
         const lift = Math.min(1, edge / BROOM_DOWN);
         const y = Math.round(PATH_Y - 3 - lift * lift * (3 - 2 * lift) * 78 + Math.sin(time * 1.6) * 1.4);
         const f = BROOM.fly[Math.floor(mod(time * 3, 3))];
-        frame(canvas, 'broom', f, FOX_X, y + sprite('broom', 0).oy);
+        groundedFrame('broom', f, FOX_X, y + sprite('broom', 0).oy);
         for (let i = 0; i < 12; i++) {
           const age = mod(time * 0.8 + i / 12, 1);
           const px = Math.round(FOX_X - 54 - age * 90 + Math.sin(i * 7) * 6);
           const py = Math.round(y - 12 + Math.sin(i * 3 + time * 3) * (2 + age * 8));
           if (bayer(px, py) > age * 0.9) canvas.set(px, py, S.spark);
         }
-        if (lift < 0.4) shadow(FOX_X, feet + 1, 24);
         fox.puff(FOX_X + 4, y - 44, (ground - trip.a - MOUNT) / 26);
       }
       drawn = true;
     }
     if (!drawn) {
-      if (onLand) shadow(FOX_X, feet + 1, 24);
       if (outfit) {
         const gym = eventsIn(ground - WORKOUT_REACH - 14, ground).find((e) => e.kind === 'workout');
         if (gym) fox.puff(FOX_X + 6, PATH_Y - 60, (ground - gym.a - WORKOUT_REACH) / 14 + 0.5);
       }
-      frame(canvas, walkSheet, step, FOX_X, feet);
+      groundedFrame(walkSheet, step, FOX_X, feet);
       // The idle sheet contains another whole fox, including its tail and arms.
       // Keep the painted walking pose as their sole owner throughout the stride.
     }
@@ -422,18 +425,16 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
   function workout({ name, sheet, frame: f, back, lift }) {
     if (name === 'walk') {
       const stride = walkFrame(back ? -ground : ground);
-      shadow(FOX_X, PATH_Y + 1, 24);
-      frame(canvas, 'walk12', stride, FOX_X, PATH_Y, { flip: back });
+      groundedFrame('walk12', stride, FOX_X, PATH_Y, PATH_Y, { flip: back });
       return;
     }
     const s = sprite(sheet, f);
-    if (sheet === 'pullup') return frame(canvas, sheet, f, FOX_X, PATH_Y - 3 - BAR + s.bar);
-    if (sheet === 'dip') return frame(canvas, sheet, f, FOX_X, railY());
-    if (sheet === 'pushup') return frame(canvas, sheet, f, FOX_X, PATH_Y + sprite('pushup', 0).oy);
+    if (sheet === 'pullup') return groundedFrame(sheet, f, FOX_X, PATH_Y - 3 - BAR + s.bar);
+    if (sheet === 'dip') return groundedFrame(sheet, f, FOX_X, railY());
+    if (sheet === 'pushup') return groundedFrame(sheet, f, FOX_X, PATH_Y + sprite('pushup', 0).oy);
     const hang = BAR + 5 - sprite('gym', 6).h - sprite('gym', 6).oy * 0;
     const height = sheet === 'hop' && f !== 3 ? JUMP_RAILS : sheet === 'gym' ? hang : Math.min(hang, JUMP_RAILS);
-    if (lift === 0) shadow(FOX_X, PATH_Y + 1, 24);
-    frame(canvas, sheet, f, FOX_X, PATH_Y + s.oy - Math.round(lift * height));
+    groundedFrame(sheet, f, FOX_X, PATH_Y + s.oy - Math.round(lift * height));
   }
 
   /** Slow banks of mist lying between the hills, in dither over the painted land. */
