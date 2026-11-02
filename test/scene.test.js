@@ -49,7 +49,7 @@ test('the fox is moving right at least 95% of the time', () => {
 });
 
 test('a workout stays brief and repeats no more than every fifth leg', () => {
-  assert.ok(WORKOUT_SECONDS < 70, `${WORKOUT_SECONDS}s`);
+  assert.ok(WORKOUT_SECONDS < 80, `${WORKOUT_SECONDS}s`);
   for (let leg = 900; leg < 1200; leg++) {
     if (legPlan(leg).events.some((e) => e.kind === 'workout')) assert.equal(leg % 5, 4);
   }
@@ -63,11 +63,32 @@ test('exercise reps allow a controlled lift and lower', () => {
     if (name in duration) duration[name] += dt;
   }
   for (const [name, reps, minimum, maximum] of [
-    ['pull', 20, 1.4, 1.7], ['dip', 5, 1.4, 1.7],
-    ['muscle', 3, 2.5, 2.9], ['push', 6, 1.4, 1.7],
+    ['pull', 20, 1.7, 2], ['dip', 5, 1.7, 2],
+    ['muscle', 3, 2.5, 2.9], ['push', 6, 1.7, 2],
   ]) {
     const seconds = duration[name] / reps;
     assert.ok(seconds >= minimum && seconds <= maximum, `${name}: ${seconds.toFixed(2)} seconds per rep`);
+  }
+});
+
+test('pull-ups pause at the top and dips and push-ups pause at the bottom', () => {
+  const runs = [];
+  const dt = .005;
+  for (let t = 0; t < WORKOUT_SECONDS; t += dt) {
+    const { name, frame } = workoutAt(t);
+    const last = runs.at(-1);
+    if (last?.name === name && last.frame === frame) last.seconds += dt;
+    else runs.push({ name, frame, seconds: dt });
+  }
+  for (const [name, peak, reps] of [['pull', 5, 20], ['dip', 4, 5], ['push', 4, 6]]) {
+    const holds = runs.filter((r) => r.name === name && r.frame === peak);
+    assert.equal(holds.length, reps, `${name}: every rep has a hold`);
+    for (const hold of holds) {
+      assert.ok(hold.seconds >= .4 && hold.seconds <= .55, `${name}: hold lasts ${hold.seconds.toFixed(3)}s`);
+      const i = runs.indexOf(hold);
+      assert.ok(hold.seconds > runs[i - 1].seconds * 2, `${name}: pause is longer than the lift`);
+      assert.ok(hold.seconds > runs[i + 1].seconds * 2, `${name}: pause is longer than the lowering frame`);
+    }
   }
 });
 
@@ -225,7 +246,7 @@ test('the gym runs bar, rails, back to the bar, then past the rails, inside its 
   assert.deepEqual(lifts.map((s) => s.name), ['pull', 'dip', 'muscle', 'push']);
   assert.deepEqual(lifts.map((s) => s.x), [0, RAILS, 0, WORKOUT_REACH]);
   assert.ok(WORKOUT_REACH > RAILS, 'push-ups happen past the rails');
-  assert.ok(WORKOUT_SECONDS < 70);
+  assert.ok(WORKOUT_SECONDS < 80);
 });
 
 test('a stop holds the ground still, then the fox carries on', () => {

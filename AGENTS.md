@@ -83,7 +83,7 @@ Project-specific rules. The shared global instructions still apply.
 - Houses are rare but present: villages live inside plates 6 and 7 and a farm in
   near plate 4, so one passes every few minutes rather than never or constantly.
 - The fox moves right at least 95% of the time. Never add a stop that breaks
-  this: stops are the workout (every fifth leg, under 70 s, with controlled reps:
+  this: stops are the workout (every fifth leg, under 80 s, with controlled reps:
   pull-ups at the bar, dips at the rails ahead of it, back for muscle-ups, on past
   the rails for push-ups) and a 5-second telescope look. Travel is walking,
   bicycle, rowing, sailing and broom. Friends

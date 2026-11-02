@@ -28,7 +28,8 @@ export const RAILS = 132;
 const FLOOR = RAILS + 84;
 const PACE = 52; // px/s between stations
 
-const seq = (sheet, frames, step) => frames.map((f) => [sheet, f, step]);
+// Hold the end pose without speeding up the painted lift or lowering.
+const seq = (sheet, frames, step, hold = -1) => frames.map((f) => [sheet, f, step + (f === hold ? 0.3 : 0)]);
 const twice = (list, n) => Array.from({ length: n }, () => list).flat();
 const PULL = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const MUSCLE = [0, 12, 13, 14, 15, 16, 17, 17, 16, 15, 3, 1];
@@ -49,11 +50,11 @@ const UP_FROM_FLOOR = [CROUCH, STAND];
 // the rails for 6 push-ups, and away.
 const STAGES = [
   { name: 'ready', x: 0, steps: UP_TO_BAR },
-  { name: 'pull', x: 0, steps: twice(seq('pullup', PULL, 0.15), 20) },
+  { name: 'pull', x: 0, steps: twice(seq('pullup', PULL, 0.15, 5), 20) },
   { name: 'done', x: 0, steps: DOWN_FROM_BAR },
   { name: 'walk', from: 0, to: RAILS },
   { name: 'ready', x: RAILS, steps: UP_TO_RAILS },
-  { name: 'dip', x: RAILS, steps: twice(seq('dip', DIP, 0.1875), 5) },
+  { name: 'dip', x: RAILS, steps: twice(seq('dip', DIP, 0.1875, 4), 5) },
   { name: 'done', x: RAILS, steps: DOWN_FROM_RAILS },
   { name: 'turn', x: RAILS, steps: [['gym', 3, 0.18]] },
   { name: 'walk', from: RAILS, to: 0 },
@@ -63,7 +64,7 @@ const STAGES = [
   { name: 'done', x: 0, steps: DOWN_FROM_BAR },
   { name: 'walk', from: 0, to: FLOOR },
   { name: 'ready', x: FLOOR, steps: DOWN_TO_FLOOR },
-  { name: 'push', x: FLOOR, steps: twice(seq('pushup', PUSH, 0.1875), 6) },
+  { name: 'push', x: FLOOR, steps: twice(seq('pushup', PUSH, 0.1875, 4), 6) },
   { name: 'done', x: FLOOR, steps: UP_FROM_FLOOR },
 ];
 const lengthOf = (s) => (s.name === 'walk' ? Math.abs(s.to - s.from) / PACE : s.steps.reduce((sum, step) => sum + step[2], 0));
