@@ -3,7 +3,7 @@
 // countryside. It walks, picks up a bicycle, rows a lake, sails a coast, rides a
 // broom, and pauses only for a quick workout or a look through a telescope. The
 // wall clock drives the sun, moon and weather; distance drives country and season.
-import { BROOM, IDLE, LOOK, PEDAL_FRAMES, RAILS, ROW_FRAMES, SAIL_FRAMES, SCOPE_SECONDS, STRIDE, WALK_FRAMES, WORKOUT_REACH, WORKOUT_SECONDS, workoutAt } from './acts.js';
+import { BROOM, LOOK, PEDAL_FRAMES, RAILS, ROW_FRAMES, SAIL_FRAMES, SCOPE_SECONDS, STRIDE, WALK_FRAMES, WORKOUT_REACH, WORKOUT_SECONDS, workoutAt } from './acts.js';
 import { createCanvas, HEIGHT, maskSprite, WIDTH } from './canvas.js';
 import { sky as skyAt, weather as weatherAt, weatherAmount } from './clock.js';
 import { bayer, clamp01 } from './dither.js';
@@ -32,7 +32,6 @@ const DIP = 58; // dip rail height
 const AXLE = [-30, 37]; // wheel centres from the middle of a riding frame
 const PARKED_SHIFT = 3; // moves the parked bicycle's art onto those same wheels
 const JUMP_RAILS = 34; // how high the hop onto the rails goes
-const HEAD_ROWS = 40; // top rows of a frame that hold the head
 const NECK = 34; // rows of a walk frame above the floor that stay the frame's own
 
 const mod = (a, n) => ((a % n) + n) % n;
@@ -285,9 +284,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
       }
     }
 
-    // A friend coming the other way: neither stops, both wave.
+    // A friend coming the other way: neither stops.
     const friend = kind === 'walk' && !hold ? friendNear(ground) : null;
-    const greeting = friend && Math.abs(friend.rel) < 92;
     if (friend) {
       const step = Math.floor(mod(-friend.rel / 1.76 / (STRIDE / 2), 1) * 4);
       const x = Math.round(FOX_X + friend.rel);
@@ -377,16 +375,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
       frame(canvas, walkSheet, step, FOX_X, feet, { skip: headRows });
       const nod = step % 6 < 3 ? 1 : 0;
       frame(canvas, walkSheet, step, FOX_X, feet + nod, { rows: headRows });
-      // Small gestures laid over the stride. The gesture sheet shares the walk's head.
-      if (walkSheet === 'walk12') {
-        const vibing = Math.floor(beat / 32) % 5 === 3;
-        let g = null;
-        if (mod(time, 4.3) < 0.14) g = IDLE.blink;
-        else if (greeting) g = Math.floor(time * 6) % 2 ? IDLE.waveA : IDLE.waveB;
-        else if (vibing) g = IDLE.happy;
-        else if (sky.event?.kind === 'birds' && !sky.event.done && sky.event.x > 30 && sky.event.x < 290) g = IDLE.up;
-        if (g != null) frame(canvas, 'idle-moves', g, FOX_X, feet + nod, { rows: greeting ? 48 : HEAD_ROWS });
-      }
+      // The idle sheet contains another whole fox, including its tail and arms.
+      // Keep the painted walking pose as their sole owner throughout the stride.
     }
 
     land.draw(canvas, 3, view);
