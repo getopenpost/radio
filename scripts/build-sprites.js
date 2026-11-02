@@ -10,7 +10,7 @@ const ROOT = new URL('../assets/scene/', import.meta.url).pathname;
 // name: [columns, rows, block (sheet pixels per art pixel), family].
 // The block is what fixes a sprite's size on screen; the fox is 72 pixels tall in every sheet.
 const SHEETS = {
-  'fox/walk12': [6, 2, 4, 'actor'], 'fox/walk12-rain': [6, 2, 4, 'actor'], 'fox/walk12-snow': [6, 2, 4, 'actor'],
+  'fox/walk8': [4, 2, 4.5, 'actor'], 'fox/walk8-rain': [4, 2, 4.5, 'actor'], 'fox/walk8-snow': [4, 2, 4.5, 'actor'],
   'fox/idle-moves': [6, 2, 4, 'actor'], 'fox/gestures': [4, 2, 5, 'actor'],
   'fox/pedal': [4, 2, 4.3, 'actor'], 'fox/ride': [4, 2, 5.5, 'actor'],
   'fox/row': [6, 2, 3, 'actor'], 'fox/sail': [4, 2, 2.95, 'actor'],
@@ -22,9 +22,9 @@ const SHEETS = {
 // pasted into every listed frame, so eyes and face are the same pixels throughout.
 const every = (n) => Array.from({ length: n }, (_, i) => i);
 const HEADS = {
-  'fox/walk12': { master: 0, box: [150, 30, 345, 205], frames: every(12) },
-  'fox/walk12-rain': { master: 0, box: [150, 20, 345, 205], frames: every(12) },
-  'fox/walk12-snow': { master: 0, box: [108, 15, 345, 205], frames: every(12) },
+  'fox/walk8': { master: 0, box: [160, 65, 365, 260], frames: every(8) },
+  'fox/walk8-rain': { master: 0, box: [145, 65, 365, 290], frames: every(8) },
+  'fox/walk8-snow': { master: 0, box: [145, 65, 365, 280], frames: every(8) },
   'fox/pedal': { master: 0, box: [185, 50, 385, 240], frames: every(8) },
   'fox/row': { master: 0, box: [120, 60, 245, 175], frames: every(12) },
   'fox/broom': { master: 0, box: [150, 50, 440, 255], frames: [0, 1, 2, 3] },
@@ -33,8 +33,14 @@ const HEADS = {
 const STEADY = { 'fox/row': [10, 225, 350, 340], 'fox/sail': [20, 300, 420, 430], 'fox/pedal': [120, 280, 410, 400], 'fox/dip': [20, 575, 345, 628] };
 // Workout sheets record the row of their painted bar, so the frame can be hung on the real one.
 const BARRED = new Set(['fox/pullup', 'fox/dip']);
-// The hop again in the fox's other outfits: the outfit's head is pasted over each frame.
-const DRESSED = [['fox/hop', 'hop-snow', 'fox/walk12-snow', [0, 1, 2, 3, 4, 5, 6, 7]], ['fox/hop', 'hop-rain', 'fox/walk12-rain', [0, 1, 2, 3, 4, 5, 6, 7]]];
+// Costumes follow the same painted body and supporting paws. A newly generated
+// outfit must never introduce a different gait or lose the body's rise and fall.
+const DRESSED = [
+  ['fox/walk8', 'walk8-rain', 'fox/walk8-rain', every(8)],
+  ['fox/walk8', 'walk8-snow', 'fox/walk8-snow', every(8)],
+  ['fox/hop', 'hop-snow', 'fox/walk8-snow', every(8)],
+  ['fox/hop', 'hop-rain', 'fox/walk8-rain', every(8)],
+];
 
 function load(name) {
   const file = `${ROOT}${name}.png`;
@@ -212,6 +218,9 @@ function cut(name, [cols, rows, f], dress) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data[y * w + x] = grid[(y + y0) * W + x + x0];
     // Anchor: offset of the sprite's left edge from the cell's centre, and of its bottom from the cell's floor.
     const out = { w, h, ox: x0 - Math.floor(W / 2) + sx, oy: H - 1 - y1 + sy, data };
+    // The supporting paw stays on the road; the painted torso height supplies
+    // the walk's rise and fall, rather than locking the head in place.
+    if (name.startsWith('fox/walk8')) out.oy = 2;
     if (BARRED.has(name)) out.bar = barRow(out);
     return out;
   }).filter(Boolean);
@@ -263,16 +272,15 @@ const heads = {};
 function lockHeads(grids, { master, box, frames }, f, name) {
   const patch = patchOf(grids[master], box, f);
   heads[name] = patch;
-  if (box === HEADS['fox/walk12'].box) walkHead = patch;
+  if (box === HEADS['fox/walk8'].box) walkHead = patch;
   for (const i of frames) {
     if (i === master) continue;
     const g = grids[i];
     const { dx, dy } = bestOffset(g, patch, 10);
-    if (name.startsWith('fox/walk12')) {
-      // Keep the whole painted pose registered to its master face. Cell bounds
-      // and matching offsets otherwise make it jitter by one or two art pixels.
+    if (name.startsWith('fox/walk8')) {
+      // Remove horizontal registration errors while preserving the vertical
+      // weight transfer already painted into the pose.
       g.sx = -dx + Math.floor(g.W / 2) - Math.floor(grids[master].W / 2);
-      g.sy = dy + grids[master].H - g.H;
     }
     for (let y = patch.y0 + dy; y < patch.y1 + dy; y++) for (let x = patch.x0 + dx; x < patch.x1 + dx; x++) if (x >= 0 && y >= 0 && x < g.W && y < g.H) g.grid[y * g.W + x] = -1;
     for (const p of patch.cells) if (p.x + dx >= 0 && p.y + dy >= 0 && p.x + dx < g.W && p.y + dy < g.H) g.grid[(p.y + dy) * g.W + p.x + dx] = p.c;

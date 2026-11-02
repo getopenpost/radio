@@ -133,7 +133,10 @@ Project-specific rules. The shared global instructions still apply.
   never redraw a face the same way twice, so `HEADS` in the build script pastes one
   master head into every frame of a cycle.
 - All sheets show the fox at one size. A sheet's block size in `SHEETS` is what sets
-  it, so compare a new sheet against `walk12` beside it, by the head.
+  it, so compare a new sheet against `walk8` beside it, by the head.
+  The eight walking poses cover two compact steps. Preserve the painted body's
+  2-4 pixel rise and fall; registering the head to a fixed height makes it rigid.
+  Walking outfits in `DRESSED` reuse that same painted body and its paw contacts.
 - `build-sprites.js` flattens painted fur (`flatten`): mottling lands somewhere else on
   every frame and reads as flicker. Keying must not touch reds: the broom scarf once
   vanished because the magenta test matched it.

@@ -12,7 +12,7 @@ import { drawActorShadow } from '../src/stream/scene/shadow.js';
 test('the soft shadow has continuous shading instead of checkerboard holes', () => {
   const canvas = createCanvas();
   canvas.index.fill(S.path1);
-  drawActorShadow(canvas, sprite('walk12', 0), 320, PATH_Y, PATH_Y);
+  drawActorShadow(canvas, sprite('walk8', 0), 320, PATH_Y, PATH_Y);
   for (let x = 305; x <= 325; x++) {
     assert.notEqual(canvas.get(x, PATH_Y + 1), S.path1, `unshaded hole at ${x}`);
   }
@@ -22,7 +22,7 @@ test('height softens the shadow and preserves snow and equipment colours', () =>
   const palette = new Uint8Array(SLOTS * 3);
   computePalette(palette, { light: 1, warmth: 0, overcast: 0, rain: 0, fog: 0, moonlight: 0, wet: 0, time: 0 });
   const luma = (slot) => palette[slot * 3] + palette[slot * 3 + 1] + palette[slot * 3 + 2];
-  for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
+  for (const sheet of ['walk8', 'walk8-rain', 'walk8-snow']) {
     const s = sprite(sheet, 0);
     const draw = (height, surface = S.path1) => {
       const canvas = createCanvas();

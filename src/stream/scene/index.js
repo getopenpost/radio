@@ -300,8 +300,8 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
 
     // --- The fox. ---
     const outfit = rain > 0.3 ? '-rain' : c.winter > 0.5 ? '-snow' : '';
-    const walkSheet = `walk12${outfit}`;
-    const step = walkFrame(ground, walkSheet);
+    const walkSheet = `walk8${outfit}`;
+    const step = walkFrame(ground);
     let drawn = false;
     if (hold) {
       if (hold.event.kind === 'workout') {
@@ -425,7 +425,7 @@ export function createScene({ seed = 7, timeZone = 'Europe/Lisbon', dayMinutes =
   function workout({ name, sheet, frame: f, back, lift }) {
     if (name === 'walk') {
       const stride = walkFrame(back ? -ground : ground);
-      groundedFrame('walk12', stride, FOX_X, PATH_Y, PATH_Y, { flip: back });
+      groundedFrame('walk8', stride, FOX_X, PATH_Y, PATH_Y, { flip: back });
       return;
     }
     const s = sprite(sheet, f);

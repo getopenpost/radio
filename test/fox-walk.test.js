@@ -10,22 +10,30 @@ import { STRIDE, walkFrame } from '../src/stream/scene/acts.js';
 
 const atlas = JSON.parse(readFileSync(new URL('../src/stream/scene/sprites.json', import.meta.url)));
 
-test('walking keeps the painted face registered instead of jittering between poses', () => {
-  for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
+test('walking preserves the painted face through a small natural head bob', () => {
+  for (const sheet of ['walk8', 'walk8-rain', 'walk8-snow']) {
     const master = sprite(sheet, 0);
-    for (let i = 0; i < 12; i++) {
+    const offsets = [];
+    for (let i = 0; i < 8; i++) {
       const s = sprite(sheet, i);
-      let same = 0, ink = 0;
-      for (let y = 0; y < 35; y++) for (let x = Math.floor(master.w * .45); x < master.w; x++) {
-        const c = master.data[y * master.w + x];
-        if (c === 255) continue;
-        const sx = master.ox + x - s.ox;
-        const sy = -master.oy - master.h + y + s.oy + s.h;
-        ink++;
-        if (sx >= 0 && sx < s.w && sy >= 0 && sy < s.h && s.data[sy * s.w + sx] === c) same++;
+      let best = { match: 0, dy: 0 };
+      for (let dy = -4; dy <= 4; dy++) for (let dx = -2; dx <= 2; dx++) {
+        let same = 0, ink = 0;
+        for (let y = 0; y < 34; y++) for (let x = Math.floor(master.w * .45); x < master.w; x++) {
+          const c = master.data[y * master.w + x];
+          if (c === 255) continue;
+          const sx = master.ox + x + dx - s.ox;
+          const sy = -master.oy - master.h + y + dy + s.oy + s.h;
+          ink++;
+          if (sx >= 0 && sx < s.w && sy >= 0 && sy < s.h && s.data[sy * s.w + sx] === c) same++;
+        }
+        if (same / ink > best.match) best = { match: same / ink, dy };
       }
-      assert.ok(same / ink > .985, `${sheet} frame ${i}: only ${(same / ink * 100).toFixed(1)}% of the face stays registered`);
+      assert.ok(best.match > .985, `${sheet} frame ${i}: only ${(best.match * 100).toFixed(1)}% of the face matches within a small head bob`);
+      offsets.push(best.dy);
     }
+    const bob = Math.max(...offsets) - Math.min(...offsets);
+    assert.ok(bob >= 2 && bob <= 4, `${sheet}: ${bob}px head bob should retain the painted body's motion`);
   }
 });
 
@@ -36,7 +44,7 @@ test('greeting a passerby keeps one painted walking body', () => {
   const light = sky(date, 'Europe/Lisbon', 0);
   const moonlight = Math.sin(Math.PI * (light.moon ?? 0)) * (1 - Math.abs(light.moonAge - .5) * 2);
   const stride = walkFrame(at);
-  const painted = sprite('walk12', stride);
+  const painted = sprite('walk8', stride);
   const top = PATH_Y - painted.oy - painted.h + 1;
 
   for (const time of [1, 1.2]) {
@@ -70,19 +78,28 @@ test('greeting a passerby keeps one painted walking body', () => {
   }
 });
 
-test('each painted walk cycle has one backward foot pass and one forward recovery', () => {
-  for (const sheet of ['walk12', 'walk12-rain', 'walk12-snow']) {
-    const tips = Array.from({ length: 120 }, (_, i) => {
-      const s = sprite(sheet, walkFrame(i * STRIDE / 120, sheet));
-      let toe = -Infinity;
-      for (let y = s.h - 3; y < s.h; y++) for (let x = 0; x < s.w; x++) {
-        if (s.data[y * s.w + x] !== 255) toe = Math.max(toe, x + s.ox);
+test('both painted steps advance the legs with compact foot reach', () => {
+  for (const sheet of ['walk8', 'walk8-rain', 'walk8-snow']) {
+    assert.equal(atlas.sheets[sheet].sprites.length, 8, `${sheet} contains the full two-step cycle`);
+    const feet = Array.from({ length: 8 }, (_, i) => {
+      const s = sprite(sheet, walkFrame((i + .5) * STRIDE / 8));
+      const pixels = [];
+      for (let y = s.h - 12; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+        if (s.data[y * s.w + x] !== 255) pixels.push(x + s.ox);
       }
-      return toe;
+      assert.ok(pixels.length > 0, `${sheet} frame ${i} has painted feet`);
+      const back = Math.min(...pixels), front = Math.max(...pixels);
+      assert.ok(front - back <= 40, `${sheet} frame ${i}: ${front - back}px foot reach becomes an exaggerated boot step`);
+      return { back, front, support: s.oy };
     });
-    assert.ok(Math.max(...tips) - Math.min(...tips) >= 15, `${sheet} must still stride`);
-    const directions = tips.map((x, i) => tips[(i + 1) % tips.length] - x).filter((d) => Math.abs(d) > 1).map(Math.sign);
-    const turns = directions.filter((d, i) => d !== directions[(i + 1) % directions.length]).length;
-    assert.equal(turns, 2, `${sheet} reverses the foot ${turns} times in one stride`);
+    assert.equal(new Set(feet.map((f) => f.support)).size, 1, `${sheet} keeps its supporting paws on the same road row`);
+    for (const start of [0, 4]) {
+      const step = feet.slice(start, start + 4);
+      const travel = (part) => Math.max(...step.map((f) => f[part])) - Math.min(...step.map((f) => f[part]));
+      assert.ok(travel('front') >= 6, `${sheet} step ${start / 4 + 1} advances and recovers its forward foot`);
+      assert.ok(travel('back') >= 3, `${sheet} step ${start / 4 + 1} moves its trailing foot too`);
+      assert.ok(Math.min(step[1].front, step[2].front) <= Math.min(step[0].front, step[3].front) - 4,
+        `${sheet} step ${start / 4 + 1} retracts between its contact poses`);
+    }
   }
 });
