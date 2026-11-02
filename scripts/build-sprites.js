@@ -39,12 +39,10 @@ const DRESSED = [
   ['fox/hop', 'hop-snow', 'fox/walk12-snow', every(8)],
   ['fox/hop', 'hop-rain', 'fox/walk12-rain', every(8)],
 ];
-// Walking: each painted frame keeps its own legs and swinging near arm, and everything
-// else (head, torso, bag, tail) is the master frame's pixels, moved with the frame's own
-// head. The painted bob survives; the redrawn fur, bag and tail that flickered do not.
+// Walking: each painted pose keeps its own body, tail and bag, so the fox stays alive;
+// only the face is shared (HEADS). The poses are then laid out as one two-step cycle.
 const WALKING = /^fox\/walk12/;
 const LEGS = 19; // rows above the floor that belong to the legs; the tail starts above them
-const ARM = { x0: 19, x1: 40, h0: 20, h1: 38 }; // the near arm, from the cell centre and floor
 
 function load(name) {
   const file = `${ROOT}${name}.png`;
@@ -195,7 +193,6 @@ function cut(name, [cols, rows, f], dress) {
   if (HEADS[name]) lockHeads(grids, HEADS[name], f, name);
   let walk = null;
   if (WALKING.test(name)) {
-    composeWalk(grids);
     ({ grids, walk } = walkCycle(grids));
   }
   if (dress) for (const i of dress.frames) wear(grids[i], heads[dress.head]);
@@ -313,115 +310,69 @@ function floorRow(g) {
   return g.H - 1;
 }
 
-/** Rebuild every walking frame from the master's upper body and the frame's own legs and arm. */
-function composeWalk(grids) {
-  const m = grids[0];
-  for (const g of grids.slice(1)) {
-    const { dx, dy } = g.head ?? { dx: 0, dy: 0 };
-    const floor = floorRow(g);
-    const cx = Math.floor(g.W / 2);
-    const out = new Int32Array(g.W * g.H).fill(-1);
-    for (let y = 0; y < g.H; y++) {
-      for (let x = 0; x < g.W; x++) {
-        const h = floor - y;
-        const xc = x - cx;
-        const own = g.grid[y * g.W + x];
-        const mx = x - dx + Math.floor(m.W / 2) - cx;
-        const my = y - dy;
-        const mine = mx >= 0 && my >= 0 && mx < m.W && my < m.H ? m.grid[my * m.W + mx] : -1;
-        const legs = h < LEGS;
-        const arm = xc >= ARM.x0 && xc <= ARM.x1 && h >= ARM.h0 && h <= ARM.h1;
-        // Where the body lifted off its legs, the frame's own hip fills the gap.
-        const seam = h < LEGS + 3 && mine < 0 && xc > -14;
-        out[y * g.W + x] = legs || arm || seam ? own : mine;
-      }
-    }
-    g.grid = out;
-  }
-}
-
 const rgbOf = (c) => [c >> 16, (c >> 8) & 255, c & 255];
 const pack = ([r, g, b]) => (r << 16) | (g << 8) | b;
 const isInk = (c) => { const [r, g, b] = rgbOf(c); return r * 0.3 + g * 0.56 + b * 0.14 < 22; };
 const isOrange = (c) => { const [r, g] = rgbOf(c); return r > 160 && g > 45; }; // the far leg never goes above 146 red
 const isDark = (c) => c >= 0 && !isInk(c) && !isOrange(c);
-const NEAR_THIGH = { light: 0xf0601b, mid: 0xe75516, shade: 0xd74408 };
-const FAR_LEG = { light: 0x8b2502, mid: 0x662100 };
-const BOOT = 0x751f00;
+
+const nearFur = (c) => { const [r, g] = rgbOf(c); return r >= 0xd0 && g >= 0x30; };
+const farFur = (c) => { const r = rgbOf(c)[0]; return r >= 0x80 && r < 0xd0; };
+const KNEE = 10; // rows above a leg's lowest pixel where its thigh begins
 
 /**
- * Which leg each leg pixel belongs to. The near leg is the one with an orange thigh;
- * its boot is the dark run directly under that thigh. Everything else dark is the far leg.
+ * Which leg each leg pixel belongs to: 1 near, 2 far. The near thigh is bright orange
+ * and the far hip a duller red; below them both legs are the same dark brown. Each
+ * dark pixel joins whichever leg reaches it first, spreading inside the outlines.
  */
 function legOwners(g, floor) {
-  const owner = new Int8Array(g.W * g.H); // 1 near, 2 far
-  for (let x = 0; x < g.W; x++) {
-    let below = 0; // what the last coloured run belonged to, scanning down the column
-    for (let y = floor - LEGS + 1; y <= floor; y++) {
-      const c = g.grid[y * g.W + x];
-      if (c < 0) { below = 0; continue; }
-      if (isOrange(c)) { owner[y * g.W + x] = 1; below = 1; }
-      else if (isInk(c)) owner[y * g.W + x] = below || 0;
-      else { owner[y * g.W + x] = below === 1 ? 1 : 2; if (below !== 1) below = 2; }
-    }
-  }
-  // A boot's toe reaches forward past its own shin; it still belongs to that boot.
-  for (let y = floor - LEGS + 1; y <= floor; y++) {
-    for (let x = 1; x < g.W; x++) {
+  const owner = new Int8Array(g.W * g.H);
+  const top = floor - LEGS + 1;
+  const solid = (i) => g.grid[i] >= 0 && !isInk(g.grid[i]);
+  let queue = [];
+  for (let y = top; y <= floor; y++) {
+    for (let x = 0; x < g.W; x++) {
       const i = y * g.W + x;
-      if (owner[i] === 2 && owner[i - 1] === 1 && isDark(g.grid[i - 1]) && isDark(g.grid[i])) owner[i] = 1;
+      if (!solid(i)) continue;
+      if (nearFur(g.grid[i])) owner[i] = 1;
+      else if (farFur(g.grid[i])) owner[i] = 2;
+      if (owner[i]) queue.push(i);
     }
   }
-  // The far leg is one connected shape. Small dark scraps elsewhere are the near boot's heel.
-  const label = new Int32Array(g.W * g.H).fill(-1);
-  const sizes = [];
-  for (let i = 0; i < owner.length; i++) {
-    if (owner[i] !== 2 || label[i] >= 0 || isInk(g.grid[i])) continue;
-    const id = sizes.length;
-    const stack = [i];
-    label[i] = id;
-    let n = 0;
-    while (stack.length) {
-      const p = stack.pop();
-      n++;
-      const x = p % g.W;
+  while (queue.length) {
+    const next = [];
+    for (const p of queue) {
+      const px = p % g.W;
       for (const q of [p - 1, p + 1, p - g.W, p + g.W]) {
-        if (q < 0 || q >= owner.length || Math.abs((q % g.W) - x) > 1) continue;
-        if (owner[q] === 2 && label[q] < 0 && !isInk(g.grid[q])) { label[q] = id; stack.push(q); }
+        const qy = Math.floor(q / g.W);
+        if (q < 0 || qy < top || qy > floor || Math.abs((q % g.W) - px) > 1) continue;
+        if (!owner[q] && solid(q)) { owner[q] = owner[p]; next.push(q); }
       }
     }
-    sizes.push(n);
+    queue = next;
   }
-  const far = sizes.indexOf(Math.max(...sizes));
-  for (let i = 0; i < owner.length; i++) if (label[i] >= 0 && label[i] !== far) owner[i] = 1;
   return owner;
 }
 
-/** The same pose with the other leg leading: near and far legs trade their shading. */
-function swapLegs(g) {
+/** Each leg's lowest row, so its shin and boot can be told from its thigh. */
+function legFloors(owner, g, floor) {
+  const low = [0, -1, -1];
+  for (let y = floor - LEGS + 1; y <= floor; y++) for (let x = 0; x < g.W; x++) { const o = owner[y * g.W + x]; if (o) low[o] = y; }
+  return low;
+}
+
+/** How much thigh each leg shows: a pose whose two legs cannot be told apart is not used. */
+function legSizes(g) {
   const floor = floorRow(g);
   const owner = legOwners(g, floor);
-  const out = { ...g, grid: Int32Array.from(g.grid) };
-  // The far leg's boot is the part of it near its foot: its lowest pixels, lifted or not.
-  let footY = -1, footX = 0, n = 0;
-  for (let y = floor; y > floor - LEGS && footY < 0; y--) for (let x = 0; x < g.W; x++) if (owner[y * g.W + x] === 2 && !isInk(g.grid[y * g.W + x])) footY = y;
-  for (let x = 0; x < g.W; x++) for (let y = footY; y > footY - 3; y--) if (y >= 0 && owner[y * g.W + x] === 2) { footX += x; n++; }
-  footX = n ? footX / n : 0;
-  const isBoot = (x, y) => footY - y < 8 && Math.abs(x - footX) < 11;
-  for (let y = floor - LEGS + 1; y <= floor; y++) {
-    for (let x = 0; x < g.W; x++) {
-      const i = y * g.W + x;
-      const c = g.grid[i];
-      if (c < 0 || isInk(c)) continue;
-      const [r] = rgbOf(c);
-      if (owner[i] === 1 && isOrange(c)) out.grid[i] = r >= 0xee ? FAR_LEG.light : FAR_LEG.mid;
-      else if (owner[i] === 2) {
-        const boot = isBoot(x, y);
-        out.grid[i] = boot ? BOOT : r >= 0x88 ? NEAR_THIGH.light : r >= 0x6a ? NEAR_THIGH.shade : NEAR_THIGH.mid;
-      }
-    }
+  const low = legFloors(owner, g, floor);
+  let near = 0, far = 0;
+  for (let i = 0; i < owner.length; i++) {
+    const y = Math.floor(i / g.W);
+    if (owner[i] === 1 && low[1] - y >= KNEE) near++;
+    else if (owner[i] === 2 && low[2] - y >= KNEE) far++;
   }
-  return out;
+  return { near, far };
 }
 
 /** The planted foot of a pose: its heel's column, and whether it is the near leg. */
@@ -439,24 +390,25 @@ function plantOf(g) {
   const foot = runs.filter((r) => r.b - r.a >= 3).at(-1); // the front foot carries the weight
   if (!foot) return null;
   let near = 0, far = 0;
-  for (let y = floor - 14; y <= floor - 5; y++) for (let x = foot.a; x <= foot.b; x++) {
+  for (let y = floor - 8; y <= floor; y++) for (let x = foot.a; x <= foot.b; x++) {
     const o = owner[y * g.W + x];
-    if (o === 1 && isOrange(g.grid[y * g.W + x])) near++;
+    if (o === 1) near++;
     else if (o === 2) far++;
   }
   return { heel: foot.a - cx, near: near >= far };
 }
 
 /**
- * Lay the poses out as one two-step cycle. Each pose is placed by where its planted
- * heel sits, so stepping through them by ground distance keeps that foot fixed on the
- * road. The second step is the first with the legs swapped.
+ * Lay the poses out as a step. Each pose is placed by where its planted heel sits, so
+ * stepping through them by ground distance keeps that foot fixed on the road. The
+ * painted legs are used as they are: recolouring them to swap legs left stripes and
+ * dark legs. Both steps of the cycle use the same poses.
  */
 function walkCycle(grids, k = 7) {
-  const samples = grids.map((g) => ({ g, plant: plantOf(g) })).filter((s) => s.plant)
-    .map(({ g, plant }, i) => ({ heel: plant.heel, near: plant.near, i, lead: plant.near ? g : swapLegs(g) }));
+  const clean = (g) => { const { near, far } = legSizes(g); return near >= 25 && far >= 25; };
+  const samples = grids.map((g) => ({ g, plant: plantOf(g) })).filter((s) => s.plant && clean(s.g))
+    .map(({ g, plant }, i) => ({ g, heel: plant.heel, near: plant.near, i }));
   samples.sort((p, q) => q.heel - p.heel);
-  if (process.env.WALK_DEBUG) console.log('heels', samples.map((s) => `f${s.i}:${s.heel}${s.near ? 'n' : 'f'}`).join(' '));
   const hi = samples[0].heel;
   const lo = samples.at(-1).heel;
   const chosen = [];
@@ -468,7 +420,7 @@ function walkCycle(grids, k = 7) {
   chosen.sort((p, q) => q.heel - p.heel);
   const half = ((hi - lo) * k) / (k - 1);
   const steps = chosen.map((s) => hi - s.heel);
-  return { grids: [...chosen.map((s) => s.lead), ...chosen.map((s) => swapLegs(s.lead))], walk: { stride: half * 2, steps } };
+  return { grids: [...chosen.map((s) => s.g), ...chosen.map((s) => s.g)], walk: { stride: half * 2, steps } };
 }
 
 let walkHead = null;
