@@ -114,10 +114,10 @@ Project-specific rules. The shared global instructions still apply.
   repeated-wrap regression and verify served YouTube audio against the source;
   encoder liveness alone does not prove clean playback.
 - A timestamp discontinuity at a programme wrap gave FFmpeg different offsets for
-  audio and video, 26.5 hours apart, and the broadcast sounded broken from then on.
-  Treat any `timestamp discontinuity` line in the relay journal as an incident.
-  The relay needs real headroom: at 128 MB and 50% CPU it hit the memory limit
-  79,344 times and was throttled 811 times, and every stall is a gap in the ingest.
+  audio and video, 26.5 hours apart. It is the likely cause of the broken sound of
+  2026-11-01, not a proven one. Treat any `timestamp discontinuity` line in the relay
+  journal as an incident. `memory.events` counts file cache filling the limit too, so
+  its `max` line alone is not evidence of memory pressure; check `oom_kill`.
 - Prime the PCM input before waiting on video at encoder startup. FFmpeg 7
   can otherwise deadlock on Linux socket buffers during stream discovery.
   Drain waits must remove their close handlers; racing a pending lifetime
