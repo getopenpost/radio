@@ -504,7 +504,7 @@ const SAIL_FROM = -3; // left of this the fox sits; right of it is rig
 const SAIL_MAST = 22;
 out.sheets.moored = { family: 'actor', sprites: [
   stillParts(out.sheets.row.sprites, 4, (c, x, y) => y >= ROW_RIM || Math.abs(x) > 44),
-  stillParts(out.sheets.sail.sprites.slice(0, 1), 1, (c, x, y) => y >= SAIL_RIM || x >= SAIL_MAST || (y >= SAIL_RIM - 7 && x < -56) || (x >= SAIL_MAST + (SAIL_FROM - SAIL_MAST) * (y + 135) / 103 && luma0(c) > 170)),
+  stillParts(out.sheets.sail.sprites.slice(0, 1), 1, (c, x, y) => (y >= SAIL_RIM && !(y < SAIL_RIM + 7 && orange(c))) || x >= SAIL_MAST || (x >= SAIL_MAST + (SAIL_FROM - SAIL_MAST) * (y + 135) / 103 && luma0(c) > 170)),
 ] };
 out.sheets.rails = { family: 'actor', sprites: [railsOf(out.sheets.dip.sprites)] };
 families.actor.push(...out.sheets.moored.sprites, ...out.sheets.rails.sprites);

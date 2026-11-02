@@ -144,6 +144,28 @@ test('the chip eases to a new width and settles on the new title', async () => {
   assert.ok(createChipText(3).draw({ text: 'Long Shoreline · 100% house', old: null, t: 9 }).some((v) => v > 200), 'the title has ink');
 });
 
+test('the far land never ends in a straight vertical step', () => {
+  const land = createLandscape();
+  const canvas = createCanvas();
+  for (const place of ['sail', 'coast', 'row', 'lake']) {
+    const event = findPlace(place, 5e8);
+    for (let g = event.a - 9000; g <= event.a + 9000; g += 1500) {
+      canvas.index.fill(CLEAR);
+      land.draw(canvas, 0, g);
+      const base = (x) => {
+        let y = HEIGHT - 1;
+        while (y > 0 && canvas.index[y * WIDTH + x] === CLEAR) y--;
+        return y;
+      };
+      // An empty column is open water: the land has tapered away, which is fine.
+      for (let x = 1; x < WIDTH; x++) {
+        const [a, b] = [base(x - 1), base(x)];
+        if (a && b) assert.ok(Math.abs(a - b) < 12, `${place} at ${g}, column ${x}: ${a} to ${b}`);
+      }
+    }
+  }
+});
+
 test('no land hangs in the air at the joins between plates', () => {
   const land = createLandscape();
   const canvas = createCanvas();

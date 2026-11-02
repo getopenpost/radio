@@ -226,8 +226,9 @@ function paintHills(layer, chunk) {
     shift: (u, d) => Math.round(geography(d).sea * 240),
     cut(u, d) {
       const g = geography(d);
-      if (g.sea > 0.02) return HORIZON + 4;
-      return g.lake > 0.02 ? Math.round(318 + (232 + fbm(u / 40, 14) * 12 - 318) * Math.min(1, g.lake * 1.4)) : 318;
+      const lake = g.lake > 0.02 ? 318 + (232 + fbm(u / 40, 14) * 12 - 318) * Math.min(1, g.lake * 1.4) : 318;
+      // The land eases back to the horizon as the sea opens up, so it never ends in a step.
+      return Math.round(lake + (HORIZON + 4 - lake) * Math.min(1, g.sea * 1.4));
     },
   });
 }
