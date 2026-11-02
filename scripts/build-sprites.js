@@ -36,6 +36,8 @@ const BARRED = new Set(['fox/pullup', 'fox/dip']);
 // Costumes follow the same painted body and supporting paws. A newly generated
 // outfit must never introduce a different gait or lose the body's rise and fall.
 const DRESSED = [
+  // The raincoat walks on the plain fox's poses: its own painted poses walked worse.
+  ['fox/walk12', 'walk12-rain', 'fox/walk12-rain:coat', every(14)],
   ['fox/hop', 'hop-snow', 'fox/walk12-snow', every(8)],
   ['fox/hop', 'hop-rain', 'fox/walk12-rain', every(8)],
 ];
@@ -428,6 +430,23 @@ const heads = {};
 function lockHeads(grids, { master, box, frames }, f, name) {
   const patch = patchOf(grids[master], box, f);
   heads[name] = patch;
+  // The raincoat's cape goes on with its hood: every yellow pixel of the master pose
+  // and the outline around it, carried by the head.
+  if (name === 'fox/walk12-rain') {
+    const m = grids[master];
+    const yellow = (c) => { const [r, g, b] = rgbOf(c); return r > 200 && g > 140 && b < 120; };
+    const cells = new Map(patch.cells.map((p) => [p.y * m.W + p.x, p]));
+    for (let y = 0; y < m.H; y++) for (let x = 0; x < m.W; x++) {
+      const c = m.grid[y * m.W + x];
+      if (c < 0 || !yellow(c)) continue;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const q = (y + dy) * m.W + x + dx;
+        const v = m.grid[q];
+        if (v >= 0 && (dx === 0 && dy === 0 || isInk(v) || yellow(v))) cells.set(q, { x: x + dx, y: y + dy, c: v });
+      }
+    }
+    heads['fox/walk12-rain:coat'] = { cells: [...cells.values()], nose: noseOf(patch.cells) };
+  }
   if (box === HEADS['fox/walk12'].box) walkHead = patch;
   for (const i of frames) {
     if (i === master) continue;
@@ -457,7 +476,7 @@ function wear(g, head) {
   for (let y = 0; y < g.H; y++) for (let x = 0; x < g.W; x++) if (g.grid[y * g.W + x] >= 0) list.push({ x, y });
   if (!list.length) return;
   const at = noseOf(list, 44);
-  const from = noseOf(head.cells);
+  const from = head.nose ?? noseOf(head.cells);
   // The bare ears stop at the top of the new head, or they stand up behind the hat.
   const left = Math.min(...head.cells.map((p) => p.x)) + at.x - from.x;
   for (const p of list) if (p.y <= at.y && p.x >= left) g.grid[p.y * g.W + p.x] = -1;
@@ -675,8 +694,8 @@ out.sheets.moored = { family: 'actor', sprites: [
 out.sheets.rails = { family: 'actor', sprites: [railsOf(out.sheets.dip.sprites)] };
 families.actor.push(...out.sheets.moored.sprites, ...out.sheets.rails.sprites);
 for (const [from, short, head, frames] of DRESSED) {
-  const { sprites } = cut(from, SHEETS[from], { head, frames });
-  out.sheets[short] = { family: 'actor', sprites };
+  const { sprites, walk } = cut(from, SHEETS[from], { head, frames });
+  out.sheets[short] = walk ? { family: 'actor', sprites, walk } : { family: 'actor', sprites };
   families.actor.push(...sprites);
 }
 const sizes = { world: 150, actor: 56 };

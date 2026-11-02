@@ -140,7 +140,9 @@ Project-specific rules. The shared global instructions still apply.
   painted body, tail and bag, which is the walk's life; only the face is shared
   (`HEADS`). Freezing the body to one pose made the fox look dead, recolouring legs
   to fake the other leg leading left stripes and fully dark legs, and a fully
-  repainted cycle (`walk8`) lost the fox's face. All three were rejected.
+  repainted cycle (`walk8`) lost the fox's face. All three were rejected. The raincoat
+  walks on the plain fox's poses with its hood and cape laid over them (`DRESSED`),
+  because its own painted poses walked worse.
 - `build-sprites.js` flattens painted fur (`flatten`): mottling lands somewhere else on
   every frame and reads as flicker. Keying must not touch reds: the broom scarf once
   vanished because the magenta test matched it.
