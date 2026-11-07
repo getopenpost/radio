@@ -1,0 +1,26 @@
+{
+  "sourceOffset": 2485.478,
+  "match": 0.9997428228983856,
+  "windows": [
+    {
+      "captureSeconds": 2,
+      "correlation": 0.9996859573891012
+    },
+    {
+      "captureSeconds": 7,
+      "correlation": 0.9997172401677193
+    },
+    {
+      "captureSeconds": 12,
+      "correlation": 0.9997245270498274
+    },
+    {
+      "captureSeconds": 17,
+      "correlation": 0.9998187268669435
+    },
+    {
+      "captureSeconds": 22,
+      "correlation": 0.9996166126025291
+    }
+  ]
+}
